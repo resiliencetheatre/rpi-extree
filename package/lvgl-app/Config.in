@@ -1,0 +1,2 @@
+config BR2_PACKAGE_LVGL_APP
+    bool "lvgl-app"

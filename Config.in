@@ -1,0 +1,2 @@
+source "$BR2_EXTERNAL_rpi_PATH/package/lvgl-demo/Config.in"
+source "$BR2_EXTERNAL_rpi_PATH/package/lvgl-app/Config.in"
