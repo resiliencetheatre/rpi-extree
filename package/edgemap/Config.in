@@ -1,0 +1,4 @@
+config BR2_PACKAGE_EDGEMAP
+    bool "edgemap"
+    help
+      Installs edgemap web assets under /opt/edgemap.
