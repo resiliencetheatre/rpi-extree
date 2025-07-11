@@ -1,6 +1,13 @@
-# External buildroot tree's for RaspberryPi 
+# External Buildroot Trees for Raspberry Pi
 
-Unifying buildroot external trees for different hardware models and images.
+This project aims to unify external Buildroot trees for various Raspberry 
+Pi hardware models and images. It is a work in progress designed to 
+streamline the build environment across Edgemap and other related projects.
+
+By consolidating configurations into a single, flexible environment, 
+users can easily select the desired hardware targets and components for 
+their builds. This approach leverages the official Raspberry Pi Foundation 
+Linux kernel, ensuring compatibility and access to the latest kernel updates.
 
 ## Front-Deployed Development
 
