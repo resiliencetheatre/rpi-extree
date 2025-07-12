@@ -36,13 +36,26 @@ raspberrypicm4io_64_defconfig
 raspberrypizero2w_64_defconfig
 ```
 
-## Kernel config
+## Linux kernel
 
 You can store and use custom kernel config with:
 
 ```
 BR2_LINUX_KERNEL_CUSTOM_CONFIG_FILE="${BR2_EXTERNAL}/configs/kernel/bcm2711_defconfig"
 ```
+
+To update kernel version on all raspberry pi defconfigs:
+
+```
+# Clone
+git clone https://github.com/raspberrypi/linux.git
+# Get latest commit ID
+git log
+# Use update script
+utils/update_defconfig_commit.sh 4421ed134f9f03351a4a26293a29f009b8fff725
+```
+
+Remember to add kernel hash into `linux/linux.hash` under buildroot directory. 
 
 ## Filesystem overlays
 
