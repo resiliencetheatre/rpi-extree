@@ -28,7 +28,9 @@ site comes under stress, surveillance, or physical threat.
 ## Buildroot
 
 Check [buildroot manual](https://buildroot.org/downloads/manual/manual.html) and install mandatory packages
-to your build host before building this project.
+to your build host before building this project. Cross compilation of Raspberry Pi 5 image on Intel Core i5-8365U 
+laptop takes almost 4 hours. Using dedicated build host with fast disk, lot's of RAM and powerful CPU drops this
+time significantly. See equipments list above.
 
 Baseline configurations are:
 
