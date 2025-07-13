@@ -25,7 +25,10 @@ site comes under stress, surveillance, or physical threat.
 - [Panasonic FZ-55 development laptop](https://ruggedbooks.com/products/toughbook-fz-55-mk3-intel-core-i5-1345u-14-hd-16gb-512gb-ssd-windows-11-pro)
 - [Debian](https://www.debian.org/distrib/)
 
-## Buildroot configurations
+## Buildroot
+
+Check [buildroot manual](https://buildroot.org/downloads/manual/manual.html) and install mandatory packages
+to your build host before building this project.
 
 Baseline configurations are:
 
@@ -36,15 +39,33 @@ raspberrypicm4io_64_defconfig
 raspberrypizero2w_64_defconfig
 ```
 
+### Edgemap
+
+Build Edgemap project to Raspberry Pi 5:
+
+```
+mkdir ~/build
+cd ~/build
+git clone https://gitlab.com/buildroot.org/buildroot.git
+git clone https://codeberg.org/resiliencetheatre/rpi-extree.git
+export BR2_EXTERNAL=~/build/rpi-extree
+cd ~/build/buildroot
+make raspberrypi5_edgemap_defconfig
+make
+```
+
+Please note that this is still work in progress. If you like to
+get working Edgemap, use [Edgemap](https://github.com/resiliencetheatre/rpi4edgemap) from Github.
+
 ## Linux kernel
 
-You can store and use custom kernel config with:
+You can store and use custom kernel config:
 
 ```
 BR2_LINUX_KERNEL_CUSTOM_CONFIG_FILE="${BR2_EXTERNAL}/configs/kernel/bcm2711_defconfig"
 ```
 
-To update kernel version on all raspberry pi defconfigs:
+Update kernel version on all raspberry pi defconfigs:
 
 ```
 # Clone
@@ -59,7 +80,7 @@ Remember to add kernel hash into `linux/linux.hash` under buildroot directory.
 
 ## Filesystem overlays
 
-By default filesystem overlay is defined to:
+Default filesystem overlay is defined:
 
 ```
 BR2_ROOTFS_OVERLAY="${BR2_EXTERNAL}/fs_overlay/fs_base"
