@@ -1,0 +1,13 @@
+[Unit]
+Description=macpipe
+After=multi-user.target
+Before=lvgl-all.service
+
+[Service]
+WorkingDirectory=/opt/macpipe
+Type=simple
+ExecStart=/bin/python3 macpipe.py
+
+[Install]
+WantedBy=multi-user.target
+
