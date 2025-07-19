@@ -207,7 +207,7 @@ void lv_demo_widgets(void)
         lv_obj_align_to(label, logo, LV_ALIGN_OUT_RIGHT_TOP, 10, 0);
 
         label = lv_label_create(tab_bar);
-        lv_label_set_text(label, "Widgets demo");
+        lv_label_set_text(label, "Widgets demo 2025");
         lv_obj_add_flag(label, LV_OBJ_FLAG_IGNORE_LAYOUT);
         lv_obj_add_style(label, &style_text_muted, 0);
         lv_obj_align_to(label, logo, LV_ALIGN_OUT_RIGHT_BOTTOM, 10, 0);

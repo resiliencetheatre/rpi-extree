@@ -91,3 +91,19 @@ BR2_ROOTFS_OVERLAY="${BR2_EXTERNAL}/fs_overlay/fs_base"
 You may change this based on your build.
 
 
+# Displays
+
+To get lvgl working with various display, check these out:
+
+## Hyperpixel4
+
+This was tested with Raspberry Pi 5 and Hyperpixel 4 display.
+
+```
+# Disable this when using hyperpixel4
+enable_uart=0
+
+# Enable DRM VC4 V3D driver
+dtoverlay=vc4-kms-dpi-hyperpixel4
+```
+

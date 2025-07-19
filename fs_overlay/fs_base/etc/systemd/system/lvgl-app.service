@@ -1,0 +1,15 @@
+[Unit]
+Description=lvgl application
+After=multi-user.target
+
+[Service]
+WorkingDirectory=/opt/lvgl
+Type=simple
+ExecStartPre=sh -c "echo 0 > /sys/class/vtconsole/vtcon1/bind"
+ExecStart=/usr/bin/lvgl-app
+Restart=always
+RestartSec=5
+
+
+[Install]
+WantedBy=multi-user.target

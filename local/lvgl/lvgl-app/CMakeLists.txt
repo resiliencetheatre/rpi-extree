@@ -93,7 +93,8 @@ else()
     add_executable(lvgl-app
         main.c
         mouse_cursor_icon.c
-        demo_app.c
+        mini.c
+        log.c
         lvgl/src/drivers/evdev/lv_evdev.c
     )
 
@@ -104,8 +105,8 @@ else()
 
     target_link_libraries(lvgl-app
         lvgl
-        lvgl::examples
-        lvgl::demos
+        #lvgl::examples
+        #lvgl::demos
         lvgl::thorvg
         m
         pthread
