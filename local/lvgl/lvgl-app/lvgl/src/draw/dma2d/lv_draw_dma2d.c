@@ -64,11 +64,13 @@ void lv_draw_dma2d_init(void)
     draw_dma2d_unit->base_unit.evaluate_cb = evaluate_cb;
     draw_dma2d_unit->base_unit.dispatch_cb = dispatch_cb;
     draw_dma2d_unit->base_unit.delete_cb = delete_cb;
+    draw_dma2d_unit->base_unit.name = "DMA2D";
 
 #if LV_DRAW_DMA2D_ASYNC
     g_unit = draw_dma2d_unit;
 
-    lv_result_t res = lv_thread_init(&draw_dma2d_unit->thread, LV_THREAD_PRIO_HIGH, thread_cb, 2 * 1024, draw_dma2d_unit);
+    lv_result_t res = lv_thread_init(&draw_dma2d_unit->thread, "dma2d", LV_DRAW_THREAD_PRIO, thread_cb, 2 * 1024,
+                                     draw_dma2d_unit);
     LV_ASSERT(res == LV_RESULT_OK);
 #endif
 
@@ -77,6 +79,8 @@ void lv_draw_dma2d_init(void)
     RCC->AHB1ENR |= RCC_AHB1ENR_DMA2DEN;
 #elif defined(STM32H7)
     RCC->AHB3ENR |= RCC_AHB3ENR_DMA2DEN;
+#elif defined(STM32H7RS)
+    RCC->AHB5ENR |= RCC_AHB5ENR_DMA2DEN;
 #else
 #warning "LVGL can't enable the clock for DMA2D"
 #endif
@@ -98,6 +102,8 @@ void lv_draw_dma2d_deinit(void)
     RCC->AHB1ENR &= ~RCC_AHB1ENR_DMA2DEN;
 #elif defined(STM32H7)
     RCC->AHB3ENR &= ~RCC_AHB3ENR_DMA2DEN;
+#elif defined(STM32H7RS)
+    RCC->AHB5ENR &= ~RCC_AHB5ENR_DMA2DEN;
 #endif
 
 #if LV_DRAW_DMA2D_ASYNC
@@ -130,12 +136,15 @@ lv_draw_dma2d_output_cf_t lv_draw_dma2d_cf_to_dma2d_output_cf(lv_color_format_t 
             return LV_DRAW_DMA2D_OUTPUT_CF_RGB888;
         case LV_COLOR_FORMAT_RGB565:
             return LV_DRAW_DMA2D_OUTPUT_CF_RGB565;
+        case LV_COLOR_FORMAT_ARGB1555:
+            return LV_DRAW_DMA2D_OUTPUT_CF_ARGB1555;
         default:
             LV_ASSERT_MSG(false, "unsupported output color format");
     }
+    return LV_DRAW_DMA2D_OUTPUT_CF_RGB565;
 }
 
-uint32_t lv_draw_dma2d_color_to_dma2d_ocolr(lv_draw_dma2d_output_cf_t cf, lv_color_t color)
+uint32_t lv_draw_dma2d_color_to_dma2d_color(lv_draw_dma2d_output_cf_t cf, lv_color_t color)
 {
     switch(cf) {
         case LV_DRAW_DMA2D_OUTPUT_CF_ARGB8888:
@@ -146,6 +155,7 @@ uint32_t lv_draw_dma2d_color_to_dma2d_ocolr(lv_draw_dma2d_output_cf_t cf, lv_col
         default:
             LV_ASSERT_MSG(false, "unsupported output color format");
     }
+    return 0;
 }
 
 void lv_draw_dma2d_configure_and_start_transfer(const lv_draw_dma2d_configuration_t * conf)
@@ -291,7 +301,8 @@ static int32_t evaluate_cb(lv_draw_unit_t * draw_unit, lv_draw_task_t * task)
             break;
         case LV_DRAW_TASK_TYPE_IMAGE: {
                 lv_draw_image_dsc_t * dsc = task->draw_dsc;
-                if(!(dsc->clip_radius == 0
+                if(!(dsc->header.cf < LV_COLOR_FORMAT_PROPRIETARY_START
+                     && dsc->clip_radius == 0
                      && dsc->bitmap_mask_src == NULL
                      && dsc->sup == NULL
                      && dsc->tile == 0
@@ -306,7 +317,8 @@ static int32_t evaluate_cb(lv_draw_unit_t * draw_unit, lv_draw_task_t * task)
                      && (dsc->header.cf == LV_COLOR_FORMAT_ARGB8888
                          || dsc->header.cf == LV_COLOR_FORMAT_XRGB8888
                          || dsc->header.cf == LV_COLOR_FORMAT_RGB888
-                         || dsc->header.cf == LV_COLOR_FORMAT_RGB565)
+                         || dsc->header.cf == LV_COLOR_FORMAT_RGB565
+                         || dsc->header.cf == LV_COLOR_FORMAT_ARGB1555)
                      && (dsc->base.layer->color_format == LV_COLOR_FORMAT_ARGB8888
                          || dsc->base.layer->color_format == LV_COLOR_FORMAT_XRGB8888
                          || dsc->base.layer->color_format == LV_COLOR_FORMAT_RGB888
@@ -341,7 +353,7 @@ static int32_t dispatch_cb(lv_draw_unit_t * draw_unit, lv_layer_t * layer)
 #endif
     }
 
-    lv_draw_task_t * t = lv_draw_get_next_available_task(layer, NULL, DRAW_UNIT_ID_DMA2D);
+    lv_draw_task_t * t = lv_draw_get_available_task(layer, NULL, DRAW_UNIT_ID_DMA2D);
     if(t == NULL) {
         return LV_DRAW_UNIT_IDLE;
     }
@@ -352,15 +364,14 @@ static int32_t dispatch_cb(lv_draw_unit_t * draw_unit, lv_layer_t * layer)
     }
 
     t->state = LV_DRAW_TASK_STATE_IN_PROGRESS;
-    draw_dma2d_unit->base_unit.target_layer = layer;
-    draw_dma2d_unit->base_unit.clip_area = &t->clip_area;
+    t->draw_unit = draw_unit;
     draw_dma2d_unit->task_act = t;
 
     if(t->type == LV_DRAW_TASK_TYPE_FILL) {
         lv_draw_fill_dsc_t * dsc = t->draw_dsc;
         const lv_area_t * coords = &t->area;
         lv_area_t clipped_coords;
-        if(!lv_area_intersect(&clipped_coords, coords, draw_dma2d_unit->base_unit.clip_area)) {
+        if(!lv_area_intersect(&clipped_coords, coords, &t->clip_area)) {
             return LV_DRAW_UNIT_IDLE;
         }
 
@@ -369,14 +380,14 @@ static int32_t dispatch_cb(lv_draw_unit_t * draw_unit, lv_layer_t * layer)
                                              clipped_coords.y1 - layer->buf_area.y1);
 
         if(dsc->opa >= LV_OPA_MAX) {
-            lv_draw_dma2d_opaque_fill(draw_dma2d_unit,
+            lv_draw_dma2d_opaque_fill(t,
                                       dest,
                                       lv_area_get_width(&clipped_coords),
                                       lv_area_get_height(&clipped_coords),
                                       lv_draw_buf_width_to_stride(lv_area_get_width(&layer->buf_area), dsc->base.layer->color_format));
         }
         else {
-            lv_draw_dma2d_fill(draw_dma2d_unit,
+            lv_draw_dma2d_fill(t,
                                dest,
                                lv_area_get_width(&clipped_coords),
                                lv_area_get_height(&clipped_coords),
@@ -387,7 +398,7 @@ static int32_t dispatch_cb(lv_draw_unit_t * draw_unit, lv_layer_t * layer)
         lv_draw_image_dsc_t * dsc = t->draw_dsc;
         const lv_area_t * coords = &t->area;
         lv_area_t clipped_coords;
-        if(!lv_area_intersect(&clipped_coords, coords, draw_dma2d_unit->base_unit.clip_area)) {
+        if(!lv_area_intersect(&clipped_coords, coords, &t->clip_area)) {
             return LV_DRAW_UNIT_IDLE;
         }
 
@@ -397,14 +408,14 @@ static int32_t dispatch_cb(lv_draw_unit_t * draw_unit, lv_layer_t * layer)
 
         if(dsc->opa >= LV_OPA_MAX) {
             lv_draw_dma2d_opaque_image(
-                draw_dma2d_unit,
+                t,
                 dest,
                 &clipped_coords,
                 lv_draw_buf_width_to_stride(lv_area_get_width(&layer->buf_area), dsc->base.layer->color_format));
         }
         else {
             lv_draw_dma2d_image(
-                draw_dma2d_unit,
+                t,
                 dest,
                 &clipped_coords,
                 lv_draw_buf_width_to_stride(lv_area_get_width(&layer->buf_area), dsc->base.layer->color_format));

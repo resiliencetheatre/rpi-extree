@@ -25,7 +25,6 @@ extern "C" {
 #include "../misc/lv_profiler.h"
 #include "../misc/lv_matrix.h"
 #include "lv_image_decoder.h"
-#include "../osal/lv_os.h"
 #include "lv_draw_buf.h"
 
 /*********************
@@ -49,6 +48,7 @@ typedef enum {
     LV_DRAW_TASK_TYPE_FILL,
     LV_DRAW_TASK_TYPE_BORDER,
     LV_DRAW_TASK_TYPE_BOX_SHADOW,
+    LV_DRAW_TASK_TYPE_LETTER,
     LV_DRAW_TASK_TYPE_LABEL,
     LV_DRAW_TASK_TYPE_IMAGE,
     LV_DRAW_TASK_TYPE_LAYER,
@@ -57,7 +57,12 @@ typedef enum {
     LV_DRAW_TASK_TYPE_TRIANGLE,
     LV_DRAW_TASK_TYPE_MASK_RECTANGLE,
     LV_DRAW_TASK_TYPE_MASK_BITMAP,
+#if LV_USE_VECTOR_GRAPHIC
     LV_DRAW_TASK_TYPE_VECTOR,
+#endif
+#if LV_USE_3DTEXTURE
+    LV_DRAW_TASK_TYPE_3D,
+#endif
 } lv_draw_task_type_t;
 
 typedef enum {
@@ -98,6 +103,15 @@ struct _lv_layer_t  {
     lv_matrix_t matrix;
 #endif
 
+    /** Opacity of the layer */
+    lv_opa_t opa;
+
+    /*Recolor of the layer*/
+    lv_color32_t recolor;
+
+    /** Partial y offset */
+    int32_t partial_y_offset;
+
     /** Linked list of draw tasks */
     lv_draw_task_t * draw_task_head;
 
@@ -108,12 +122,25 @@ struct _lv_layer_t  {
 };
 
 typedef struct {
+    /**The widget for which draw descriptor was created */
     lv_obj_t * obj;
+
+    /**The widget part for which draw descriptor was created */
     lv_part_t part;
+
+    /**A widget type specific ID (e.g. table row index). See the docs of the given widget.*/
     uint32_t id1;
+
+    /**A widget type specific ID (e.g. table column index). See the docs of the given widget.*/
     uint32_t id2;
+
+    /**The target layer */
     lv_layer_t * layer;
+
+    /**Size of the specific draw descriptor into which this base descriptor is embedded*/
     size_t dsc_size;
+
+    /**Any custom user data*/
     void * user_data;
 } lv_draw_dsc_base_t;
 
@@ -145,7 +172,7 @@ void * lv_draw_create_unit(size_t size);
  * @return          the created draw task which needs to be
  *                  further configured e.g. by added a draw descriptor
  */
-lv_draw_task_t * lv_draw_add_task(lv_layer_t * layer, const lv_area_t * coords);
+lv_draw_task_t * lv_draw_add_task(lv_layer_t * layer, const lv_area_t * coords, lv_draw_task_type_t type);
 
 /**
  * Needs to be called when a draw task is created and configured.
@@ -193,11 +220,21 @@ void lv_draw_dispatch_request(void);
 uint32_t lv_draw_get_unit_count(void);
 
 /**
- * Find and available draw task
- * @param layer             the draw ctx to search in
+ * If there is only one draw unit check the first draw task if it's available.
+ * If there are multiple draw units call `lv_draw_get_next_available_task` to find a task.
+ * @param layer             the draw layer to search in
  * @param t_prev            continue searching from this task
  * @param draw_unit_id      check the task where `preferred_draw_unit_id` equals this value or `LV_DRAW_UNIT_NONE`
- * @return                  tan available draw task or NULL if there is no any
+ * @return                  an available draw task or NULL if there is not any
+ */
+lv_draw_task_t * lv_draw_get_available_task(lv_layer_t * layer, lv_draw_task_t * t_prev, uint8_t draw_unit_id);
+
+/**
+ * Find and available draw task
+ * @param layer             the draw layer to search in
+ * @param t_prev            continue searching from this task
+ * @param draw_unit_id      check the task where `preferred_draw_unit_id` equals this value or `LV_DRAW_UNIT_NONE`
+ * @return                  an available draw task or NULL if there is not any
  */
 lv_draw_task_t * lv_draw_get_next_available_task(lv_layer_t * layer, lv_draw_task_t * t_prev, uint8_t draw_unit_id);
 
@@ -210,6 +247,18 @@ lv_draw_task_t * lv_draw_get_next_available_task(lv_layer_t * layer, lv_draw_tas
  * @return          number of tasks depending on `t_check`
  */
 uint32_t lv_draw_get_dependent_count(lv_draw_task_t * t_check);
+
+/**
+ * Initialize a layer
+ * @param layer pointer to a layer to initialize
+ */
+void lv_layer_init(lv_layer_t * layer);
+
+/**
+ * Reset the layer to a drawable state
+ * @param layer pointer to a layer to reset
+ */
+void lv_layer_reset(lv_layer_t * layer);
 
 /**
  * Create (allocate) a new layer on a parent layer

@@ -96,6 +96,7 @@ else()
         mini.c
         log.c
         lvgl/src/drivers/evdev/lv_evdev.c
+        lvgl/src/stdlib/clib/lv_string_clib.c
     )
 
     target_include_directories(lvgl-app PRIVATE

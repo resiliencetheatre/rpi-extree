@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @file lv_mem.h
  *
  */
@@ -104,6 +104,16 @@ void lv_free(void * data);
  * @return pointer to the new memory, NULL on failure
  */
 void * lv_realloc(void * data_p, size_t new_size);
+
+/**
+ * Reallocate a memory with a new size. The old content will be kept.
+ * In case of failure, the old pointer is free'd.
+ * @param data_p pointer to an allocated memory.
+ *               Its content will be copied to the new memory block and freed
+ * @param new_size the desired new size in byte
+ * @return pointer to the new memory, NULL on failure
+ */
+void * lv_reallocf(void * data_p, size_t new_size);
 
 /**
  * Used internally to execute a plain `malloc` operation

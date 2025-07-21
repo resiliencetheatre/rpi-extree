@@ -47,7 +47,7 @@
 #include <sys/ioctl.h>
 #include <net/if.h>
 #include <arpa/inet.h>
-#include <ctype.h> 
+#include <ctype.h>
 #include <ifaddrs.h>
 #include <netinet/in.h>
 #include <sys/utsname.h>
@@ -59,6 +59,8 @@
 #include "lvgl/src/widgets/scale/lv_scale.h"
 #include "lvgl/src/widgets/line/lv_line.h"
 #include "lvgl/src/widgets/label/lv_label.h"
+#include "lvgl/src/stdlib/lv_string.h"
+
 
 #define FIFO_IN  "/tmp/fifo_in"
 #define FIFO_OUT "/tmp/fifo_out"
