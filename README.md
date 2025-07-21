@@ -97,7 +97,7 @@ To get lvgl working with various display, check these out:
 
 ## Hyperpixel4
 
-This was tested with Raspberry Pi 5 and Hyperpixel 4 display.
+Add config.txt for Raspberry Pi 5 and Hyperpixel 4 display:
 
 ```
 # Disable this when using hyperpixel4
@@ -105,5 +105,14 @@ enable_uart=0
 
 # Enable DRM VC4 V3D driver
 dtoverlay=vc4-kms-dpi-hyperpixel4
+```
+
+# Sound
+
+In case you get 'broken pipe' error with your USB-C attached HF, add following:
+
+```
+# /etc/modprobe.d/sndusbaudio.conf 
+options snd_usb_audio index=0 ignore_ctl_error=1
 ```
 

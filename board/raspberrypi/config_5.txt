@@ -14,6 +14,11 @@ kernel=Image
 disable_overscan=1
 dtparam=uart0_console
 console=serial0,115200
-enable_uart=1
+
+# Disable uart when using hyperpixel4
+enable_uart=0
+
+# Enable DRM VC4 V3D driver for hyperpixel4
+dtoverlay=vc4-kms-dpi-hyperpixel4
 
 
