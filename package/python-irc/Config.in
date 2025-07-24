@@ -1,0 +1,5 @@
+config BR2_PACKAGE_PYTHON_IRC
+	bool "python-irc"
+	help
+	
+	  https://pypi.org/project/irc
