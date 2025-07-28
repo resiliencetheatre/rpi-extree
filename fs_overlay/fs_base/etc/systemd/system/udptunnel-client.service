@@ -1,0 +1,14 @@
+[Unit]
+Description=udptunnel client
+After=multi-user.target
+
+[Service]
+WorkingDirectory=/opt/udptunnel
+Type=simple
+ExecStart=/bin/client -i client.ini
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+

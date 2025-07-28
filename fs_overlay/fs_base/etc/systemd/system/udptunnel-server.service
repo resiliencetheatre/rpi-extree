@@ -1,0 +1,12 @@
+[Unit]
+Description=udptunnel server
+After=multi-user.target
+
+[Service]
+WorkingDirectory=/opt/udptunnel
+Type=simple
+ExecStart=/bin/server -i server.ini
+
+[Install]
+WantedBy=multi-user.target
+
