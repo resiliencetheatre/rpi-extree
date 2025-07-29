@@ -7,6 +7,8 @@ Before=lvgl-all.service
 WorkingDirectory=/opt/macpipe
 Type=simple
 ExecStart=/bin/python3 macpipe.py
+Restart=always
+RestartSec=10
 
 [Install]
 WantedBy=multi-user.target
