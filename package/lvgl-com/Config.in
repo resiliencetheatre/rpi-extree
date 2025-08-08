@@ -1,0 +1,2 @@
+config BR2_PACKAGE_LVGL_COM
+    bool "lvgl-com"
