@@ -29,7 +29,7 @@ gpu_mem_1024=100
 arm_64bit=1
 
 # hyperpixel 4
-dtoverlay=vc4-kms-v3d
+dtoverlay=vc4-kms-v3d,nohdmi
 max_framebuffers=2
 dtoverlay=vc4-kms-dpi-hyperpixel4
 # Disable uart when using hyperpixel4

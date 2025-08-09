@@ -1,4 +1,4 @@
-LVGL_COM_VERSION = c1785f0b61f6f24f29aa304351f3cfd1c7de8a49
+LVGL_COM_VERSION = 3c27470d06ca9cc4cf85d7fb85e22bbfc23f7412
 LVGL_COM_SITE = https://codeberg.org/resiliencetheatre/lvgl-com.git
 LVGL_COM_SITE_METHOD = git
 LVGL_COM_INSTALL_STAGING = YES
