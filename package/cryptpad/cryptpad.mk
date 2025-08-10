@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-CRYPTPAD_VERSION = a24370f0f27ec81dec107d563e9573eb652e8a05 
+CRYPTPAD_VERSION = 437bc15e96f6f4ff6522c1deb079ccff0b900672
 CRYPTPAD_SITE =  $(call github,cryptpad,cryptpad,$(CRYPTPAD_VERSION))
 
 CRYPTPAD_DEPENDENCIES = nodejs
