@@ -3,7 +3,7 @@
 import Point from '@mapbox/point-geometry';
 import TinySDF from '@mapbox/tiny-sdf';
 import { VectorTileFeature, VectorTileLayer } from '@mapbox/vector-tile';
-import { Color, ColorArray, CompositeExpression, DiffCommand, DiffOperations, Feature, FeatureFilter, FeatureState, FilterSpecification, Formatted, FormattedSection, GeoJSONSourceSpecification, GlobalProperties, ICanonicalTileID, IMercatorCoordinate, ImageSourceSpecification, InterpolationType, LayerSpecification, LightSpecification, NumberArray, Padding, ProjectionSpecification, PromoteIdSpecification, PropertyValueSpecification, RasterDEMSourceSpecification, RasterSourceSpecification, ResolvedImage, SkySpecification, SourceExpression, SourceSpecification, SpriteSpecification, StylePropertyExpression, StylePropertySpecification, StyleSpecification, TerrainSpecification, TransitionSpecification, VariableAnchorOffsetCollection, VectorSourceSpecification, VideoSourceSpecification } from '@maplibre/maplibre-gl-style-spec';
+import { Color, ColorArray, CompositeExpression, DiffCommand, DiffOperations, Feature, FeatureFilter, FeatureState, FilterSpecification, Formatted, FormattedSection, GeoJSONSourceSpecification, GlobalProperties, ICanonicalTileID, IMercatorCoordinate, ImageSourceSpecification, InterpolationType, LayerSpecification, LightSpecification, NumberArray, Padding, ProjectionSpecification, PromoteIdSpecification, PropertyValueSpecification, RasterDEMSourceSpecification, RasterSourceSpecification, ResolvedImage, SkySpecification, SourceExpression, SourceSpecification, SpriteSpecification, StateSpecification, StylePropertyExpression, StylePropertySpecification, StyleSpecification, TerrainSpecification, TransitionSpecification, VariableAnchorOffsetCollection, VectorSourceSpecification, VideoSourceSpecification } from '@maplibre/maplibre-gl-style-spec';
 import { Options as GeoJSONVTOptions } from 'geojson-vt';
 import { mat2, mat4, vec3, vec4 } from 'gl-matrix';
 import KDBush from 'kdbush';
@@ -860,6 +860,7 @@ declare class EvaluationParameters {
 	fadeDuration: number;
 	zoomHistory: ZoomHistory;
 	transition: TransitionSpecification;
+	globalState: Record<string, any>;
 	constructor(zoom: number, options?: any);
 	isSupportedScript(str: string): boolean;
 	crossFadingFactor(): number;
@@ -901,6 +902,7 @@ declare class PropertyValue<T, R> {
 	expression: StylePropertyExpression;
 	constructor(property: Property<T, R>, value: PropertyValueSpecification<T> | void);
 	isDataDriven(): boolean;
+	getGlobalStateRefs(): Set<string>;
 	possiblyEvaluate(parameters: EvaluationParameters, canonical?: CanonicalTileID, availableImages?: Array<string>): R;
 }
 export type TransitionParameters = {
@@ -1076,6 +1078,7 @@ declare class RGBAImage {
 	replace(data: Uint8Array | Uint8ClampedArray, copy?: boolean): void;
 	clone(): RGBAImage;
 	static copy(srcImg: RGBAImage | ImageData, dstImg: RGBAImage, srcPt: Point2D, dstPt: Point2D, size: Size): void;
+	setPixel(row: number, col: number, value: Color): void;
 }
 /**
  * The sprite data
@@ -1171,7 +1174,7 @@ export type StyleImage = StyleImageData & StyleImageMetadata;
  *
  * Images implementing this interface can be redrawn for every frame. They can be used to animate
  * icons and patterns or make them respond to user input. Style images can implement a
- * {@link StyleImageInterface#render} method. The method is called every frame and
+ * {@link StyleImageInterface.render} method. The method is called every frame and
  * can be used to update the image.
  *
  * @see [Add an animated icon to the map.](https://maplibre.org/maplibre-gl-js/docs/examples/add-image-animated/)
@@ -1229,20 +1232,20 @@ export interface StyleImageInterface {
 	 * If the method updates the image it must return `true` to commit the change.
 	 * If the method returns `false` or nothing the image is assumed to not have changed.
 	 *
-	 * If updates are infrequent it maybe easier to use {@link Map#updateImage} to update
+	 * If updates are infrequent it maybe easier to use {@link Map.updateImage} to update
 	 * the image instead of implementing this method.
 	 *
 	 * @returns `true` if this method updated the image. `false` if the image was not changed.
 	 */
 	render?: () => boolean;
 	/**
-	 * Optional method called when the layer has been added to the Map with {@link Map#addImage}.
+	 * Optional method called when the layer has been added to the Map with {@link Map.addImage}.
 	 *
 	 * @param map - The Map this custom layer was just added to.
 	 */
 	onAdd?: (map: Map$1, id: string) => void;
 	/**
-	 * Optional method called when the icon is removed from the map with {@link Map#removeImage}.
+	 * Optional method called when the icon is removed from the map with {@link Map.removeImage}.
 	 * This gives the image a chance to clean up resources and event listeners.
 	 */
 	onRemove?: () => void;
@@ -1922,7 +1925,7 @@ export declare class LngLatBounds {
 	 *
 	 * If a `LngLatBounds` object is passed in, the function returns it unchanged.
 	 *
-	 * Internally, the function calls `LngLat#convert` to convert arrays to `LngLat` values.
+	 * Internally, the function calls {@link LngLat.convert} to convert arrays to `LngLat` values.
 	 *
 	 * @param input - An array of two coordinates to convert, or a `LngLatBounds` object to return.
 	 * @returns A new `LngLatBounds` object, if a conversion occurred, or the original `LngLatBounds` object.
@@ -2013,7 +2016,7 @@ export declare class EdgeInsets {
 	toJSON(): Complete<PaddingOptions>;
 }
 /**
- * Options for setting padding on calls to methods such as {@link Map#fitBounds}, {@link Map#fitScreenCoordinates}, and {@link Map#setPadding}. Adjust these options to set the amount of padding in pixels added to the edges of the canvas. Set a uniform padding on all edges or individual values for each edge. All properties of this object must be
+ * Options for setting padding on calls to methods such as {@link Map.fitBounds}, {@link Map.fitScreenCoordinates}, and {@link Map.setPadding}. Adjust these options to set the amount of padding in pixels added to the edges of the canvas. Set a uniform padding on all edges or individual values for each edge. All properties of this object must be
  * non-negative integers.
  *
  * @group Geography and Geometry
@@ -2191,7 +2194,7 @@ export type Coordinates = [
 	]
 ];
 /**
- * The options object for the {@link ImageSource#updateImage} method
+ * The options object for the {@link ImageSource.updateImage} method
  */
 export type UpdateImageOptions = {
 	/**
@@ -2417,19 +2420,23 @@ export declare class CanvasSource extends ImageSource {
 	hasTransition(): boolean;
 	_hasInvalidDimensions(): boolean;
 }
-declare class Frustum {
-	points: vec4[];
-	planes: vec4[];
-	aabb: Aabb;
-	constructor(points: vec4[], planes: vec4[], aabb: Aabb);
-	static fromInvProjectionMatrix(invProj: mat4, worldSize?: number, zoom?: number): Frustum;
-}
 export declare const enum IntersectionResult {
 	None = 0,
 	Partial = 1,
 	Full = 2
 }
-declare class Aabb {
+export interface IBoundingVolume {
+	/**
+	 * Performs an intersection test with a frustum.
+	 */
+	intersectsFrustum(frustum: Frustum): IntersectionResult;
+	/**
+	 * Performs an intersection test with a half-space defined by a plane equation.
+	 * The half-space is assumed to lie on the positive side of the plane.
+	 */
+	intersectsPlane(plane: vec4): IntersectionResult;
+}
+declare class Aabb implements IBoundingVolume {
 	min: vec3;
 	max: vec3;
 	center: vec3;
@@ -2445,6 +2452,13 @@ declare class Aabb {
 	 * Performs a halfspace-aabb intersection test.
 	 */
 	intersectsPlane(plane: vec4): IntersectionResult;
+}
+declare class Frustum {
+	points: vec4[];
+	planes: vec4[];
+	aabb: Aabb;
+	constructor(points: vec4[], planes: vec4[], aabb: Aabb);
+	static fromInvProjectionMatrix(invProj: mat4, worldSize?: number, zoom?: number, horizonPlane?: vec4, flippedNearFar?: boolean): Frustum;
 }
 export type CoveringZoomOptions = {
 	/**
@@ -2603,7 +2617,7 @@ export type SourceClass = {
 	new (id: string, specification: SourceSpecification | CanvasSourceSpecification, dispatcher: Dispatcher, eventedParent: Evented): Source;
 };
 /**
- * Adds a custom source type, making it available for use with {@link Map#addSource}.
+ * Adds a custom source type, making it available for use with {@link Map.addSource}.
  * @param name - The name of the source type; source definition objects use this name in the `{type: ...}` field.
  * @param SourceType - A {@link SourceClass} - which is a constructor for the `Source` interface.
  * @returns a promise that is resolved when the source type is ready or rejected with an error.
@@ -2778,6 +2792,7 @@ declare class SourceCache extends Evented {
 	 * @returns result items have `{tile, minX, maxX, minY, maxY}`, where min/max bounding values are the given bounds transformed in into the coordinate space of this tile.
 	 */
 	tilesIn(pointQueryGeometry: Array<Point>, maxPitchScaleFactor: number, has3DLayer: boolean): TileResult[];
+	private transformBbox;
 	getVisibleCoordinates(symbolLayer?: boolean): Array<OverscaledTileID>;
 	hasTransition(): boolean;
 	/**
@@ -3163,6 +3178,7 @@ declare class SymbolBucket implements Bucket {
 	static addDynamicAttributes: typeof addDynamicAttributes;
 	collisionBoxArray: CollisionBoxArray;
 	zoom: number;
+	globalState: Record<string, any>;
 	overscaling: number;
 	layers: Array<SymbolStyleLayer>;
 	layerIds: Array<string>;
@@ -3392,10 +3408,10 @@ export declare const enum ResourceType {
  */
 export type RequestTransformFunction = (url: string, resourceType?: ResourceType) => RequestParameters | undefined;
 declare class RequestManager {
-	_transformRequestFn: RequestTransformFunction;
-	constructor(transformRequestFn?: RequestTransformFunction);
+	_transformRequestFn: RequestTransformFunction | null;
+	constructor(transformRequestFn?: RequestTransformFunction | null);
 	transformRequest(url: string, type: ResourceType): RequestParameters;
-	setTransformRequest(transformRequest: RequestTransformFunction): void;
+	setTransformRequest(transformRequest: RequestTransformFunction | null): void;
 }
 declare function loadGlyphRange(fontstack: string, range: number, urlTemplate: string, requestManager: RequestManager): Promise<{
 	[_: number]: StyleGlyph | null;
@@ -4134,13 +4150,13 @@ export interface CoveringTilesDetailsProvider {
 	 * @param pointX - point x.
 	 * @param pointY - point y.
 	 * @param tileID - Tile x, y and z for zoom.
-	 * @param aabb - tile AABB
+	 * @param boundingVolume - tile bounding volume
 	 */
 	distanceToTile2d: (pointX: number, pointY: number, tileID: {
 		x: number;
 		y: number;
 		z: number;
-	}, aabb: Aabb) => number;
+	}, boundingVolume: IBoundingVolume) => number;
 	/**
 	 * Returns the wrap value for a given tile.
 	 */
@@ -4150,17 +4166,17 @@ export interface CoveringTilesDetailsProvider {
 		z: number;
 	}, parentWrap: number) => number;
 	/**
-	 * Returns the AABB of the specified tile.
+	 * Returns the bounding volume of the specified tile.
 	 * @param tileID - Tile x, y and z for zoom.
 	 * @param wrap - wrap number of the tile.
 	 * @param elevation - camera center point elevation.
 	 * @param options - CoveringTilesOptions.
 	 */
-	getTileAABB: (tileID: {
+	getTileBoundingVolume: (tileID: {
 		x: number;
 		y: number;
 		z: number;
-	}, wrap: number, elevation: number, options: CoveringTilesOptions) => Aabb;
+	}, wrap: number, elevation: number, options: CoveringTilesOptions) => IBoundingVolume;
 	/**
 	 * Whether to allow variable zoom, which is used at high pitch angle to avoid loading an excessive amount of tiles.
 	 */
@@ -4172,7 +4188,7 @@ export interface CoveringTilesDetailsProvider {
 	/**
 	 * Prepare cache for the next frame.
 	 */
-	recalculateCache(): void;
+	prepareNextFrame(): void;
 }
 export interface ITransformGetters {
 	get tileSize(): number;
@@ -4707,6 +4723,11 @@ declare class DEMData {
 	getUnpackVector(): number[];
 	_idx(x: number, y: number): number;
 	unpack(r: number, g: number, b: number): number;
+	pack(v: number): {
+		r: number;
+		g: number;
+		b: number;
+	};
 	getPixels(): RGBAImage;
 	backfillBorder(borderTile: DEMData, dx: number, dy: number): void;
 }
@@ -4804,6 +4825,7 @@ export type WorkerTileParameters = TileParameters & {
 	collectResourceTiming?: boolean;
 	returnDependencies?: boolean;
 	subdivisionGranularity: SubdivisionGranularitySetting;
+	globalState: Record<string, any>;
 };
 /**
  * The parameters needed in order to load a DEM tile
@@ -5131,7 +5153,7 @@ export type QueryRenderedFeaturesOptionsStrict = Omit<QueryRenderedFeaturesOptio
 	layers: Set<string> | null;
 };
 /**
- * The options object related to the {@link Map#querySourceFeatures} method
+ * The options object related to the {@link Map.querySourceFeatures} method
  */
 export type QuerySourceFeatureOptions = {
 	/**
@@ -5290,6 +5312,7 @@ declare class SourceFeatureState {
 declare class CircleBucket<Layer extends CircleStyleLayer | HeatmapStyleLayer> implements Bucket {
 	index: number;
 	zoom: number;
+	globalState: Record<string, any>;
 	overscaling: number;
 	layerIds: Array<string>;
 	layers: Array<Layer>;
@@ -5372,6 +5395,7 @@ declare class FillBucket implements Bucket {
 	stateDependentLayers: Array<FillStyleLayer>;
 	stateDependentLayerIds: Array<string>;
 	patternFeatures: Array<BucketFeature>;
+	globalState: Record<string, any>;
 	layoutVertexArray: FillLayoutArray;
 	layoutVertexBuffer: VertexBuffer;
 	indexArray: TriangleIndexArray;
@@ -5445,6 +5469,7 @@ declare class FillStyleLayer extends StyleLayer {
 declare class FillExtrusionBucket implements Bucket {
 	index: number;
 	zoom: number;
+	globalState: Record<string, any>;
 	overscaling: number;
 	layers: Array<FillExtrusionStyleLayer>;
 	layerIds: Array<string>;
@@ -5552,6 +5577,43 @@ declare class HillshadeStyleLayer extends StyleLayer {
 	};
 	hasOffscreenPass(): boolean;
 }
+export type ColorReliefPaintProps = {
+	"color-relief-opacity": DataConstantProperty<number>;
+	"color-relief-color": ColorRampProperty;
+};
+export type ColorReliefPaintPropsPossiblyEvaluated = {
+	"color-relief-opacity": number;
+	"color-relief-color": ColorRampProperty;
+};
+export type ColorRamp = {
+	elevationStops: Array<number>;
+	colorStops: Array<Color>;
+};
+export type ColorRampTextures = {
+	elevationTexture: Texture;
+	colorTexture: Texture;
+};
+declare class ColorReliefStyleLayer extends StyleLayer {
+	colorRampExpression: StylePropertyExpression;
+	colorRampTextures: ColorRampTextures;
+	_transitionablePaint: Transitionable<ColorReliefPaintProps>;
+	_transitioningPaint: Transitioning<ColorReliefPaintProps>;
+	paint: PossiblyEvaluated<ColorReliefPaintProps, ColorReliefPaintPropsPossiblyEvaluated>;
+	constructor(layer: LayerSpecification);
+	/**
+	 * Create the color ramp, enforcing a maximum length for the vectors. This modifies the internal color ramp,
+	 * so that the remapping is only performed once.
+	 *
+	 * @param maxLength - the maximum number of stops in the color ramp
+	 *
+	 * @return a `ColorRamp` object with no more than `maxLength` stops.
+	 *
+	 */
+	_createColorRamp(maxLength: number): ColorRamp;
+	_colorRampChanged(): boolean;
+	getColorRampTextures(context: Context, maxLength: number, unpackVector: number[]): ColorRampTextures;
+	hasOffscreenPass(): boolean;
+}
 export type LineClips = {
 	start: number;
 	end: number;
@@ -5571,6 +5633,7 @@ declare class LineBucket implements Bucket {
 	e2: number;
 	index: number;
 	zoom: number;
+	globalState: Record<string, any>;
 	overscaling: number;
 	layers: Array<LineStyleLayer>;
 	layerIds: Array<string>;
@@ -5686,7 +5749,7 @@ declare class LineStyleLayer extends StyleLayer {
 	queryIntersectsFeature({ queryGeometry, feature, featureState, geometry, transform, pixelsToTileUnits }: QueryIntersectsFeatureParams): boolean;
 	isTileClipped(): boolean;
 }
-export type TypedStyleLayer = CircleStyleLayer | FillStyleLayer | FillExtrusionStyleLayer | HeatmapStyleLayer | HillshadeStyleLayer | LineStyleLayer | SymbolStyleLayer;
+export type TypedStyleLayer = CircleStyleLayer | FillStyleLayer | FillExtrusionStyleLayer | HeatmapStyleLayer | HillshadeStyleLayer | ColorReliefStyleLayer | LineStyleLayer | SymbolStyleLayer;
 export type BinderUniform = {
 	name: string;
 	property: string;
@@ -6288,18 +6351,18 @@ export type CustomRenderMethod = (gl: WebGLRenderingContext | WebGL2RenderingCon
  * implementers to model: it is not an exported method or class.
  *
  * Custom layers allow a user to render directly into the map's GL context using the map's camera.
- * These layers can be added between any regular layers using {@link Map#addLayer}.
+ * These layers can be added between any regular layers using {@link Map.addLayer}.
  *
  * Custom layers must have a unique `id` and must have the `type` of `"custom"`.
  * They must implement `render` and may implement `prerender`, `onAdd` and `onRemove`.
- * They can trigger rendering using {@link Map#triggerRepaint}
+ * They can trigger rendering using {@link Map.triggerRepaint}
  * and they should appropriately handle {@link MapContextEvent} with `webglcontextlost` and `webglcontextrestored`.
  *
  * The `renderingMode` property controls whether the layer is treated as a `"2d"` or `"3d"` map layer. Use:
  *
  * - `"renderingMode": "3d"` to use the depth buffer and share it with other layers
  * - `"renderingMode": "2d"` to add a layer with no depth. If you need to use the depth buffer for a `"2d"` layer you must use an offscreen
- *   framebuffer and {@link CustomLayerInterface#prerender}
+ *   framebuffer and {@link CustomLayerInterface.prerender}
  *
  * @example
  * Custom layer implemented as ES6 class
@@ -6311,7 +6374,7 @@ export type CustomRenderMethod = (gl: WebGLRenderingContext | WebGL2RenderingCon
  *         this.renderingMode = '2d';
  *     }
  *
- *     onAdd(map, gl) {
+ *      onAdd(map: maplibregl.Map, gl: WebGLRenderingContext | WebGL2RenderingContext) {
  *         const vertexSource = `
  *         uniform mat4 u_matrix;
  *         void main() {
@@ -6337,7 +6400,13 @@ export type CustomRenderMethod = (gl: WebGLRenderingContext | WebGL2RenderingCon
  *         gl.linkProgram(this.program);
  *     }
  *
- *     render(gl, matrix) {
+ *     render({
+ *      gl,
+ *      modelViewProjectionMatrix: matrix
+ *      }: {
+ *      gl: WebGLRenderingContext | WebGL2RenderingContext;
+ *      modelViewProjectionMatrix: Float32Array;
+ *      }) {
  *         gl.useProgram(this.program);
  *         gl.uniformMatrix4fv(gl.getUniformLocation(this.program, "u_matrix"), false, matrix);
  *         gl.drawArrays(gl.POINTS, 0, 1);
@@ -6386,7 +6455,7 @@ export interface CustomLayerInterface {
 	 */
 	prerender?: CustomRenderMethod;
 	/**
-	 * Optional method called when the layer has been added to the Map with {@link Map#addLayer}. This
+	 * Optional method called when the layer has been added to the Map with {@link Map.addLayer}. This
 	 * gives the layer a chance to initialize gl resources and register event listeners.
 	 *
 	 * @param map - The Map this custom layer was just added to.
@@ -6394,7 +6463,7 @@ export interface CustomLayerInterface {
 	 */
 	onAdd?(map: Map$1, gl: WebGLRenderingContext | WebGL2RenderingContext): void;
 	/**
-	 * Optional method called when the layer has been removed from the Map with {@link Map#removeLayer}. This
+	 * Optional method called when the layer has been removed from the Map with {@link Map.removeLayer}. This
 	 * gives the layer a chance to clean up gl resources and event listeners.
 	 *
 	 * @param map - The Map this custom layer was just added to.
@@ -6575,7 +6644,7 @@ export type StyleSetterOptions = {
 	validate?: boolean;
 };
 /**
- * Part of {@link Map#setStyle} options, transformStyle is a convenience function that allows to modify a style after it is fetched but before it is committed to the map state.
+ * Part of {@link Map.setStyle} options, transformStyle is a convenience function that allows to modify a style after it is fetched but before it is committed to the map state.
  *
  * This function exposes previous and next styles, it can be commonly used to support a range of functionalities like:
  *
@@ -6601,7 +6670,7 @@ export type StyleSetterOptions = {
  *           // make relative vector url like "../../" absolute
  *           ...nextStyle.sources.map(source => {
  *              if (source.url) {
-	 *              source.url = new URL(source.url, "https://api.maptiler.com/tiles/osm-bright-gl-style/");
+ *                  source.url = new URL(source.url, "https://api.maptiler.com/tiles/osm-bright-gl-style/");
  *              }
  *              return source;
  *           }),
@@ -6702,12 +6771,21 @@ export declare class Style extends Evented {
 		[spriteId: string]: string[];
 	};
 	_availableImages: Array<string>;
+	_globalState: Record<string, any>;
 	crossTileSymbolIndex: CrossTileSymbolIndex;
 	pauseablePlacement: PauseablePlacement;
 	placement: Placement;
 	z: number;
 	constructor(map: Map$1, options?: StyleOptions);
 	_rtlPluginLoaded: () => void;
+	setGlobalStateProperty(name: string, value: any): this;
+	getGlobalState(): Record<string, any>;
+	setGlobalState(newStylesheetState: StateSpecification): void;
+	/**
+	 * Find all sources that are affected by the global state changes.
+	 * For example, if a layer filter uses global-state expression, this function will return the source id of that layer.
+	 */
+	_findGlobalStateAffectedSources(globalStateRefs: string[]): Set<string>;
 	loadURL(url: string, options?: StyleSwapOptions & StyleSetterOptions, previousStyle?: StyleSpecification): void;
 	loadJSON(json: StyleSpecification, options?: StyleSetterOptions & StyleSwapOptions, previousStyle?: StyleSpecification): void;
 	loadEmpty(): void;
@@ -6917,6 +6995,7 @@ export type BucketParameters<Layer extends TypedStyleLayer> = {
 	collisionBoxArray: CollisionBoxArray;
 	sourceLayerIndex: number;
 	sourceID: string;
+	globalState: Record<string, any>;
 };
 export type PopulateParameters = {
 	featureIndex: FeatureIndex;
@@ -6949,11 +7028,12 @@ export type BucketFeature = {
 	sortKey?: number;
 };
 /**
+ * @hidden
  * The `Bucket` interface is the single point of knowledge about turning vector
  * tiles into WebGL buffers.
  *
  * `Bucket` is an abstract interface. An implementation exists for each style layer type.
- * Create a bucket via the `StyleLayer#createBucket` method.
+ * Create a bucket via the `StyleLayer.createBucket` method.
  *
  * The concrete bucket types, using layout options from the style layer,
  * transform feature geometries into vertex and index data for use by the
@@ -7055,12 +7135,20 @@ declare abstract class StyleLayer extends Evented {
 	readonly onRemove: ((map: Map$1) => void);
 	queryRadius?(bucket: Bucket): number;
 	queryIntersectsFeature?(params: QueryIntersectsFeatureParams): boolean | number;
+	createBucket?(parameters: BucketParameters<any>): Bucket;
 	constructor(layer: LayerSpecification | CustomLayerInterface, properties: Readonly<{
 		layout?: Properties<any>;
 		paint?: Properties<any>;
 	}>);
+	setFilter(filter: FilterSpecification | void): void;
 	getCrossfadeParameters(): CrossfadeParameters;
 	getLayoutProperty(name: string): any;
+	/**
+	 * Get list of global state references that are used within layout or filter properties.
+	 * This is used to determine if layer source need to be reloaded when global state property changes.
+	 *
+	 */
+	getLayoutAffectingGlobalStateRefs(): Set<string>;
 	setLayoutProperty(name: string, value: any, options?: StyleSetterOptions): void;
 	getPaintProperty(name: string): unknown;
 	setPaintProperty(name: string, value: unknown, options?: StyleSetterOptions): boolean;
@@ -7198,6 +7286,7 @@ export type GetClusterLeavesParams = ClusterIDAndSource & {
  * The result of the call to load a geojson source
  */
 export type GeoJSONWorkerSourceLoadDataResult = {
+	data?: GeoJSON.GeoJSON;
 	resourceTiming?: {
 		[_: string]: Array<PerformanceResourceTiming>;
 	};
@@ -7213,7 +7302,7 @@ export type RemoveSourceParams = {
 /**
  * Parameters needed to update the layers
  */
-export type UpdateLayersParamaeters = {
+export type UpdateLayersParameters = {
 	layers: Array<LayerSpecification>;
 	removedIds: Array<string>;
 };
@@ -7332,7 +7421,7 @@ export type RequestResponseMessageMap = {
 		void
 	];
 	[MessageType.updateLayers]: [
-		UpdateLayersParamaeters,
+		UpdateLayersParameters,
 		void
 	];
 	[MessageType.syncRTLPluginState]: [
@@ -7782,7 +7871,7 @@ export type PointLike = Point | [
 	number
 ];
 /**
- * Options common to {@link Map#jumpTo}, {@link Map#easeTo}, and {@link Map#flyTo}, controlling the desired location,
+ * Options common to {@link Map.jumpTo}, {@link Map.easeTo}, and {@link Map.flyTo}, controlling the desired location,
  * zoom, bearing, pitch, and roll of the camera. All properties are optional, and when a property is omitted, the current
  * camera value for that property will remain unchanged.
  *
@@ -7798,10 +7887,10 @@ export type PointLike = Point | [
  *   zoom: 10
  * });
  * ```
- * @see [Set pitch and bearing](https://maplibre.org/maplibre-gl-js/docs/examples/set-perspective/)
- * @see [Jump to a series of locations](https://maplibre.org/maplibre-gl-js/docs/examples/jump-to/)
- * @see [Fly to a location](https://maplibre.org/maplibre-gl-js/docs/examples/flyto/)
- * @see [Display buildings in 3D](https://maplibre.org/maplibre-gl-js/docs/examples/3d-buildings/)
+ * @see [Set pitch and bearing](https://maplibre.org/maplibre-gl-js/docs/examples/set-pitch-and-bearing/)
+ * @see [Jump to a series of locations](https://maplibre.org/maplibre-gl-js/docs/examples/jump-to-a-series-of-locations/)
+ * @see [Fly to a location](https://maplibre.org/maplibre-gl-js/docs/examples/fly-to-a-location/)
+ * @see [Display buildings in 3D](https://maplibre.org/maplibre-gl-js/docs/examples/display-buildings-in-3d/)
  */
 export type CameraOptions = CenterZoomBearing & {
 	/**
@@ -7839,7 +7928,7 @@ export type CenterZoomBearing = {
 	bearing?: number;
 };
 /**
- * The options object related to the {@link Map#jumpTo} method
+ * The options object related to the {@link Map.jumpTo} method
  */
 export type JumpToOptions = CameraOptions & {
 	/**
@@ -7848,7 +7937,7 @@ export type JumpToOptions = CameraOptions & {
 	padding?: PaddingOptions;
 };
 /**
- * A options object for the {@link Map#cameraForBounds} method
+ * A options object for the {@link Map.cameraForBounds} method
  */
 export type CameraForBoundsOptions = CameraOptions & {
 	/**
@@ -7866,13 +7955,13 @@ export type CameraForBoundsOptions = CameraOptions & {
 	maxZoom?: number;
 };
 /**
- * The {@link Map#flyTo} options object
+ * The {@link Map.flyTo} options object
  */
 export type FlyToOptions = AnimationOptions & CameraOptions & {
 	/**
 	 * The zooming "curve" that will occur along the
 	 * flight path. A high value maximizes zooming for an exaggerated animation, while a low
-	 * value minimizes zooming for an effect closer to {@link Map#easeTo}. 1.42 is the average
+	 * value minimizes zooming for an effect closer to {@link Map.easeTo}. 1.42 is the average
 	 * value selected by participants in the user study discussed in
 	 * [van Wijk (2003)](https://www.win.tue.nl/~vanwijk/zoompan.pdf). A value of
 	 * `Math.pow(6, 0.25)` would be equivalent to the root mean squared average velocity. A
@@ -7888,13 +7977,13 @@ export type FlyToOptions = AnimationOptions & CameraOptions & {
 	/**
 	 * The average speed of the animation defined in relation to
 	 * `options.curve`. A speed of 1.2 means that the map appears to move along the flight path
-	 * by 1.2 times `options.curve` screenfuls every second. A _screenful_ is the map's visible span.
+	 * by 1.2 times `options.curve` screenfulls every second. A _screenfull_ is the map's visible span.
 	 * It does not correspond to a fixed physical distance, but varies by zoom level.
 	 * @defaultValue 1.2
 	 */
 	speed?: number;
 	/**
-	 * The average speed of the animation measured in screenfuls
+	 * The average speed of the animation measured in screenfulls
 	 * per second, assuming a linear timing curve. If `options.speed` is specified, this option is ignored.
 	 */
 	screenSpeed?: number;
@@ -7909,7 +7998,7 @@ export type FlyToOptions = AnimationOptions & CameraOptions & {
 	padding?: number | PaddingOptions;
 };
 /**
- * The {@link Map#easeTo} options object
+ * The {@link Map.easeTo} options object
  */
 export type EaseToOptions = AnimationOptions & CameraOptions & {
 	delayEndEvents?: number;
@@ -7922,11 +8011,11 @@ export type EaseToOptions = AnimationOptions & CameraOptions & {
 	noMoveStart?: boolean;
 };
 /**
- * Options for {@link Map#fitBounds} method
+ * Options for {@link Map.fitBounds} method
  */
 export type FitBoundsOptions = FlyToOptions & {
 	/**
-	 * If `true`, the map transitions using {@link Map#easeTo}. If `false`, the map transitions using {@link Map#flyTo}.
+	 * If `true`, the map transitions using {@link Map.easeTo}. If `false`, the map transitions using {@link Map.flyTo}.
 	 * See those functions and {@link AnimationOptions} for information about options available.
 	 * @defaultValue false
 	 */
@@ -7942,8 +8031,8 @@ export type FitBoundsOptions = FlyToOptions & {
 	maxZoom?: number;
 };
 /**
- * Options common to map movement methods that involve animation, such as {@link Map#panBy} and
- * {@link Map#easeTo}, controlling the duration and easing function of the animation. All properties
+ * Options common to map movement methods that involve animation, such as {@link Map.panBy} and
+ * {@link Map.easeTo}, controlling the duration and easing function of the animation. All properties
  * are optional.
  *
  */
@@ -8136,7 +8225,7 @@ declare abstract class Camera extends Evented {
 	 * @param offset - `x` and `y` coordinates by which to pan the map.
 	 * @param options - Options object
 	 * @param eventData - Additional properties to be added to event objects of events triggered by this method.
-	 * @see [Navigate the map with game-like controls](https://maplibre.org/maplibre-gl-js/docs/examples/game-controls/)
+	 * @see [Navigate the map with game-like controls](https://maplibre.org/maplibre-gl-js/docs/examples/navigate-the-map-with-game-like-controls/)
 	 */
 	panBy(offset: PointLike, options?: EaseToOptions, eventData?: any): this;
 	/**
@@ -8153,7 +8242,7 @@ declare abstract class Camera extends Evented {
 	 * // Specify that the panTo animation should last 5000 milliseconds.
 	 * map.panTo([-74, 38], {duration: 5000});
 	 * ```
-	 * @see [Update a feature in realtime](https://maplibre.org/maplibre-gl-js/docs/examples/live-update-feature/)
+	 * @see [Update a feature in realtime](https://maplibre.org/maplibre-gl-js/docs/examples/update-a-feature-in-realtime/)
 	 */
 	panTo(lnglat: LngLatLike, options?: EaseToOptions, eventData?: any): this;
 	/**
@@ -8259,7 +8348,7 @@ declare abstract class Camera extends Evented {
 	 * of 90° orients the map so that east is up.
 	 *
 	 * @returns The map's current bearing.
-	 * @see [Navigate the map with game-like controls](https://maplibre.org/maplibre-gl-js/docs/examples/game-controls/)
+	 * @see [Navigate the map with game-like controls](https://maplibre.org/maplibre-gl-js/docs/examples/navigate-the-map-with-game-like-controls/)
 	 */
 	getBearing(): number;
 	/**
@@ -8372,7 +8461,7 @@ declare abstract class Camera extends Evented {
 	setRoll(roll: number, eventData?: any): this;
 	/**
 	 * @param bounds - Calculate the center for these bounds in the viewport and use
-	 * the highest zoom level up to and including `Map#getMaxZoom()` that fits
+	 * the highest zoom level up to and including {@link Map.getMaxZoom} that fits
 	 * in the viewport. LngLatBounds represent a box that is always axis-aligned with bearing 0.
 	 * Bounds will be taken in [sw, ne] order. Southwest point will always be to the left of the northeast point.
 	 * @param options - Options object
@@ -8390,7 +8479,7 @@ declare abstract class Camera extends Evented {
 	/**
 	 * @internal
 	 * Calculate the center of these two points in the viewport and use
-	 * the highest zoom level up to and including `Map#getMaxZoom()` that fits
+	 * the highest zoom level up to and including {@link Map.getMaxZoom} that fits
 	 * the AABB defined by these points in the viewport at the specified bearing.
 	 * @param p0 - First point
 	 * @param p1 - Second point
@@ -8416,7 +8505,7 @@ declare abstract class Camera extends Evented {
 	 * Triggers the following events: `movestart` and `moveend`.
 	 *
 	 * @param bounds - Center these bounds in the viewport and use the highest
-	 * zoom level up to and including `Map#getMaxZoom()` that fits them in the viewport.
+	 * zoom level up to and including {@link Map.getMaxZoom} that fits them in the viewport.
 	 * Bounds will be taken in [sw, ne] order. Southwest point will always be to the left of the northeast point.
 	 * @param options - Options supports all properties from {@link AnimationOptions} and {@link CameraOptions} in addition to the fields below.
 	 * @param eventData - Additional properties to be added to event objects of events triggered by this method.
@@ -8427,7 +8516,7 @@ declare abstract class Camera extends Evented {
 	 *   padding: {top: 10, bottom:25, left: 15, right: 5}
 	 * });
 	 * ```
-	 * @see [Fit a map to a bounding box](https://maplibre.org/maplibre-gl-js/docs/examples/fitbounds/)
+	 * @see [Fit a map to a bounding box](https://maplibre.org/maplibre-gl-js/docs/examples/fit-a-map-to-a-bounding-box/)
 	 */
 	fitBounds(bounds: LngLatBoundsLike, options?: FitBoundsOptions, eventData?: any): this;
 	/**
@@ -8476,8 +8565,8 @@ declare abstract class Camera extends Evented {
 	 *   bearing: 90
 	 * });
 	 * ```
-	 * @see [Jump to a series of locations](https://maplibre.org/maplibre-gl-js/docs/examples/jump-to/)
-	 * @see [Update a feature in realtime](https://maplibre.org/maplibre-gl-js/docs/examples/live-update-feature/)
+	 * @see [Jump to a series of locations](https://maplibre.org/maplibre-gl-js/docs/examples/jump-to-a-series-of-locations/)
+	 * @see [Update a feature in realtime](https://maplibre.org/maplibre-gl-js/docs/examples/update-a-feature-in-realtime/)
 	 */
 	jumpTo(options: JumpToOptions, eventData?: any): this;
 	/**
@@ -8537,7 +8626,7 @@ declare abstract class Camera extends Evented {
 	 * @param options - Options describing the destination and animation of the transition.
 	 * Accepts {@link CameraOptions} and {@link AnimationOptions}.
 	 * @param eventData - Additional properties to be added to event objects of events triggered by this method.
-	 * @see [Navigate the map with game-like controls](https://maplibre.org/maplibre-gl-js/docs/examples/game-controls/)
+	 * @see [Navigate the map with game-like controls](https://maplibre.org/maplibre-gl-js/docs/examples/navigate-the-map-with-game-like-controls/)
 	 */
 	easeTo(options: EaseToOptions, eventData?: any): this;
 	_prepareEase(eventData: any, noMoveStart: boolean, currently?: {
@@ -8616,9 +8705,9 @@ declare abstract class Camera extends Evented {
 	 *   }
 	 * });
 	 * ```
-	 * @see [Fly to a location](https://maplibre.org/maplibre-gl-js/docs/examples/flyto/)
-	 * @see [Slowly fly to a location](https://maplibre.org/maplibre-gl-js/docs/examples/flyto-options/)
-	 * @see [Fly to a location based on scroll position](https://maplibre.org/maplibre-gl-js/docs/examples/scroll-fly-to/)
+	 * @see [Fly to a location](https://maplibre.org/maplibre-gl-js/docs/examples/fly-to-a-location/)
+	 * @see [Slowly fly to a location](https://maplibre.org/maplibre-gl-js/docs/examples/slowly-fly-to-a-location/)
+	 * @see [Fly to a location based on scroll position](https://maplibre.org/maplibre-gl-js/docs/examples/fly-to-a-location-based-on-scroll-position/)
 	 */
 	flyTo(options: FlyToOptions, eventData?: any): this;
 	isEasing(): boolean;
@@ -8638,7 +8727,7 @@ declare abstract class Camera extends Evented {
 	 * Gets the elevation at a given location, in meters above sea level.
 	 * Returns null if terrain is not enabled.
 	 * If terrain is enabled with some exaggeration value, the value returned here will be reflective of (multiplied by) that exaggeration value.
-	 * This method should be used for proper positioning of custom 3d objects, as explained [here](https://maplibre.org/maplibre-gl-js/docs/examples/add-3d-model-with-terrain/)
+	 * This method should be used for proper positioning of custom 3d objects, as explained [here](https://maplibre.org/maplibre-gl-js/docs/examples/adding-3d-models-using-threejs-on-terrain/)
 	 * @param lngLatLike - [x,y] or LngLat coordinates of the location
 	 * @returns elevation in meters
 	 */
@@ -8848,7 +8937,7 @@ export type ControlPosition = "top-left" | "top-right" | "bottom-left" | "bottom
 export interface IControl {
 	/**
 	 * Register a control on the map and give it a chance to register event listeners
-	 * and resources. This method is called by {@link Map#addControl}
+	 * and resources. This method is called by {@link Map.addControl}
 	 * internally.
 	 *
 	 * @param map - the Map this control will be added to
@@ -8860,7 +8949,7 @@ export interface IControl {
 	onAdd(map: Map$1): HTMLElement;
 	/**
 	 * Unregister a control on the map and give it a chance to detach event listeners
-	 * and resources. This method is called by {@link Map#removeControl}
+	 * and resources. This method is called by {@link Map.removeControl}
 	 * internally.
 	 *
 	 * @param map - the Map this control will be removed from
@@ -8868,7 +8957,7 @@ export interface IControl {
 	onRemove(map: Map$1): void;
 	/**
 	 * Optionally provide a default position for this control. If this method
-	 * is implemented and {@link Map#addControl} is called without the `position`
+	 * is implemented and {@link Map.addControl} is called without the `position`
 	 * parameter, the value returned by getDefaultPosition will be used as the
 	 * control's position.
 	 *
@@ -8899,7 +8988,7 @@ export type MapSourceDataType = "content" | "metadata" | "visibility" | "idle";
 /**
  * `MapLayerEventType` - a mapping between the event name and the event.
  * **Note:** These events are compatible with the optional `layerId` parameter.
- * If `layerId` is included as the second argument in {@link Map#on}, the event listener will fire only when the
+ * If `layerId` is included as the second argument in {@link Map.on}, the event listener will fire only when the
  * event action contains a visible portion of the specified layer.
  * The following example can be used for all the events.
  *
@@ -8918,8 +9007,8 @@ export type MapLayerEventType = {
 	/**
 	 * Fired when a pointing device (usually a mouse) is pressed and released contains a visible portion of the specified layer.
 	 *
-	 * @see [Measure distances](https://maplibre.org/maplibre-gl-js/docs/examples/measure/)
-	 * @see [Center the map on a clicked symbol](https://maplibre.org/maplibre-gl-js/docs/examples/center-on-symbol/)
+	 * @see [Measure distances](https://maplibre.org/maplibre-gl-js/docs/examples/measure-distances/)
+	 * @see [Center the map on a clicked symbol](https://maplibre.org/maplibre-gl-js/docs/examples/center-the-map-on-a-clicked-symbol/)
 	 */
 	click: MapLayerMouseEvent;
 	/**
@@ -8930,46 +9019,46 @@ export type MapLayerEventType = {
 	dblclick: MapLayerMouseEvent;
 	/**
 	 * Fired when a pointing device (usually a mouse) is pressed while inside a visible portion of the specified layer.
-	 * @see [Create a draggable point](https://maplibre.org/maplibre-gl-js/docs/examples/drag-a-point/)
+	 * @see [Create a draggable point](https://maplibre.org/maplibre-gl-js/docs/examples/create-a-draggable-point/)
 	 */
 	mousedown: MapLayerMouseEvent;
 	/**
 	 * Fired when a pointing device (usually a mouse) is released while inside a visible portion of the specified layer.
-	 * @see [Create a draggable point](https://maplibre.org/maplibre-gl-js/docs/examples/drag-a-point/)
+	 * @see [Create a draggable point](https://maplibre.org/maplibre-gl-js/docs/examples/create-a-draggable-point/)
 	 */
 	mouseup: MapLayerMouseEvent;
 	/**
 	 * Fired when a pointing device (usually a mouse) is moved while the cursor is inside a visible portion of the specified layer.
 	 * As you move the cursor across the layer, the event will fire every time the cursor changes position within that layer.
 	 *
-	 * @see [Get coordinates of the mouse pointer](https://maplibre.org/maplibre-gl-js/docs/examples/mouse-position/)
-	 * @see [Highlight features under the mouse pointer](https://maplibre.org/maplibre-gl-js/docs/examples/hover-styles/)
-	 * @see [Display a popup on over](https://maplibre.org/maplibre-gl-js/docs/examples/popup-on-hover/)
-	 * @see [Animate symbol to follow the mouse](https://maplibre.org/maplibre-gl-js/docs/examples/animate-symbol-to-follow-mouse/)
+	 * @see [Get coordinates of the mouse pointer](https://maplibre.org/maplibre-gl-js/docs/examples/get-coordinates-of-the-mouse-pointer/)
+	 * @see [Highlight features under the mouse pointer](https://maplibre.org/maplibre-gl-js/docs/examples/create-a-hover-effect/)
+	 * @see [Display a popup on over](https://maplibre.org/maplibre-gl-js/docs/examples/display-a-popup-on-hover/)
+	 * @see [Animate symbol to follow the mouse](https://maplibre.org/maplibre-gl-js/docs/examples/animate-symbol-to-follow-the-mouse/)
 	 */
 	mousemove: MapLayerMouseEvent;
 	/**
 	 * Fired when a pointing device (usually a mouse) enters a visible portion of a specified layer from
 	 * outside that layer or outside the map canvas.
 	 *
-	 * @see [Center the map on a clicked symbol](https://maplibre.org/maplibre-gl-js/docs/examples/center-on-symbol/)
-	 * @see [Display a popup on click](https://maplibre.org/maplibre-gl-js/docs/examples/popup-on-click/)
+	 * @see [Center the map on a clicked symbol](https://maplibre.org/maplibre-gl-js/docs/examples/center-the-map-on-a-clicked-symbol/)
+	 * @see [Display a popup on click](https://maplibre.org/maplibre-gl-js/docs/examples/display-a-popup-on-click/)
 	 */
 	mouseenter: MapLayerMouseEvent;
 	/**
 	 * Fired when a pointing device (usually a mouse) leaves a visible portion of a specified layer, or leaves
 	 * the map canvas.
 	 *
-	 * @see [Highlight features under the mouse pointer](https://maplibre.org/maplibre-gl-js/docs/examples/hover-styles/)
-	 * @see [Display a popup on click](https://maplibre.org/maplibre-gl-js/docs/examples/popup-on-click/)
+	 * @see [Highlight features under the mouse pointer](https://maplibre.org/maplibre-gl-js/docs/examples/create-a-hover-effect/)
+	 * @see [Display a popup on click](https://maplibre.org/maplibre-gl-js/docs/examples/display-a-popup-on-click/)
 	 */
 	mouseleave: MapLayerMouseEvent;
 	/**
 	 * Fired when a pointing device (usually a mouse) is moved inside a visible portion of the specified layer.
 	 *
-	 * @see [Get coordinates of the mouse pointer](https://maplibre.org/maplibre-gl-js/docs/examples/mouse-position/)
-	 * @see [Highlight features under the mouse pointer](https://maplibre.org/maplibre-gl-js/docs/examples/hover-styles/)
-	 * @see [Display a popup on hover](https://maplibre.org/maplibre-gl-js/docs/examples/popup-on-hover/)
+	 * @see [Get coordinates of the mouse pointer](https://maplibre.org/maplibre-gl-js/docs/examples/get-coordinates-of-the-mouse-pointer/)
+	 * @see [Highlight features under the mouse pointer](https://maplibre.org/maplibre-gl-js/docs/examples/create-a-hover-effect/)
+	 * @see [Display a popup on hover](https://maplibre.org/maplibre-gl-js/docs/examples/display-a-popup-on-hover/)
 	 */
 	mouseover: MapLayerMouseEvent;
 	/**
@@ -8982,24 +9071,24 @@ export type MapLayerEventType = {
 	contextmenu: MapLayerMouseEvent;
 	/**
 	 * Fired when a [`touchstart`](https://developer.mozilla.org/en-US/docs/Web/Events/touchstart) event occurs within the visible portion of the specified layer.
-	 * @see [Create a draggable point](https://maplibre.org/maplibre-gl-js/docs/examples/drag-a-point/)
+	 * @see [Create a draggable point](https://maplibre.org/maplibre-gl-js/docs/examples/create-a-draggable-point/)
 	 */
 	touchstart: MapLayerTouchEvent;
 	/**
 	 * Fired when a [`touchend`](https://developer.mozilla.org/en-US/docs/Web/Events/touchend) event occurs within the visible portion of the specified layer.
-	 * @see [Create a draggable point](https://maplibre.org/maplibre-gl-js/docs/examples/drag-a-point/)
+	 * @see [Create a draggable point](https://maplibre.org/maplibre-gl-js/docs/examples/create-a-draggable-point/)
 	 */
 	touchend: MapLayerTouchEvent;
 	/**
 	 * Fired when a [`touchstart`](https://developer.mozilla.org/en-US/docs/Web/Events/touchstart) event occurs within the visible portion of the specified layer.
-	 * @see [Create a draggable point](https://maplibre.org/maplibre-gl-js/docs/examples/drag-a-point/)
+	 * @see [Create a draggable point](https://maplibre.org/maplibre-gl-js/docs/examples/create-a-draggable-point/)
 	 */
 	touchcancel: MapLayerTouchEvent;
 };
 /**
  * `MapEventType` - a mapping between the event name and the event value.
- * These events are used with the {@link Map#on} method.
- * When using a `layerId` with {@link Map#on} method, please refer to {@link MapLayerEventType}.
+ * These events are used with the {@link Map.on} method.
+ * When using a `layerId` with {@link Map.on} method, please refer to {@link MapLayerEventType}.
  * The following example can be used for all the events.
  *
  * @group Event Related
@@ -9025,9 +9114,9 @@ export type MapEventType = {
 	 * Fired immediately after all necessary resources have been downloaded
 	 * and the first visually complete rendering of the map has occurred.
 	 *
-	 * @see [Draw GeoJSON points](https://maplibre.org/maplibre-gl-js/docs/examples/geojson-markers/)
-	 * @see [Add live realtime data](https://maplibre.org/maplibre-gl-js/docs/examples/live-geojson/)
-	 * @see [Animate a point](https://maplibre.org/maplibre-gl-js/docs/examples/animate-point-along-line/)
+	 * @see [Draw GeoJSON points](https://maplibre.org/maplibre-gl-js/docs/examples/draw-geojson-points/)
+	 * @see [Add live realtime data](https://maplibre.org/maplibre-gl-js/docs/examples/add-live-realtime-data/)
+	 * @see [Animate a point](https://maplibre.org/maplibre-gl-js/docs/examples/animate-a-point/)
 	 */
 	load: MapLibreEvent;
 	/**
@@ -9040,7 +9129,7 @@ export type MapEventType = {
 	 */
 	idle: MapLibreEvent;
 	/**
-	 * Fired immediately after the map has been removed with {@link Map#remove}.
+	 * Fired immediately after the map has been removed with {@link Map.remove}.
 	 */
 	remove: MapLibreEvent;
 	/**
@@ -9072,7 +9161,7 @@ export type MapEventType = {
 	dataloading: MapDataEvent;
 	/**
 	 * Fired when any map data loads or changes. See {@link MapDataEvent} for more information.
-	 * @see [Display HTML clusters with custom properties](https://maplibre.org/maplibre-gl-js/docs/examples/cluster-html/)
+	 * @see [Display HTML clusters with custom properties](https://maplibre.org/maplibre-gl-js/docs/examples/display-html-clusters-with-custom-properties/)
 	 */
 	data: MapDataEvent;
 	tiledataloading: MapDataEvent;
@@ -9098,9 +9187,9 @@ export type MapEventType = {
 	styledata: MapStyleDataEvent;
 	/**
 	 * Fired when an icon or pattern needed by the style is missing. The missing image can
-	 * be added with {@link Map#addImage} within this event listener callback to prevent the image from
+	 * be added with {@link Map.addImage} within this event listener callback to prevent the image from
 	 * being skipped. This event can be used to dynamically generate icons and patterns.
-	 * @see [Generate and add a missing icon to the map](https://maplibre.org/maplibre-gl-js/docs/examples/add-image-missing-generated/)
+	 * @see [Generate and add a missing icon to the map](https://maplibre.org/maplibre-gl-js/docs/examples/generate-and-add-a-missing-icon-to-the-map/)
 	 */
 	styleimagemissing: MapStyleImageMissingEvent;
 	/**
@@ -9130,24 +9219,24 @@ export type MapEventType = {
 	touchcancel: MapTouchEvent;
 	/**
 	 * Fired when a [`touchmove`](https://developer.mozilla.org/en-US/docs/Web/Events/touchmove) event occurs within the map.
-	 * @see [Create a draggable point](https://maplibre.org/maplibre-gl-js/docs/examples/drag-a-point/)
+	 * @see [Create a draggable point](https://maplibre.org/maplibre-gl-js/docs/examples/create-a-draggable-point/)
 	 */
 	touchmove: MapTouchEvent;
 	/**
 	 * Fired when a [`touchend`](https://developer.mozilla.org/en-US/docs/Web/Events/touchend) event occurs within the map.
-	 * @see [Create a draggable point](https://maplibre.org/maplibre-gl-js/docs/examples/drag-a-point/)
+	 * @see [Create a draggable point](https://maplibre.org/maplibre-gl-js/docs/examples/create-a-draggable-point/)
 	 */
 	touchend: MapTouchEvent;
 	/**
 	 * Fired when a [`touchstart`](https://developer.mozilla.org/en-US/docs/Web/Events/touchstart) event occurs within the map.
-	 * @see [Create a draggable point](https://maplibre.org/maplibre-gl-js/docs/examples/drag-a-point/)
+	 * @see [Create a draggable point](https://maplibre.org/maplibre-gl-js/docs/examples/create-a-draggable-point/)
 	 */
 	touchstart: MapTouchEvent;
 	/**
 	 * Fired when a pointing device (usually a mouse) is pressed and released at the same point on the map.
 	 *
-	 * @see [Measure distances](https://maplibre.org/maplibre-gl-js/docs/examples/measure/)
-	 * @see [Center the map on a clicked symbol](https://maplibre.org/maplibre-gl-js/docs/examples/center-on-symbol/)
+	 * @see [Measure distances](https://maplibre.org/maplibre-gl-js/docs/examples/measure-distances/)
+	 * @see [Center the map on a clicked symbol](https://maplibre.org/maplibre-gl-js/docs/examples/center-the-map-on-a-clicked-symbol/)
 	 */
 	click: MapMouseEvent;
 	/**
@@ -9164,21 +9253,21 @@ export type MapEventType = {
 	 * Fired when a pointing device (usually a mouse) is moved while the cursor is inside the map.
 	 * As you move the cursor across the map, the event will fire every time the cursor changes position within the map.
 	 *
-	 * @see [Get coordinates of the mouse pointer](https://maplibre.org/maplibre-gl-js/docs/examples/mouse-position/)
-	 * @see [Highlight features under the mouse pointer](https://maplibre.org/maplibre-gl-js/docs/examples/hover-styles/)
-	 * @see [Display a popup on over](https://maplibre.org/maplibre-gl-js/docs/examples/popup-on-hover/)
+	 * @see [Get coordinates of the mouse pointer](https://maplibre.org/maplibre-gl-js/docs/examples/get-coordinates-of-the-mouse-pointer/)
+	 * @see [Highlight features under the mouse pointer](https://maplibre.org/maplibre-gl-js/docs/examples/create-a-hover-effect/)
+	 * @see [Display a popup on over](https://maplibre.org/maplibre-gl-js/docs/examples/display-a-popup-on-hover/)
 	 */
 	mousemove: MapMouseEvent;
 	/**
 	 * Fired when a pointing device (usually a mouse) is released within the map.
 	 *
-	 * @see [Create a draggable point](https://maplibre.org/maplibre-gl-js/docs/examples/drag-a-point/)
+	 * @see [Create a draggable point](https://maplibre.org/maplibre-gl-js/docs/examples/create-a-draggable-point/)
 	 */
 	mouseup: MapMouseEvent;
 	/**
 	 * Fired when a pointing device (usually a mouse) is pressed within the map.
 	 *
-	 * @see [Create a draggable point](https://maplibre.org/maplibre-gl-js/docs/examples/drag-a-point/)
+	 * @see [Create a draggable point](https://maplibre.org/maplibre-gl-js/docs/examples/create-a-draggable-point/)
 	 */
 	mousedown: MapMouseEvent;
 	/**
@@ -9190,44 +9279,44 @@ export type MapEventType = {
 	 * As you move the cursor across a web page containing a map,
 	 * the event will fire each time it enters the map or any child elements.
 	 *
-	 * @see [Get coordinates of the mouse pointer](https://maplibre.org/maplibre-gl-js/docs/examples/mouse-position/)
-	 * @see [Highlight features under the mouse pointer](https://maplibre.org/maplibre-gl-js/docs/examples/hover-styles/)
-	 * @see [Display a popup on hover](https://maplibre.org/maplibre-gl-js/docs/examples/popup-on-hover/)
+	 * @see [Get coordinates of the mouse pointer](https://maplibre.org/maplibre-gl-js/docs/examples/get-coordinates-of-the-mouse-pointer/)
+	 * @see [Highlight features under the mouse pointer](https://maplibre.org/maplibre-gl-js/docs/examples/create-a-hover-effect/)
+	 * @see [Display a popup on hover](https://maplibre.org/maplibre-gl-js/docs/examples/display-a-popup-on-hover/)
 	 */
 	mouseover: MapMouseEvent;
 	/**
 	 * Fired just before the map begins a transition from one
-	 * view to another, as the result of either user interaction or methods such as {@link Map#jumpTo}.
+	 * view to another, as the result of either user interaction or methods such as {@link Map.jumpTo}.
 	 *
 	 */
 	movestart: MapLibreEvent<MouseEvent | TouchEvent | WheelEvent | undefined>;
 	/**
 	 * Fired repeatedly during an animated transition from one view to
-	 * another, as the result of either user interaction or methods such as {@link Map#flyTo}.
+	 * another, as the result of either user interaction or methods such as {@link Map.flyTo}.
 	 *
-	 * @see [Display HTML clusters with custom properties](https://maplibre.org/maplibre-gl-js/docs/examples/cluster-html/)
+	 * @see [Display HTML clusters with custom properties](https://maplibre.org/maplibre-gl-js/docs/examples/display-html-clusters-with-custom-properties/)
 	 */
 	move: MapLibreEvent<MouseEvent | TouchEvent | WheelEvent | undefined>;
 	/**
 	 * Fired just after the map completes a transition from one
-	 * view to another, as the result of either user interaction or methods such as {@link Map#jumpTo}.
+	 * view to another, as the result of either user interaction or methods such as {@link Map.jumpTo}.
 	 *
-	 * @see [Display HTML clusters with custom properties](https://maplibre.org/maplibre-gl-js/docs/examples/cluster-html/)
+	 * @see [Display HTML clusters with custom properties](https://maplibre.org/maplibre-gl-js/docs/examples/display-html-clusters-with-custom-properties/)
 	 */
 	moveend: MapLibreEvent<MouseEvent | TouchEvent | WheelEvent | undefined>;
 	/**
 	 * Fired just before the map begins a transition from one zoom level to another,
-	 * as the result of either user interaction or methods such as {@link Map#flyTo}.
+	 * as the result of either user interaction or methods such as {@link Map.flyTo}.
 	 */
 	zoomstart: MapLibreEvent<MouseEvent | TouchEvent | WheelEvent | undefined>;
 	/**
 	 * Fired repeatedly during an animated transition from one zoom level to another,
-	 * as the result of either user interaction or methods such as {@link Map#flyTo}.
+	 * as the result of either user interaction or methods such as {@link Map.flyTo}.
 	 */
 	zoom: MapLibreEvent<MouseEvent | TouchEvent | WheelEvent | undefined>;
 	/**
 	 * Fired just after the map completes a transition from one zoom level to another,
-	 * as the result of either user interaction or methods such as {@link Map#flyTo}.
+	 * as the result of either user interaction or methods such as {@link Map.flyTo}.
 	 */
 	zoomend: MapLibreEvent<MouseEvent | TouchEvent | WheelEvent | undefined>;
 	/**
@@ -9252,23 +9341,23 @@ export type MapEventType = {
 	drag: MapLibreEvent<MouseEvent | TouchEvent | undefined>;
 	/**
 	 * Fired when a "drag to pan" interaction ends. See {@link DragPanHandler}.
-	 * @see [Create a draggable marker](https://maplibre.org/maplibre-gl-js/docs/examples/drag-a-marker/)
+	 * @see [Create a draggable marker](https://maplibre.org/maplibre-gl-js/docs/examples/create-a-draggable-marker/)
 	 */
 	dragend: MapLibreEvent<MouseEvent | TouchEvent | undefined>;
 	/**
 	 * Fired whenever the map's pitch (tilt) begins a change as
-	 * the result of either user interaction or methods such as {@link Map#flyTo} .
+	 * the result of either user interaction or methods such as {@link Map.flyTo} .
 	 */
 	pitchstart: MapLibreEvent<MouseEvent | TouchEvent | undefined>;
 	/**
 	 * Fired repeatedly during the map's pitch (tilt) animation between
 	 * one state and another as the result of either user interaction
-	 * or methods such as {@link Map#flyTo}.
+	 * or methods such as {@link Map.flyTo}.
 	 */
 	pitch: MapLibreEvent<MouseEvent | TouchEvent | undefined>;
 	/**
 	 * Fired immediately after the map's pitch (tilt) finishes changing as
-	 * the result of either user interaction or methods such as {@link Map#flyTo}.
+	 * the result of either user interaction or methods such as {@link Map.flyTo}.
 	 */
 	pitchend: MapLibreEvent<MouseEvent | TouchEvent | undefined>;
 	/**
@@ -9575,7 +9664,7 @@ export type MapContextEvent = {
  *
  * @group Event Related
  *
- * @see [Generate and add a missing icon to the map](https://maplibre.org/maplibre-gl-js/docs/examples/add-image-missing-generated/)
+ * @see [Generate and add a missing icon to the map](https://maplibre.org/maplibre-gl-js/docs/examples/generate-and-add-a-missing-icon-to-the-map/)
  */
 export type MapStyleImageMissingEvent = MapLibreEvent & {
 	type: "styleimagemissing";
@@ -10411,7 +10500,7 @@ export type MapOptions = {
 	 */
 	maxBounds?: LngLatBoundsLike;
 	/**
-	 * If `true`, the "scroll to zoom" interaction is enabled. {@link AroundCenterOptions} are passed as options to {@link ScrollZoomHandler#enable}.
+	 * If `true`, the "scroll to zoom" interaction is enabled. {@link AroundCenterOptions} are passed as options to {@link ScrollZoomHandler.enable}.
 	 * @defaultValue true
 	 */
 	scrollZoom?: boolean | AroundCenterOptions;
@@ -10446,7 +10535,7 @@ export type MapOptions = {
 	 */
 	dragRotate?: boolean;
 	/**
-	 * If `true`, the "drag to pan" interaction is enabled. An `Object` value is passed as options to {@link DragPanHandler#enable}.
+	 * If `true`, the "drag to pan" interaction is enabled. An `Object` value is passed as options to {@link DragPanHandler.enable}.
 	 * @defaultValue true
 	 */
 	dragPan?: boolean | DragPanOptions;
@@ -10461,12 +10550,12 @@ export type MapOptions = {
 	 */
 	doubleClickZoom?: boolean;
 	/**
-	 * If `true`, the "pinch to rotate and zoom" interaction is enabled. An `Object` value is passed as options to {@link TwoFingersTouchZoomRotateHandler#enable}.
+	 * If `true`, the "pinch to rotate and zoom" interaction is enabled. An `Object` value is passed as options to {@link TwoFingersTouchZoomRotateHandler.enable}.
 	 * @defaultValue true
 	 */
 	touchZoomRotate?: boolean | AroundCenterOptions;
 	/**
-	 * If `true`, the "drag to pitch" interaction is enabled. An `Object` value is passed as options to {@link TwoFingersTouchPitchHandler#enable}.
+	 * If `true`, the "drag to pitch" interaction is enabled. An `Object` value is passed as options to {@link TwoFingersTouchPitchHandler.enable}.
 	 * @defaultValue true
 	 */
 	touchPitch?: boolean | AroundCenterOptions;
@@ -10580,7 +10669,7 @@ export type MapOptions = {
 	 * font-family for locally overriding generation of Chinese, Japanese, and Korean characters.
 	 * For these characters, font settings from the map's style will be ignored, except for font-weight keywords (light/regular/medium/bold).
 	 * Set to `false`, to enable font settings from the map's style for these glyph ranges.
-	 * The purpose of this option is to avoid bandwidth-intensive glyph server requests. (See [Use locally generated ideographs](https://maplibre.org/maplibre-gl-js/docs/examples/local-ideographs).)
+	 * The purpose of this option is to avoid bandwidth-intensive glyph server requests. (See [Use locally generated ideographs](https://maplibre.org/maplibre-gl-js/docs/examples/use-locally-generated-ideographs).)
 	 * @defaultValue 'sans-serif'
 	 */
 	localIdeographFontFamily?: string | false;
@@ -10588,7 +10677,7 @@ export type MapOptions = {
 	 * The map's MapLibre style. This must be a JSON object conforming to
 	 * the schema described in the [MapLibre Style Specification](https://maplibre.org/maplibre-style-spec/),
 	 * or a URL to such JSON.
-	 * When the style is not specified, calling {@link Map#setStyle} is required to render the map.
+	 * When the style is not specified, calling {@link Map.setStyle} is required to render the map.
 	 */
 	style?: StyleSpecification | string;
 	/**
@@ -10673,7 +10762,7 @@ export type Delegate<E extends Event$1 = Event$1> = (e: E) => void;
  *   }
  * });
  * ```
- * @see [Display a map](https://maplibre.org/maplibre-gl-js/docs/examples/simple-map/)
+ * @see [Display a map](https://maplibre.org/maplibre-gl-js/docs/examples/display-a-map/)
  */
 declare class Map$1 extends Camera {
 	style: Style;
@@ -10682,7 +10771,7 @@ declare class Map$1 extends Camera {
 	_container: HTMLElement;
 	_canvasContainer: HTMLElement;
 	_controlContainer: HTMLElement;
-	_controlPositions: Record<string, HTMLElement>;
+	_controlPositions: Partial<Record<ControlPosition, HTMLElement>>;
 	_interactive: boolean;
 	_showTileBoundaries: boolean;
 	_showCollisionBoxes: boolean;
@@ -10792,6 +10881,22 @@ declare class Map$1 extends Camera {
 	 */
 	_getMapId(): number;
 	/**
+	 * Sets a global state property that can be retrieved with the [`global-state` expression](https://maplibre.org/maplibre-style-spec/expressions/#global-state).
+	 * If the value is null, it resets the property to its default value defined in the [`state` style property](https://maplibre.org/maplibre-style-spec/root/#state).
+	 *
+	 * Note that changing `global-state` values defined in layout properties is not supported, and will be ignored.
+	 *
+	 * @param propertyName - The name of the state property to set.
+	 * @param value - The value of the state property to set.
+	 */
+	setGlobalStateProperty(propertyName: string, value: any): this;
+	/**
+	 * Returns the global map state
+	 *
+	 * @returns The map state object.
+	*/
+	getGlobalState(): Record<string, any>;
+	/**
 	 * Adds an {@link IControl} to the map, calling `control.onAdd(this)`.
 	 *
 	 * An {@link ErrorEvent} will be fired if the image parameter is invalid.
@@ -10804,7 +10909,7 @@ declare class Map$1 extends Camera {
 	 * ```ts
 	 * map.addControl(new NavigationControl());
 	 * ```
-	 * @see [Display map navigation controls](https://maplibre.org/maplibre-gl-js/docs/examples/navigation/)
+	 * @see [Display map navigation controls](https://maplibre.org/maplibre-gl-js/docs/examples/display-map-navigation-controls/)
 	 */
 	addControl(control: IControl, position?: ControlPosition): Map$1;
 	/**
@@ -11205,10 +11310,10 @@ declare class Map$1 extends Camera {
 	 *     .addTo(map);
 	 * });
 	 * ```
-	 * @see [Display popup on click](https://maplibre.org/maplibre-gl-js/docs/examples/popup-on-click/)
-	 * @see [Center the map on a clicked symbol](https://maplibre.org/maplibre-gl-js/docs/examples/center-on-symbol/)
-	 * @see [Create a hover effect](https://maplibre.org/maplibre-gl-js/docs/examples/hover-styles/)
-	 * @see [Create a draggable marker](https://maplibre.org/maplibre-gl-js/docs/examples/drag-a-point/)
+	 * @see [Display popup on click](https://maplibre.org/maplibre-gl-js/docs/examples/display-a-popup-on-click/)
+	 * @see [Center the map on a clicked symbol](https://maplibre.org/maplibre-gl-js/docs/examples/center-the-map-on-a-clicked-symbol/)
+	 * @see [Create a hover effect](https://maplibre.org/maplibre-gl-js/docs/examples/create-a-hover-effect/)
+	 * @see [Create a draggable marker](https://maplibre.org/maplibre-gl-js/docs/examples/create-a-draggable-point/)
 	 */
 	on<T extends keyof MapLayerEventType>(type: T, layer: string, listener: (ev: MapLayerEventType[T] & Object) => void): Subscription;
 	/**
@@ -11273,7 +11378,7 @@ declare class Map$1 extends Camera {
 	 */
 	once(type: keyof MapEventType | string, listener?: Listener): this | Promise<any>;
 	/**
-	 * Removes an event listener for events previously added with `Map#on`.
+	 * Removes an event listener for events previously added with `{@link Map.on}`.
 	 *
 	 * @event
 	 * @param type - The event type previously used to install the listener.
@@ -11310,7 +11415,7 @@ declare class Map$1 extends Camera {
 	 *
 	 * @param geometryOrOptions - (optional) The geometry of the query region:
 	 * either a single point or southwest and northeast points describing a bounding box.
-	 * Omitting this parameter (i.e. calling {@link Map#queryRenderedFeatures} with zero arguments,
+	 * Omitting this parameter (i.e. calling {@link Map.queryRenderedFeatures} with zero arguments,
 	 * or with only a `options` argument) is equivalent to passing a bounding box encompassing the entire
 	 * map viewport.
 	 * The geometryOrOptions can receive a {@link QueryRenderedFeaturesOptions} only to support a situation where the function receives only one parameter which is the options parameter.
@@ -11381,7 +11486,7 @@ declare class Map$1 extends Camera {
 	 * ```ts
 	 * let features = map.queryRenderedFeatures({ layers: ['my-layer-name'] });
 	 * ```
-	 * @see [Get features under the mouse pointer](https://maplibre.org/maplibre-gl-js/docs/examples/queryrenderedfeatures/)
+	 * @see [Get features under the mouse pointer](https://maplibre.org/maplibre-gl-js/docs/examples/get-features-under-the-mouse-pointer/)
 	 */
 	queryRenderedFeatures(geometryOrOptions?: PointLike | [
 		PointLike,
@@ -11395,7 +11500,7 @@ declare class Map$1 extends Camera {
 	 * @param parameters - The options object.
 	 * @returns An array of MapGeoJSONFeature objects.
 	 *
-	 * In contrast to {@link Map#queryRenderedFeatures}, this function returns all features matching the query parameters,
+	 * In contrast to {@link Map.queryRenderedFeatures}, this function returns all features matching the query parameters,
 	 * whether or not they are rendered by the current style (i.e. visible). The domain of the query includes all currently-loaded
 	 * vector tiles and GeoJSON source tiles: this function does not check tiles outside the currently
 	 * visible viewport.
@@ -11477,7 +11582,7 @@ declare class Map$1 extends Camera {
 	 * map.setTransformRequest((url: string, resourceType: string) => {});
 	 * ```
 	 */
-	setTransformRequest(transformRequest: RequestTransformFunction): this;
+	setTransformRequest(transformRequest: RequestTransformFunction | null): this;
 	_getUIString(key: keyof typeof defaultLocale): string;
 	_updateStyle(style: StyleSpecification | string | null, options?: StyleSwapOptions & StyleOptions): this;
 	_lazyInitEmptyStyle(): void;
@@ -11541,7 +11646,7 @@ declare class Map$1 extends Camera {
 	 *   }
 	 * });
 	 * ```
-	 * @see GeoJSON source: [Add live realtime data](https://maplibre.org/maplibre-gl-js/docs/examples/live-geojson/)
+	 * @see GeoJSON source: [Add live realtime data](https://maplibre.org/maplibre-gl-js/docs/examples/add-live-realtime-data/)
 	 */
 	addSource(id: string, source: SourceSpecification | CanvasSourceSpecification): this;
 	/**
@@ -11618,9 +11723,9 @@ declare class Map$1 extends Camera {
 	 * ```ts
 	 * let sourceObject = map.getSource('points');
 	 * ```
-	 * @see [Create a draggable point](https://maplibre.org/maplibre-gl-js/docs/examples/drag-a-point/)
-	 * @see [Animate a point](https://maplibre.org/maplibre-gl-js/docs/examples/animate-point-along-line/)
-	 * @see [Add live realtime data](https://maplibre.org/maplibre-gl-js/docs/examples/live-geojson/)
+	 * @see [Create a draggable point](https://maplibre.org/maplibre-gl-js/docs/examples/create-a-draggable-point/)
+	 * @see [Animate a point](https://maplibre.org/maplibre-gl-js/docs/examples/animate-a-point/)
+	 * @see [Add live realtime data](https://maplibre.org/maplibre-gl-js/docs/examples/add-live-realtime-data/)
 	 */
 	getSource<TSource extends Source>(id: string): TSource | undefined;
 	/**
@@ -11640,7 +11745,7 @@ declare class Map$1 extends Camera {
 	 * ```ts
 	 * map.setSourceTileLodParams(4.0, 3.0, 'terrain');
 	 * ```
-	 * @see [Modify Level of Detail behavior](https://maplibre.org/maplibre-gl-js/docs/examples/lod-control/)
+	 * @see [Modify Level of Detail behavior](https://maplibre.org/maplibre-gl-js/docs/examples/level-of-detail-control/)
 
 	 */
 	setSourceTileLodParams(maxZoomLevelsOnScreen: number, tileCountMaxMinRatio: number, sourceId?: string): this;
@@ -11690,8 +11795,8 @@ declare class Map$1 extends Camera {
 	 *     stretchY: [[16, 384]], // stretch everything vertically except the 16px border
 	 * });
 	 * ```
-	 * @see Use `HTMLImageElement`: [Add an icon to the map](https://maplibre.org/maplibre-gl-js/docs/examples/add-image/)
-	 * @see Use `ImageData`: [Add a generated icon to the map](https://maplibre.org/maplibre-gl-js/docs/examples/add-image-generated/)
+	 * @see Use `HTMLImageElement`: [Add an icon to the map](https://maplibre.org/maplibre-gl-js/docs/examples/add-an-icon-to-the-map/)
+	 * @see Use `ImageData`: [Add a generated icon to the map](https://maplibre.org/maplibre-gl-js/docs/examples/add-a-generated-icon-to-the-map/)
 	 */
 	addImage(id: string, image: HTMLImageElement | ImageBitmap | ImageData | {
 		width: number;
@@ -11726,7 +11831,7 @@ declare class Map$1 extends Camera {
 	/**
 	 * Returns an image, specified by ID, currently available in the map.
 	 * This includes both images from the style's original sprite
-	 * and any images that have been added at runtime using {@link Map#addImage}.
+	 * and any images that have been added at runtime using {@link Map.addImage}.
 	 *
 	 * @param id - The ID of the image.
 	 * @returns An image in the map with the specified ID.
@@ -11740,7 +11845,7 @@ declare class Map$1 extends Camera {
 	/**
 	 * Check whether or not an image with a specific ID exists in the style. This checks both images
 	 * in the style's original sprite and any images
-	 * that have been added at runtime using {@link Map#addImage}.
+	 * that have been added at runtime using {@link Map.addImage}.
 	 *
 	 * An {@link ErrorEvent} will be fired if the image parameter is invalid.
 	 *
@@ -11757,7 +11862,7 @@ declare class Map$1 extends Camera {
 	/**
 	 * Remove an image from a style. This can be an image from the style's original
 	 * sprite or any images
-	 * that have been added at runtime using {@link Map#addImage}.
+	 * that have been added at runtime using {@link Map.addImage}.
 	 *
 	 * @param id - The ID of the image.
 	 *
@@ -11770,7 +11875,7 @@ declare class Map$1 extends Camera {
 	 */
 	removeImage(id: string): void;
 	/**
-	 * Load an image from an external URL to be used with {@link Map#addImage}. External
+	 * Load an image from an external URL to be used with {@link Map.addImage}. External
 	 * domains must support [CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/Access_control_CORS).
 	 *
 	 * @param url - The URL of the image file. Image file must be in png, webp, or jpg format.
@@ -11783,13 +11888,13 @@ declare class Map$1 extends Camera {
 	 * // Add the loaded image to the style's sprite with the ID 'photo'.
 	 * map.addImage('photo', response.data);
 	 * ```
-	 * @see [Add an icon to the map](https://maplibre.org/maplibre-gl-js/docs/examples/add-image/)
+	 * @see [Add an icon to the map](https://maplibre.org/maplibre-gl-js/docs/examples/add-an-icon-to-the-map/)
 	 */
 	loadImage(url: string): Promise<GetResourceResponse<HTMLImageElement | ImageBitmap>>;
 	/**
 	 * Returns an Array of strings containing the IDs of all images currently available in the map.
 	 * This includes both images from the style's original sprite
-	 * and any images that have been added at runtime using {@link Map#addImage}.
+	 * and any images that have been added at runtime using {@link Map.addImage}.
 	 *
 	 * @returns An Array of strings containing the names of all sprites/images currently available in the map.
 	 *
@@ -11874,9 +11979,9 @@ declare class Map$1 extends Camera {
 	 * // Add the layer before the existing `cities` layer
 	 * }, 'cities');
 	 * ```
-	 * @see [Create and style clusters](https://maplibre.org/maplibre-gl-js/docs/examples/cluster/)
-	 * @see [Add a vector tile source](https://maplibre.org/maplibre-gl-js/docs/examples/vector-source/)
-	 * @see [Add a WMS source](https://maplibre.org/maplibre-gl-js/docs/examples/wms/)
+	 * @see [Create and style clusters](https://maplibre.org/maplibre-gl-js/docs/examples/create-and-style-clusters/)
+	 * @see [Add a vector tile source](https://maplibre.org/maplibre-gl-js/docs/examples/add-a-vector-tile-source/)
+	 * @see [Add a WMS source](https://maplibre.org/maplibre-gl-js/docs/examples/add-a-wms-source/)
 	 */
 	addLayer(layer: AddLayerObject, beforeId?: string): this;
 	/**
@@ -11917,8 +12022,8 @@ declare class Map$1 extends Camera {
 	 * ```ts
 	 * let stateDataLayer = map.getLayer('state-data');
 	 * ```
-	 * @see [Filter symbols by toggling a list](https://maplibre.org/maplibre-gl-js/docs/examples/filter-markers/)
-	 * @see [Filter symbols by text input](https://maplibre.org/maplibre-gl-js/docs/examples/filter-markers-by-input/)
+	 * @see [Filter symbols by toggling a list](https://maplibre.org/maplibre-gl-js/docs/examples/filter-symbols-by-toggling-a-list/)
+	 * @see [Filter symbols by text input](https://maplibre.org/maplibre-gl-js/docs/examples/filter-symbols-by-text-input/)
 	 */
 	getLayer(id: string): StyleLayer | undefined;
 	/**
@@ -11984,7 +12089,7 @@ declare class Map$1 extends Camera {
 	 * ```ts
 	 * map.setFilter('bike-docks', null);
 	 * ```
-	 * @see [Create a timeline animation](https://maplibre.org/maplibre-gl-js/docs/examples/timeline-animation/)
+	 * @see [Create a timeline animation](https://maplibre.org/maplibre-gl-js/docs/examples/create-a-time-slider/)
 	 */
 	setFilter(layerId: string, filter?: FilterSpecification | null, options?: StyleSetterOptions): this;
 	/**
@@ -12007,8 +12112,8 @@ declare class Map$1 extends Camera {
 	 * ```ts
 	 * map.setPaintProperty('my-layer', 'fill-color', '#faafee');
 	 * ```
-	 * @see [Change a layer's color with buttons](https://maplibre.org/maplibre-gl-js/docs/examples/color-switcher/)
-	 * @see [Create a draggable point](https://maplibre.org/maplibre-gl-js/docs/examples/drag-a-point/)
+	 * @see [Change a layer's color with buttons](https://maplibre.org/maplibre-gl-js/docs/examples/change-a-layers-color-with-buttons/)
+	 * @see [Create a draggable point](https://maplibre.org/maplibre-gl-js/docs/examples/create-a-draggable-point/)
 	 */
 	setPaintProperty(layerId: string, name: string, value: any, options?: StyleSetterOptions): this;
 	/**
@@ -12155,7 +12260,7 @@ declare class Map$1 extends Camera {
 	 * _Note: You can use the [`feature-state` expression](https://maplibre.org/maplibre-style-spec/expressions/#feature-state) to access the values in a feature's state object for the purposes of styling._
 	 *
 	 * @param feature - Feature identifier. Feature objects returned from
-	 * {@link Map#queryRenderedFeatures} or event handlers can be used as feature identifiers.
+	 * {@link Map.queryRenderedFeatures} or event handlers can be used as feature identifiers.
 	 * @param state - A set of key-value pairs. The values should be valid JSON types.
 	 *
 	 * @example
@@ -12174,7 +12279,7 @@ declare class Map$1 extends Camera {
 	 *   }
 	 * });
 	 * ```
-	 * @see [Create a hover effect](https://maplibre.org/maplibre-gl-js/docs/examples/hover-styles/)
+	 * @see [Create a hover effect](https://maplibre.org/maplibre-gl-js/docs/examples/create-a-hover-effect/)
 	 */
 	setFeatureState(feature: FeatureIdentifier, state: any): this;
 	/**
@@ -12185,7 +12290,7 @@ declare class Map$1 extends Camera {
 	 * Features are identified by their `feature.id` attribute, which can be any number or string.
 	 *
 	 * @param target - Identifier of where to remove state. It can be a source, a feature, or a specific key of feature.
-	 * Feature objects returned from {@link Map#queryRenderedFeatures} or event handlers can be used as feature identifiers.
+	 * Feature objects returned from {@link Map.queryRenderedFeatures} or event handlers can be used as feature identifiers.
 	 * @param key - (optional) The key in the feature state to reset.
 	 * @example
 	 * Reset the entire state object for all features in the `my-source` source
@@ -12232,7 +12337,7 @@ declare class Map$1 extends Camera {
 	 * _Note: To access the values in a feature's state object for the purposes of styling the feature, use the [`feature-state` expression](https://maplibre.org/maplibre-style-spec/expressions/#feature-state)._
 	 *
 	 * @param feature - Feature identifier. Feature objects returned from
-	 * {@link Map#queryRenderedFeatures} or event handlers can be used as feature identifiers.
+	 * {@link Map.queryRenderedFeatures} or event handlers can be used as feature identifiers.
 	 * @returns The state of the feature: a set of key-value pairs that was assigned to the feature at runtime.
 	 *
 	 * @example
@@ -12267,16 +12372,16 @@ declare class Map$1 extends Camera {
 	 * map controls.
 	 *
 	 * @returns The container of the map's `<canvas>`.
-	 * @see [Create a draggable point](https://maplibre.org/maplibre-gl-js/docs/examples/drag-a-point/)
+	 * @see [Create a draggable point](https://maplibre.org/maplibre-gl-js/docs/examples/create-a-draggable-point/)
 	 */
 	getCanvasContainer(): HTMLElement;
 	/**
 	 * Returns the map's `<canvas>` element.
 	 *
 	 * @returns The map's `<canvas>` element.
-	 * @see [Measure distances](https://maplibre.org/maplibre-gl-js/docs/examples/measure/)
-	 * @see [Display a popup on hover](https://maplibre.org/maplibre-gl-js/docs/examples/popup-on-hover/)
-	 * @see [Center the map on a clicked symbol](https://maplibre.org/maplibre-gl-js/docs/examples/center-on-symbol/)
+	 * @see [Measure distances](https://maplibre.org/maplibre-gl-js/docs/examples/measure-distances/)
+	 * @see [Display a popup on hover](https://maplibre.org/maplibre-gl-js/docs/examples/display-a-popup-on-hover/)
+	 * @see [Center the map on a clicked symbol](https://maplibre.org/maplibre-gl-js/docs/examples/center-the-map-on-a-clicked-symbol/)
 	 */
 	getCanvas(): HTMLCanvasElement;
 	_containerDimensions(): number[];
@@ -12352,8 +12457,8 @@ declare class Map$1 extends Camera {
 	 * ```ts
 	 * map.triggerRepaint();
 	 * ```
-	 * @see [Add a 3D model](https://maplibre.org/maplibre-gl-js/docs/examples/add-3d-model/)
-	 * @see [Add an animated icon to the map](https://maplibre.org/maplibre-gl-js/docs/examples/add-image-animated/)
+	 * @see [Add a 3D model](https://maplibre.org/maplibre-gl-js/docs/examples/add-a-3d-model-using-threejs/)
+	 * @see [Add an animated icon to the map](https://maplibre.org/maplibre-gl-js/docs/examples/add-an-animated-icon-to-the-map/)
 	 */
 	triggerRepaint(): void;
 	_onWindowOnline: () => void;
@@ -12490,7 +12595,7 @@ declare class MouseRotateWrapper {
 	map: Map$1;
 	_clickTolerance: number;
 	element: HTMLElement;
-	_rotatePitchHanlder: DragMoveHandler<DragRotateResult, MouseEvent | TouchEvent>;
+	_rotatePitchHandler: DragMoveHandler<DragRotateResult, MouseEvent | TouchEvent>;
 	_startPos: Point;
 	_lastPos: Point;
 	constructor(map: Map$1, element: HTMLElement, pitch?: boolean);
@@ -12549,7 +12654,7 @@ export type PopupOptions = {
 	focusAfterOpen?: boolean;
 	/**
 	 * A string indicating the part of the Popup that should
-	 * be positioned closest to the coordinate set via {@link Popup#setLngLat}.
+	 * be positioned closest to the coordinate set via {@link Popup.setLngLat}.
 	 * Options are `'center'`, `'top'`, `'bottom'`, `'left'`, `'right'`, `'top-left'`,
 	 * `'top-right'`, `'bottom-left'`, and `'bottom-right'`. If unset the anchor will be
 	 * dynamically set to ensure the popup falls within the map container with a preference
@@ -12631,10 +12736,10 @@ export type PopupOptions = {
  *   .setMaxWidth("300px")
  *   .addTo(map);
  * ```
- * @see [Display a popup](https://maplibre.org/maplibre-gl-js/docs/examples/popup/)
- * @see [Display a popup on hover](https://maplibre.org/maplibre-gl-js/docs/examples/popup-on-hover/)
- * @see [Display a popup on click](https://maplibre.org/maplibre-gl-js/docs/examples/popup-on-click/)
- * @see [Attach a popup to a marker instance](https://maplibre.org/maplibre-gl-js/docs/examples/set-popup/)
+ * @see [Display a popup](https://maplibre.org/maplibre-gl-js/docs/examples/display-a-popup/)
+ * @see [Display a popup on hover](https://maplibre.org/maplibre-gl-js/docs/examples/display-a-popup-on-hover/)
+ * @see [Display a popup on click](https://maplibre.org/maplibre-gl-js/docs/examples/display-a-popup-on-click/)
+ * @see [Attach a popup to a marker instance](https://maplibre.org/maplibre-gl-js/docs/examples/attach-a-popup-to-a-marker-instance/)
  *
  * ## Events
  *
@@ -12668,10 +12773,10 @@ export declare class Popup extends Evented {
 	 *   .setHTML("<h1>Null Island</h1>")
 	 *   .addTo(map);
 	 * ```
-	 * @see [Display a popup](https://maplibre.org/maplibre-gl-js/docs/examples/popup/)
-	 * @see [Display a popup on hover](https://maplibre.org/maplibre-gl-js/docs/examples/popup-on-hover/)
-	 * @see [Display a popup on click](https://maplibre.org/maplibre-gl-js/docs/examples/popup-on-click/)
-	 * @see [Show polygon information on click](https://maplibre.org/maplibre-gl-js/docs/examples/polygon-popup-on-click/)
+	 * @see [Display a popup](https://maplibre.org/maplibre-gl-js/docs/examples/display-a-popup/)
+	 * @see [Display a popup on hover](https://maplibre.org/maplibre-gl-js/docs/examples/display-a-popup-on-hover/)
+	 * @see [Display a popup on click](https://maplibre.org/maplibre-gl-js/docs/examples/display-a-popup-on-click/)
+	 * @see [Show polygon information on click](https://maplibre.org/maplibre-gl-js/docs/examples/show-polygon-information-on-click/)
 	 */
 	addTo(map: Map$1): this;
 	/**
@@ -12756,7 +12861,7 @@ export declare class Popup extends Evented {
 	 * Sets the popup's content to the HTML provided as a string.
 	 *
 	 * This method does not perform HTML filtering or sanitization, and must be
-	 * used only with trusted content. Consider {@link Popup#setText} if
+	 * used only with trusted content. Consider {@link Popup.setText} if
 	 * the content is an untrusted text string.
 	 *
 	 * @param html - A string representing HTML content for the popup.
@@ -12767,10 +12872,10 @@ export declare class Popup extends Evented {
 	 *   .setHTML("<h1>Hello World!</h1>")
 	 *   .addTo(map);
 	 * ```
-	 * @see [Display a popup](https://maplibre.org/maplibre-gl-js/docs/examples/popup/)
-	 * @see [Display a popup on hover](https://maplibre.org/maplibre-gl-js/docs/examples/popup-on-hover/)
-	 * @see [Display a popup on click](https://maplibre.org/maplibre-gl-js/docs/examples/popup-on-click/)
-	 * @see [Attach a popup to a marker instance](https://maplibre.org/maplibre-gl-js/docs/examples/set-popup/)
+	 * @see [Display a popup](https://maplibre.org/maplibre-gl-js/docs/examples/display-a-popup/)
+	 * @see [Display a popup on hover](https://maplibre.org/maplibre-gl-js/docs/examples/display-a-popup-on-hover/)
+	 * @see [Display a popup on click](https://maplibre.org/maplibre-gl-js/docs/examples/display-a-popup-on-click/)
+	 * @see [Attach a popup to a marker instance](https://maplibre.org/maplibre-gl-js/docs/examples/attach-a-popup-to-a-marker-instance/)
 	 */
 	setHTML(html: string): this;
 	/**
@@ -12887,7 +12992,7 @@ export type MarkerOptions = {
 	 */
 	offset?: PointLike;
 	/**
-	 * A string indicating the part of the Marker that should be positioned closest to the coordinate set via {@link Marker#setLngLat}.
+	 * A string indicating the part of the Marker that should be positioned closest to the coordinate set via {@link Marker.setLngLat}.
 	 * Options are `'center'`, `'top'`, `'bottom'`, `'left'`, `'right'`, `'top-left'`, `'top-right'`, `'bottom-left'`, and `'bottom-right'`.
 	 * @defaultValue 'center'
 	 * */
@@ -12965,8 +13070,8 @@ export type MarkerOptions = {
  *   }).setLngLat([30.5, 50.5])
  *   .addTo(map);
  * ```
- * @see [Add custom icons with Markers](https://maplibre.org/maplibre-gl-js/docs/examples/custom-marker-icons/)
- * @see [Create a draggable Marker](https://maplibre.org/maplibre-gl-js/docs/examples/drag-a-marker/)
+ * @see [Add custom icons with Markers](https://maplibre.org/maplibre-gl-js/docs/examples/add-custom-icons-with-markers/)
+ * @see [Create a draggable Marker](https://maplibre.org/maplibre-gl-js/docs/examples/create-a-draggable-marker/)
  *
  * ## Events
  *
@@ -13041,7 +13146,7 @@ export declare class Marker extends Evented {
 	 * // Print the marker's longitude and latitude values in the console
 	 * console.log('Longitude: ' + lngLat.lng + ', Latitude: ' + lngLat.lat )
 	 * ```
-	 * @see [Create a draggable Marker](https://maplibre.org/maplibre-gl-js/docs/examples/drag-a-marker/)
+	 * @see [Create a draggable Marker](https://maplibre.org/maplibre-gl-js/docs/examples/create-a-draggable-marker/)
 	 */
 	getLngLat(): LngLat;
 	/**
@@ -13054,8 +13159,8 @@ export declare class Marker extends Evented {
 	 *   .setLngLat([-65.017, -16.457])
 	 *   .addTo(map);
 	 * ```
-	 * @see [Add custom icons with Markers](https://maplibre.org/maplibre-gl-js/docs/examples/custom-marker-icons/)
-	 * @see [Create a draggable Marker](https://maplibre.org/maplibre-gl-js/docs/examples/drag-a-marker/)
+	 * @see [Add custom icons with Markers](https://maplibre.org/maplibre-gl-js/docs/examples/add-custom-icons-with-markers/)
+	 * @see [Create a draggable Marker](https://maplibre.org/maplibre-gl-js/docs/examples/create-a-draggable-marker/)
 	 */
 	setLngLat(lnglat: LngLatLike): this;
 	/**
@@ -13074,7 +13179,7 @@ export declare class Marker extends Evented {
 	 *  .setPopup(new Popup().setHTML("<h1>Hello World!</h1>")) // add popup
 	 *  .addTo(map);
 	 * ```
-	 * @see [Attach a popup to a marker instance](https://maplibre.org/maplibre-gl-js/docs/examples/set-popup/)
+	 * @see [Attach a popup to a marker instance](https://maplibre.org/maplibre-gl-js/docs/examples/attach-a-popup-to-a-marker-instance/)
 	 */
 	setPopup(popup?: Popup | null): this;
 	/**
@@ -13185,7 +13290,7 @@ export declare class Marker extends Evented {
 	isDraggable(): boolean;
 	/**
 	 * Sets the `rotation` property of the marker.
-	 * @param rotation - The rotation angle of the marker (clockwise, in degrees), relative to its respective {@link Marker#setRotationAlignment} setting.
+	 * @param rotation - The rotation angle of the marker (clockwise, in degrees), relative to its respective {@link Marker.setRotationAlignment} setting.
 	 */
 	setRotation(rotation?: number): this;
 	/**
@@ -13283,7 +13388,7 @@ export type GeolocateControlOptions = {
  *     trackUserLocation: true
  * }));
  * ```
- * @see [Locate the user](https://maplibre.org/maplibre-gl-js/docs/examples/locate-user/)
+ * @see [Locate the user](https://maplibre.org/maplibre-gl-js/docs/examples/locate-the-user/)
  *
  * ## Events
  *
@@ -13770,7 +13875,8 @@ export type SetClusterOptions = {
 	 */
 	cluster?: boolean;
 	/**
-	 * The cluster's max zoom
+	 * The cluster's max zoom.
+	 * Non-integer values are rounded to the closest integer due to supercluster integer value requirements.
 	 */
 	clusterMaxZoom?: number;
 	/**
@@ -13827,10 +13933,10 @@ export type SetClusterOptions = {
  *   }]
  * });
  * ```
- * @see [Draw GeoJSON points](https://maplibre.org/maplibre-gl-js/docs/examples/geojson-markers/)
- * @see [Add a GeoJSON line](https://maplibre.org/maplibre-gl-js/docs/examples/geojson-line/)
- * @see [Create a heatmap from points](https://maplibre.org/maplibre-gl-js/docs/examples/heatmap-layer/)
- * @see [Create and style clusters](https://maplibre.org/maplibre-gl-js/docs/examples/cluster/)
+ * @see [Draw GeoJSON points](https://maplibre.org/maplibre-gl-js/docs/examples/draw-geojson-points/)
+ * @see [Add a GeoJSON line](https://maplibre.org/maplibre-gl-js/docs/examples/add-a-geojson-line/)
+ * @see [Create a heatmap from points](https://maplibre.org/maplibre-gl-js/docs/examples/create-a-heatmap-layer/)
+ * @see [Create and style clusters](https://maplibre.org/maplibre-gl-js/docs/examples/create-and-style-clusters/)
  */
 export declare class GeoJSONSource extends Evented implements Source {
 	type: "geojson";
@@ -13847,12 +13953,17 @@ export declare class GeoJSONSource extends Evented implements Source {
 	workerOptions: GeoJSONWorkerOptions;
 	map: Map$1;
 	actor: Actor;
-	_pendingLoads: number;
+	_isUpdatingWorker: boolean;
+	_pendingWorkerUpdate: {
+		data?: GeoJSON.GeoJSON | string;
+		diff?: GeoJSONSourceDiff;
+	};
 	_collectResourceTiming: boolean;
 	_removed: boolean;
 	/** @internal */
 	constructor(id: string, options: GeoJSONSourceOptions, dispatcher: Dispatcher, eventedParent: Evented);
 	private _pixelsToTileUnits;
+	private _getClusterMaxZoom;
 	load(): Promise<void>;
 	onAdd(map: Map$1): void;
 	/**
@@ -13943,9 +14054,8 @@ export declare class GeoJSONSource extends Evented implements Source {
 	 * Responsible for invoking WorkerSource's geojson.loadData target, which
 	 * handles loading the geojson data and preparing to serve it up as tiles,
 	 * using geojson-vt or supercluster as appropriate.
-	 * @param diff - the diff object
 	 */
-	_updateWorkerData(diff?: GeoJSONSourceDiff): Promise<void>;
+	_updateWorkerData(): Promise<void>;
 	loaded(): boolean;
 	loadTile(tile: Tile): Promise<void>;
 	abortTile(tile: Tile): Promise<void>;
@@ -13973,16 +14083,18 @@ declare class TileBounds {
 	contains(tileID: CanonicalTileID): boolean;
 }
 /**
- * A source containing raster tiles (See the [Style Specification](https://maplibre.org/maplibre-style-spec/) for detailed documentation of options.)
+ * A source containing raster tiles (See the [raster source documentation](https://maplibre.org/maplibre-style-spec/sources/#raster) for detailed documentation of options.)
  *
  * @group Sources
+ *
+ * \> ℹ️ **Note:** The default `tileSize` is `512`. If your tile provider (such as OpenStreetMap or Stadia Maps) serves 256px tiles, set `tileSize: 256` manually to avoid blurry rendering due to upscaling.
  *
  * @example
  * ```ts
  * map.addSource('raster-source', {
  *     'type': 'raster',
  *     'tiles': ['https://tiles.stadiamaps.com/tiles/stamen_watercolor/{z}/{x}/{y}.jpg'],
- *     'tileSize': 256,
+ *     'tileSize': 256, // Set this to match tile server output to avoid blurry rendering
  * });
  * ```
  *
@@ -13994,12 +14106,12 @@ declare class TileBounds {
  *      'tiles': [
  *          'https://img.nj.gov/imagerywms/Natural2015?bbox={bbox-epsg-3857}&format=image/png&service=WMS&version=1.1.1&request=GetMap&srs=EPSG:3857&transparent=true&width=256&height=256&layers=Natural2015'
  *      ],
- *      'tileSize': 256
+ *      'tileSize': 256 // Important for WMS if tiles are 256px
  * });
  * ```
  * @see [Add a raster tile source](https://maplibre.org/maplibre-gl-js/docs/examples/map-tiles/)
- * @see [Add a WMS source](https://maplibre.org/maplibre-gl-js/docs/examples/wms/)
- * @see [Display a satellite map](https://maplibre.org/maplibre-gl-js/docs/examples/satellite-map/)
+ * @see [Add a WMS source](https://maplibre.org/maplibre-gl-js/docs/examples/add-a-wms-source/)
+ * @see [Display a satellite map](https://maplibre.org/maplibre-gl-js/docs/examples/display-a-satellite-map/)
  */
 export declare class RasterTileSource extends Evented implements Source {
 	type: "raster" | "raster-dem";
@@ -14262,7 +14374,7 @@ export declare class VideoSource extends ImageSource {
  *  });
  * // the following is an example of a way to return an error when trying to load a tile
  * addProtocol('custom2', async (params, abortController) => {
- *      throw new Error('someErrorMessage'));
+ *      throw new Error('someErrorMessage');
  * });
  * ```
  */
@@ -14500,6 +14612,7 @@ export {
 	SourceExpression,
 	SourceSpecification,
 	SpriteSpecification,
+	StateSpecification,
 	StylePropertyExpression,
 	StylePropertySpecification,
 	StyleSpecification,
