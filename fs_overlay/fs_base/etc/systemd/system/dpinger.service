@@ -1,0 +1,16 @@
+[Unit]
+Description=dpinger service
+After=network-online.target
+Wants=network-online.target 
+Requires=sys-devices-virtual-net-wg0.device
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/dpinger/
+ExecStart=/bin/dpinger -f -s 2s -r 2s -L 10% -i otp -t 5s -C /opt/dpinger/otp-tunnel.sh -u /tmp/otp_status 10.0.0.2
+Restart=always
+RestartSec=1
+TimeoutStartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,12 +1,11 @@
 [Unit]
 Description=lvgl application
-After=multi-user.target
+After=multi-user.target dpinger.service
 
 [Service]
-WorkingDirectory=/opt/lvgl
+WorkingDirectory=/root
 Type=simple
-ExecStartPre=sh -c "echo 0 > /sys/class/vtconsole/vtcon1/bind"
-ExecStart=/usr/bin/lvgl-app
+ExecStart=/bin/lvgl-com
 Restart=always
 RestartSec=5
 
