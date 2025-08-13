@@ -1,0 +1,13 @@
+[Unit]
+Description=Group of services started when a USB partition appears
+# Ensure the automounter exists early (optional but nice)
+Wants=mnt-usb.automount
+After=mnt-usb.automount
+
+# NEW: tie target's life to the mount and allow it to stop
+BindsTo=mnt-usb.mount
+RequiresMountsFor=/mnt/usb
+# StopWhenUnneeded=yes
+
+# Start these when the target is started
+Wants=udp2raw.service udptunnel-client.service wg0-up.service

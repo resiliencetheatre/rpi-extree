@@ -116,3 +116,13 @@ In case you get 'broken pipe' error with your USB-C attached HF, add following:
 options snd_usb_audio index=0 ignore_ctl_error=1
 ```
 
+# Link
+
+Development notes for upcoming link solution. Work in progress section.
+
+```
+# Eject USB
+systemctl start usb-eject.target
+# Init services
+systemctl enable macpipe.service udp2raw.service udptunnel-client.service
+```

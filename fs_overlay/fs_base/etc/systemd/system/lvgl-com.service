@@ -3,7 +3,7 @@ Description=lvgl application
 After=multi-user.target dpinger.service
 
 [Service]
-WorkingDirectory=/root
+WorkingDirectory=/opt/lvgl-com
 Type=simple
 ExecStart=/bin/lvgl-com
 Restart=always
