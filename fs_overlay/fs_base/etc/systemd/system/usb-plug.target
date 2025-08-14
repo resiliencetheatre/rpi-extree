@@ -10,4 +10,4 @@ RequiresMountsFor=/mnt/usb
 # StopWhenUnneeded=yes
 
 # Start these when the target is started
-Wants=udp2raw.service udptunnel-client.service wg0-up.service
+Wants=udp2raw.service udptunnel-client.service wg0-up.service macpipe.service
