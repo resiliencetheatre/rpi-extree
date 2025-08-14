@@ -11,3 +11,8 @@ ExecStart=/bin/dpinger -f -s 2s -r 2s -L 10% -i otp -t 5s -C /opt/dpinger/otp-tu
 Restart=always
 RestartSec=1
 TimeoutStartSec=5
+StandardOutput=null
+StandardError=null
+
+[Install]
+WantedBy=multi-user.target
