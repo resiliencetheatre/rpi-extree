@@ -1,0 +1,10 @@
+[Unit]
+Description=audiostreamer
+After=network.target 
+
+[Service]
+Type=simple
+WorkingDirectory=/tmp
+EnvironmentFile=/mnt/usb/audiotarget.conf
+ExecStart=/bin/audiostreamer -s alsasrc -a ${TARGET_IP} -r ${RATE}
+

@@ -1,6 +1,7 @@
 [Unit]
 Description=lvgl application
 After=multi-user.target dpinger.service
+Conflicts=psplash.service
 
 [Service]
 WorkingDirectory=/opt/lvgl-com

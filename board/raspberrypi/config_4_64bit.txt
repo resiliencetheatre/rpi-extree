@@ -35,3 +35,4 @@ dtoverlay=vc4-kms-dpi-hyperpixel4
 # Disable uart when using hyperpixel4
 enable_uart=0
 enable_dpi_lcd=1
+disable_splash=1

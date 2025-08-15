@@ -1,0 +1,9 @@
+[Unit]
+Description=audioreceiver
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/tmp
+ExecStart=/bin/audioreceiver -s alsasink
+
