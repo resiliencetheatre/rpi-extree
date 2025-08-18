@@ -5,6 +5,7 @@ RequiresMountsFor=/mnt/usb
 BindsTo=mnt-usb.mount
 Wants=mnt-usb.automount
 After=mnt-usb.automount
+ConditionPathExists=/mnt/usb/client.ini
 # Conflicts=usb-eject.target
 # PartOf=usb-plug.target
 
@@ -13,7 +14,7 @@ WorkingDirectory=/opt/udptunnel
 Type=simple
 ExecStart=/bin/client -i client.ini
 Restart=always
-RestartSec=10
+RestartSec=5
 
 [Install]
 WantedBy=usb-plug.target
