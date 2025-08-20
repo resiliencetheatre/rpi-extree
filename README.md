@@ -70,15 +70,23 @@ BR2_LINUX_KERNEL_CUSTOM_CONFIG_FILE="${BR2_EXTERNAL}/configs/kernel/bcm2711_defc
 Update kernel version on all raspberry pi defconfigs:
 
 ```
-# Clone
+# Clone kernel to separate directory outside project directory
 git clone https://github.com/raspberrypi/linux.git
 # Get latest commit ID
 git log
-# Use update script
+
+# Update commit id, invoke script in rpi-extree directory
 utils/update_defconfig_commit.sh 4421ed134f9f03351a4a26293a29f009b8fff725
 ```
 
-Remember to add kernel hash into `linux/linux.hash` under buildroot directory. 
+Remember to add kernel hash into `linux/linux.hash` under buildroot directory.
+
+```
+# Get hash of downloaded kernel 
+sha256 dl/linux/linux-[COMMIT_ID].tar.gz >> linux/linux.hash
+# Edit manually file linux/linux.hash and edit last line as:
+sha256  [HASH_OF_DOWNLOADED_TAR]  linux-[COMMIT_ID].tar.gz
+```
 
 ## Filesystem overlays
 
@@ -89,7 +97,6 @@ BR2_ROOTFS_OVERLAY="${BR2_EXTERNAL}/fs_overlay/fs_base"
 ```
 
 You may change this based on your build.
-
 
 # Displays
 
