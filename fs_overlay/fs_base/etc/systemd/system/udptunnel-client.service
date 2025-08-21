@@ -6,8 +6,7 @@ BindsTo=mnt-usb.mount
 Wants=mnt-usb.automount
 After=mnt-usb.automount
 ConditionPathExists=/mnt/usb/client.ini
-# Conflicts=usb-eject.target
-# PartOf=usb-plug.target
+PartOf=usb-plug.target
 
 [Service]
 WorkingDirectory=/opt/udptunnel
