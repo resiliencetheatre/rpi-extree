@@ -28,11 +28,16 @@ gpu_mem_1024=100
 # enable 64bits support
 arm_64bit=1
 
-# hyperpixel 4
+# Hyperpixel 4
 dtoverlay=vc4-kms-v3d,nohdmi
 max_framebuffers=2
 dtoverlay=vc4-kms-dpi-hyperpixel4
-# Disable uart when using hyperpixel4
 enable_uart=0
 enable_dpi_lcd=1
 disable_splash=1
+
+# waveshare 4.3" DSI
+# dtoverlay=vc4-kms-v3d,nohdmi
+# dtoverlay=vc4-kms-dsi-7inch
+# dtparam=i2c_arm=on
+# display_rotate=1

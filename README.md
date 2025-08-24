@@ -107,12 +107,32 @@ To get lvgl working with various display, check these out:
 Add config.txt for Raspberry Pi 5 and Hyperpixel 4 display:
 
 ```
-# Disable this when using hyperpixel4
-enable_uart=0
-
-# Enable DRM VC4 V3D driver
+# Enable DRM VC4 V3D driver and disable uart
 dtoverlay=vc4-kms-dpi-hyperpixel4
+dtoverlay=vc4-kms-v3d,nohdmi
+max_framebuffers=2
+enable_uart=0
+enable_dpi_lcd=1
+disable_splash=1
 ```
+## Waveshare 4.3 DSI
+
+Set following to config.txt and comment out Hyperpixel4 settings to use [Waveshare 4.3"](https://www.waveshare.com/4.3inch-dsi-lcd-with-case.htm) display:
+
+```
+# waveshare 4.3" DSI
+dtoverlay=vc4-kms-v3d
+dtoverlay=vc4-kms-dsi-7inch
+dtparam=i2c_arm=on
+display_rotate=1
+```
+
+If you wish to silence boot messages, use folllowing cmdline.txt:
+
+```
+root=/dev/mmcblk0p2 rootwait console=ttyAMA0,115200 quiet loglevel=3 systemd.show_status=false rd.udev.log_level=3 vt.global_cursor_default=0 logo.nologo
+```
+
 
 # Sound
 
