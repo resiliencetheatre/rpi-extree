@@ -1,0 +1,31 @@
+diff --git a/linux/linux.hash b/linux/linux.hash
+index 6aaa163eb2..8a28d594f6 100644
+--- a/linux/linux.hash
++++ b/linux/linux.hash
+@@ -15,3 +15,4 @@ sha256  b5539243f187e3d478d76d44ae13aab83952c94b885ad889df6fa9997e16a441  linux-
+ sha256  fb5a425bd3b3cd6071a3a9aff9909a859e7c1158d54d32e07658398cd67eb6a0  COPYING
+ sha256  f6b78c087c3ebdf0f3c13415070dd480a3f35d8fc76f3d02180a407c1c812f79  LICENSES/preferred/GPL-2.0
+ sha256  8e378ab93586eb55135d3bc119cce787f7324f48394777d00c34fa3d0be3303f  LICENSES/exceptions/Linux-syscall-note
++sha256	8a734fd9367729500a575813e321806b536c8458b4fc9df5f0b0e77eed1113eb  linux-2fa00bc2d0ecd77c12620f13dbc38aa27a42cf87.tar.gz
+diff --git a/package/go/go.hash b/package/go/go.hash
+index dc88e9beab..693cace927 100644
+--- a/package/go/go.hash
++++ b/package/go/go.hash
+@@ -7,3 +7,4 @@ sha256  9704eba01401a3793f54fac162164b9c5d8cc6f3cab5cee72684bb72294d9f41  go1.23
+ sha256  1a7cc5f7baeaf39125dce5d660a39438e7f0e04d13d3498590d240aae976b565  go1.23.12.linux-ppc64le.tar.gz
+ sha256  2f43708aa0922d692da0a1fc775475c343907610bec77002de1bbe37601ea338  go1.23.12.linux-s390x.tar.gz
+ sha256  2d36597f7117c38b006835ae7f537487207d8ec407aa9d9980794b2030cbc067  LICENSE
++sha256	2852af0cb20a13139b3448992e69b868e50ed0f8a1e5940ee1de9e19a123b613  go1.25.0.linux-amd64.tar.gz
+diff --git a/package/go/go.mk b/package/go/go.mk
+index 69ca746783..2737859ea3 100644
+--- a/package/go/go.mk
++++ b/package/go/go.mk
+@@ -4,7 +4,7 @@
+ #
+ ################################################################################
+ 
+-GO_VERSION = 1.23.12
++GO_VERSION = 1.25.0
+ 
+ HOST_GO_GOPATH = $(HOST_DIR)/share/go-path
+ HOST_GO_HOST_CACHE = $(HOST_DIR)/share/host-go-cache
