@@ -1,0 +1,7 @@
+config BR2_PACKAGE_WSTUNNEL
+    bool "wstunnel"
+    depends on BR2_PACKAGE_HOST_RUSTC_TARGET_ARCH_SUPPORTS
+    select BR2_PACKAGE_HOST_RUSTC
+    help
+      Tunnel TCP/UDP over WebSocket/HTTP2.
+      https://github.com/erebe/wstunnel
