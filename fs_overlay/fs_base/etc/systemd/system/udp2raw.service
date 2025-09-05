@@ -5,15 +5,13 @@ RequiresMountsFor=/mnt/usb
 BindsTo=mnt-usb.mount
 Wants=mnt-usb.automount
 After=mnt-usb.automount
-# PartOf=usb-plug.target
-# Conflicts=usb-eject.target
+Conflicts=wstunnel.service
 
 [Service]
 Type=simple
 WorkingDirectory=/tmp
 EnvironmentFile=/opt/wgcap/wgcap_service.conf
 ExecStart=udp2raw -c -l0.0.0.0:3333 -r${SERVER_IP}:5005 -k ${UDP2RAW_PSK} --raw-mode faketcp -a
-# ExecStartPost=sleep 4
 
 [Install]
 WantedBy=usb-plug.target
