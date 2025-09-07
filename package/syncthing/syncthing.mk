@@ -2,7 +2,7 @@
 # syncthing
 ################################################################################
 
-SYNCTHING_VERSION       = v2.0.5
+SYNCTHING_VERSION       = v2.0.7
 SYNCTHING_SITE          = $(call github,syncthing,syncthing,$(SYNCTHING_VERSION))
 SYNCTHING_LICENSE       = MPLv2
 SYNCTHING_LICENSE_FILES = LICENSE

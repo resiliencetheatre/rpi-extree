@@ -1,0 +1,11 @@
+[Unit]
+Description=macpipe
+After=network.target
+
+[Service]
+WorkingDirectory=/opt/macpipe
+Type=simple
+ExecStart=/bin/python3 macpipe.py
+Restart=always
+RestartSec=10
+

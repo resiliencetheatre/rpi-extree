@@ -1,0 +1,12 @@
+# 
+# RPi5 - vault config.txt 
+#
+kernel=Image
+
+# Enable console
+dtparam=uart0_console
+console=serial0,115200
+enable_uart=1
+
+
+
