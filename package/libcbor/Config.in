@@ -1,5 +1,8 @@
 config BR2_PACKAGE_LIBCBOR
 	bool "libcbor"
 	help
-	 libcbor library
+	  libcbor is a C library for the Concise Binary Object Representation
+	  (CBOR, RFC 8949). It provides encoding/decoding primitives and a
+	  DOM-like API for manipulating CBOR data.
 
+	  https://github.com/PJK/libcbor

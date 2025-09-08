@@ -1,8 +1,8 @@
 config BR2_PACKAGE_LIBFIDO2
-	bool "libfido2"
-	depends on BR2_PACKAGE_HAS_UDEV
-	# depends on BR2_PACKAGE_PCSC_LITE
-	depends on BR2_PACKAGE_SYSTEMD
-	help
-	 libfido2 library
-
+    bool "libfido2"
+    select BR2_PACKAGE_LIBCBOR
+    select BR2_PACKAGE_OPENSSL
+    # USB via hidraw (recommended). Remove if you truly don't want USB tokens.
+    select BR2_PACKAGE_HIDAPI
+    help
+      libfido2 provides FIDO2/U2F (CTAP2/CTAP1) support.
