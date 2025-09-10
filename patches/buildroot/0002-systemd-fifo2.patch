@@ -1,0 +1,21 @@
+diff --git a/package/systemd/systemd.mk b/package/systemd/systemd.mk
+index 4d15996662..1c4bd5de9d 100644
+--- a/package/systemd/systemd.mk
++++ b/package/systemd/systemd.mk
+@@ -58,6 +58,7 @@ SYSTEMD_DEPENDENCIES = \
+ 	libcap \
+ 	libxcrypt \
+ 	util-linux-libs \
++	libfido2 \
+ 	$(TARGET_NLS_DEPENDENCIES)
+ 
+ SYSTEMD_SELINUX_MODULES = systemd udev xdg
+@@ -87,7 +88,7 @@ SYSTEMD_CONF_OPTS += \
+ 	-Dnspawn-locale='C.UTF-8' \
+ 	-Dnss-systemd=true \
+ 	-Dpasswdqc=disabled \
+-	-Dlibfido2=disabled \
++	-Dlibfido2=enabled \
+ 	-Dquotacheck-path=/usr/sbin/quotacheck \
+ 	-Dquotaon-path=/usr/sbin/quotaon \
+ 	-Dsetfont-path=/usr/bin/setfont \
