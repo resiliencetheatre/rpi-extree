@@ -1,6 +1,6 @@
 [Unit]
 Description=OpenSSH server daemon
-After=syslog.target network.target auditd.service macpipe.service
+After=syslog.target network.target auditd.service macsec.service
 
 [Service]
 ExecStartPre=sleep 5

@@ -80,7 +80,8 @@ echo "NOTE: Cryptpad is work in progress"
 # Configure services as you like
 #
 rm /etc/systemd/system/multi-user.target.wants/i2pd.service
-# TODO: Add here more
+rm /etc/systemd/system/multi-user.target.wants/smcroute.service
+rm /etc/systemd/system/multi-user.target.wants/motion.service
 
 echo "Services configured!"
 echo " "
@@ -104,20 +105,20 @@ chown -R thelounge:thelounge /opt/thelounge
 ln -s /usr/lib/thelounge/node_modules/thelounge/index.js /usr/bin/thelounge
 
 #
-# Create third partition (taken from create-partition-noenc.sh)
-# 
+# Create unencrypted third partition (taken from create-partition-noenc.sh)
+# NOTE: Disabled
 
-if [ -b /dev/mmcblk0p3 ]; then
-    echo "It seems that your card has already third partition (/dev/mmcblk0p3)!"
-    echo "-> Skipping partition create."
-else
-    echo "Creating third partition (without encryption) to MicroSD"
-    TARGET_DEV=/dev/mmcblk0
-    parted --script $TARGET_DEV 'mkpart primary ext4 3500 -1'
-    # Creating filesystems
-    echo "Creating filesystem to $TARGET_DEVp3"
-    mkfs.ext4 -F -L data ${TARGET_DEV}p3
-fi
+#if [ -b /dev/mmcblk0p3 ]; then
+#    echo "It seems that your card has already third partition (/dev/mmcblk0p3)!"
+#    echo "-> Skipping partition create."
+#else
+#    echo "Creating third partition (without encryption) to MicroSD"
+#    TARGET_DEV=/dev/mmcblk0
+#    parted --script $TARGET_DEV 'mkpart primary ext4 3500 -1'
+#    # Creating filesystems
+#    echo "Creating filesystem to $TARGET_DEVp3"
+#    mkfs.ext4 -F -L data ${TARGET_DEV}p3
+#fi
 
 #
 # Instruct cryptpad first run to finalize setup

@@ -1,4 +1,9 @@
 /dev/root / auto rw 0 1
-/dev/sda1 /mnt/usb auto rw,defaults,x-systemd.automount,x-systemd.device-timeout=5,noatime,noauto 0 2
 /dev/mmcblk0p1 /boot auto rw,defaults 0 2
+
+# USB Drive -> /opt/usb
+/dev/sda1 /opt/usb auto rw,defaults,x-systemd.automount,x-systemd.device-timeout=15s,noatime,noauto 0 2
+
+# Encrypted MicroSD partition -> /opt/data
+/dev/mapper/encrypted_data /opt/data auto defaults,x-systemd.automount,x-systemd.device-timeout=60s,noatime,noauto 0 2
 
