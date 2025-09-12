@@ -13,7 +13,8 @@ SYNCTHING_DEPENDENCIES += host-go
 # Target build via golang-package
 SYNCTHING_GO_ENV        = GO111MODULE=on CGO_ENABLED=0 GOTOOLCHAIN=local
 SYNCTHING_BUILD_TARGETS = ./cmd/syncthing
-SYNCTHING_INSTALL_BINS  = syncthing
+# 00230e7ae3b52b122874cac5146c1ccdbe887082
+# SYNCTHING_INSTALL_BINS  = syncthing 
 
 # Generate embedded assets (defines auto.Assets) using host Go before target build.
 SYNCTHING_PRE_BUILD_HOOKS += SYNCTHING_GEN_ASSETS
