@@ -1,0 +1,5 @@
+config BR2_PACKAGE_UDPCAST
+	bool "udpcast"
+	help
+	  UDP multicast/broadcast file transfer tool (udp-sender / udp-receiver).
+	  Homepage: https://www.udpcast.linux.lu/
