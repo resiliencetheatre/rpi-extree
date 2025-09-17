@@ -1,9 +1,5 @@
 #!/bin/sh
-if [ -d "/opt/data/lost+found" ]
-then
-    echo "/opt/data partition found! Exiting."
-    exit
-else
+
     echo "Creating encrypted partition"
 
     TARGET_DEV=/dev/mmcblk0
@@ -28,6 +24,5 @@ else
     echo "Creating filesystem"
     mkfs.ext4 /dev/mapper/encrypted_data
 
-fi
 exit 0
 

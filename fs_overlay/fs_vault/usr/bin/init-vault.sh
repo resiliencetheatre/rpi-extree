@@ -24,12 +24,7 @@
 #
 
 
-#
-# Create CA and sign certificate
-#
-
 DNS_NAME=$1
-
 
 if [ -z "$DNS_NAME" ]
 then
@@ -82,6 +77,8 @@ echo "NOTE: Cryptpad is work in progress"
 rm /etc/systemd/system/multi-user.target.wants/i2pd.service
 rm /etc/systemd/system/multi-user.target.wants/smcroute.service
 rm /etc/systemd/system/multi-user.target.wants/motion.service
+rm /etc/systemd/system/multi-user.target.wants/gpsd.service
+
 
 echo "Services configured!"
 echo " "
