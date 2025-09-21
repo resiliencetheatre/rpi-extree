@@ -91,6 +91,14 @@ adduser -H -h /opt/cryptpad/ -D cryptpad cryptpad
 chown -R cryptpad:cryptpad /opt/cryptpad
 
 #
+# syncthing user
+#
+mkdir /opt/syncthing
+adduser -H -h /opt/syncthing/ -D syncthing syncthing
+chown -R syncthing:syncthing /opt/syncthing
+
+
+#
 # The lounge user
 #
 adduser -H -h /opt/thelounge/ -D thelounge thelounge

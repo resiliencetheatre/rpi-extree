@@ -1,0 +1,24 @@
+[Unit]
+Description=syncthing
+After=network.target macsec.service sshd.service
+
+[Service]
+User=syncthing
+WorkingDirectory=/opt/syncthing
+ExecStartPre=/bin/noupdates-syncthing.sh
+ExecStart=/bin/syncthing serve --no-browser --no-restart --logflags=0
+Restart=on-failure
+RestartSec=5
+TimeoutStartSec=5
+SuccessExitStatus=3 4
+RestartForceExitStatus=3 4
+ProtectSystem=full
+PrivateTmp=true
+SystemCallArchitectures=native
+MemoryDenyWriteExecute=true
+NoNewPrivileges=true
+
+
+[Install]
+WantedBy=multi-user.target
+
