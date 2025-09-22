@@ -13,4 +13,7 @@ chmod 600 /opt/data/git/.ssh/authorized_keys
 chmod go-w /opt /opt/data
 chown -R git:git /opt/data/git
 passwd -u git
-
+cp -r /root/git-shell-commands /opt/data/git/
+chown -R git:git /opt/data/git
+# change git user shell
+/usr/bin/change-git-shell.sh
