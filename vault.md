@@ -1,6 +1,15 @@
 # Vault
 
-Vault is RasbperryPi 5 based firmware for your data. This is work in progress.
+Vault is RasbperryPi 5 based firmware for your data. It offers you encrypted partition on MicroSD
+which is opened with FIDO2 hardware token on boot and contains Cryptpad, Syncthing and git functionality.
+
+You may also install Dokuwiki wiki under `/usr/htdocs` if you like.
+
+Vault is built with buildroot as Raspberry Pi5 firmware image and it's main purpose is to offer local
+storage for your code & files. It's reachable over macsec, layer2 encrypted LAN connection only,
+which means no lateral movement towards vault is possible from normal LAN segment.
+
+# Building
 
 Build 'vault' image:
 
@@ -25,6 +34,8 @@ for networking and your host has to match for macsec keys to access vault via
 ipv4 macsec interface.
 
 ## Encrypted partition setup
+
+You need FIDO2 hardware token, like Nitrokey for this functionality.
 
 Create LUKS encrypted MicroSD partition with FIDO2 token for decryption. Plug in FIDO2 token and run
 `create-partition.sh` script. Before reboot, activate `/etc/crypttab` and be prepared to press
@@ -78,7 +89,7 @@ pivault:~# reboot
 
 ## Setup macsec for your host
 
-You need to enable macsec on your Linux host to complete steps bellow. WiP.
+You need to enable macsec on your Linux host to complete steps bellow. Stay tuned for instructions.
 
 ## Initialize vault
 
@@ -129,6 +140,13 @@ to update automatically, disables crash reporting and sets web ui listen address
 
 After reboot, you can finalize Synchting setup with browser at: http://vault:8384/
 
+### Syncthing folder path
 
+When configuring syncthing folders on vault, use path `/opt/data/synchting/` as root folder,
+so for example `/opt/data/syncthing/Sync` is your path for default `Sync` folder from your PC.
+
+`/opt/data/syncthing` is located on encrypted partition on MicroSD and owned by `syncthing` user.
+
+ 
 
 

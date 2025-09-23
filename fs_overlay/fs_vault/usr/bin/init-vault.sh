@@ -96,6 +96,9 @@ chown -R cryptpad:cryptpad /opt/cryptpad
 mkdir /opt/syncthing
 adduser -H -h /opt/syncthing/ -D syncthing syncthing
 chown -R syncthing:syncthing /opt/syncthing
+# Store syncthing folders under encrypted partition /opt/data/syncthing/
+mkdir /opt/data/syncthing
+chown syncthing:synchting /opt/data/syncthing/
 
 
 #
