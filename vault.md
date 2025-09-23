@@ -148,5 +148,19 @@ so for example `/opt/data/syncthing/Sync` is your path for default `Sync` folder
 `/opt/data/syncthing` is located on encrypted partition on MicroSD and owned by `syncthing` user.
 
  
+# Using git 
+
+You can use git-shell commands `list` and `create` to create and list repositories at vault.
+
+	# Create repository to vault
+	ssh git@vault create [project].git
+	# List repositories at vault
+	ssh git@vault list
+	# Add remote and push
+	git remote add vault git@vault:[project].git
+	git push vault
+
+All repositories are stored under `/opt/data/git` directory. This is encrypted partition
+on your MicroSD and opened with FIDO2 token on boot. 
 
 

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # Adapted from: http://planzero.org/blog/2012/10/24/hosting_an_admin-friendly_git_server_with_git-shell
 
@@ -29,7 +29,7 @@ then
 fi
 project=$(basename $project)
 # Create and initialize the project
-mkdir /home/git/"$project" && \
-cd /home/git/"$project" && \
+mkdir /opt/data/git/"$project" && \
+cd /opt/data/git/"$project" && \
 git init --bare --shared 
 echo "$project repository created. Check with 'list'"
