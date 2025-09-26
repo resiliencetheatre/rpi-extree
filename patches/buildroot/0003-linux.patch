@@ -1,0 +1,11 @@
+diff --git a/linux/linux.hash b/linux/linux.hash
+index 8a02b43a67..f0151d27fb 100644
+--- a/linux/linux.hash
++++ b/linux/linux.hash
+@@ -15,3 +15,6 @@ sha256  b5539243f187e3d478d76d44ae13aab83952c94b885ad889df6fa9997e16a441  linux-
+ sha256  fb5a425bd3b3cd6071a3a9aff9909a859e7c1158d54d32e07658398cd67eb6a0  COPYING
+ sha256  f6b78c087c3ebdf0f3c13415070dd480a3f35d8fc76f3d02180a407c1c812f79  LICENSES/preferred/GPL-2.0
+ sha256  8e378ab93586eb55135d3bc119cce787f7324f48394777d00c34fa3d0be3303f  LICENSES/exceptions/Linux-syscall-note
++
++# rpi-extree
++sha256	795072d411906479af3a4df7a4e9244ab8832bbef6179d2795fddcbd0ddecbb9  linux-e165d4f5e96603d19a08983576e61cf09d42bac3.tar.gz

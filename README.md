@@ -88,6 +88,22 @@ sha256 dl/linux/linux-[COMMIT_ID].tar.gz >> linux/linux.hash
 sha256  [HASH_OF_DOWNLOADED_TAR]  linux-[COMMIT_ID].tar.gz
 ```
 
+You can also create a patch for your buildroot of custom Linux kernel hash (or any
+other change you do to your buildroot).
+
+```
+cd buildroot
+git diff -- linux/linux.hash > $BR2_EXTERNAL/patches/buildroot/[PATHCH_NAME].patch
+```
+
+Applying patch before build:
+
+```
+cd buildroot
+git apply "$BR2_EXTERNAL/patches/buildroot/[PATHCH_NAME].patch"
+```
+
+
 ## Filesystem overlays
 
 Default filesystem overlay is defined:
@@ -143,13 +159,4 @@ In case you get 'broken pipe' error with your USB-C attached HF, add following:
 options snd_usb_audio index=0 ignore_ctl_error=1
 ```
 
-# Link
 
-Development notes for upcoming link solution. Work in progress section.
-
-```
-# Eject USB
-systemctl start usb-eject.target
-# Init services
-systemctl enable macpipe.service udp2raw.service udptunnel-client.service
-```
