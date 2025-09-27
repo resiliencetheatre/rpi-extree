@@ -94,11 +94,13 @@ Allocating group tables: done
 Writing inode tables: done                            
 Creating journal (32768 blocks): done
 Writing superblocks and filesystem accounting information: done   
+```
 
-# Activate crypttab
-pivault:~# mv /etc/crypttab.notinuse /etc/crypttab
-# reboot
-pivault:~# reboot
+Activate crypttab & reboot, be ready to press presence on FIDO2 key on reboot when led flashes.
+
+```
+mv /etc/crypttab.notinuse /etc/crypttab
+reboot
 ```
 
 ## Setup macsec for your host
@@ -131,8 +133,8 @@ Reboot unit and remember to press FIDO2 presence if presence indication blinks d
 
 Export your git ssh key to PUBKEY variable and create git user account for vault.
 
-	vault:~# export PUBKEY="[YOUR_SSH_PUB_KEY]"
-	vault:~# create-git-user.sh
+	export PUBKEY="[YOUR_SSH_PUB_KEY]"
+	create-git-user.sh
 
 Git user home directory is at encrypted MicroSD partition: `/opt/data/git`
 
@@ -140,14 +142,14 @@ Git user home directory is at encrypted MicroSD partition: `/opt/data/git`
 
 You need to create syncthing configuration before syncthing starts on boot.
 
-	vault:~# su syncthing
-	vault:/root$ cd
+	su syncthing
+	cd
 	# Generate configuration
-	vault:/opt/syncthing$ syncthing generate
+	syncthing generate
 	2025-06-25 12:57:56 INF Generating key and certificate (cn=syncthing log.pkg=syncthing)
 	2025-06-25 12:57:56 INF Calculated device ID (device=[YOUR_DEVICE_ID] log.pkg=github)
 	# ctrl + d
-	vault:~# reboot
+	reboot
 
 Syncthing service runs `ExecStartPre=/bin/noupdates-syncthing.sh` which configures syncthing not
 to update automatically, disables crash reporting and sets web ui listen address to macsec interface.
