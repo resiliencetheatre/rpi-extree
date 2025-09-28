@@ -1,0 +1,13 @@
+[Unit]
+Description=wstunnel client for wg0
+After=network.target auditd.service
+Conflicts=udp2raw.service
+
+[Service]
+WorkingDirectory=/tmp
+EnvironmentFile=/opt/wgcap/wgcap_service.conf
+ExecStart=/bin/wstunnel client --http-upgrade-path-prefix mZIK9Nmf0lstaNHuLUa2 -L 'udp://3333:127.0.0.1:51871?timeout_sec=0' wss://${SERVER_IP}:8443
+Type=simple
+Restart=always
+RestartSec=5
+
