@@ -1,13 +1,14 @@
 [Unit]
 Description=macpipe
-After=network.target
+Before=sshd.service
+After=network.target sys-devices-virtual-net-wlan0.device
 
 [Service]
 WorkingDirectory=/opt/macpipe
 Type=simple
 ExecStart=/bin/python3 macpipe.py
 Restart=always
-RestartSec=10
+RestartSec=5
 
 [Install]
 WantedBy=usb-plug.target
