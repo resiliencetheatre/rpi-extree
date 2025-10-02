@@ -22,6 +22,13 @@ This is work in progress documentation to next gen edgemap build.
 	# init-edgemap.sh [CA-NAME] [HOSTNAME]
 	# reboot
 
+## Copy map data
 
+You need to copy `planet.pmtiles` under `/opt/data` and do symbolic link to `/opt/edgemap/edgeui`
 
+	ln -s /opt/data/planet.pmtiles /opt/edgemap/edgeui
+
+You can also copy `terrarium-z12.pmtiles` under `/opt/data` and do symbolic link to `/opt/edgemap/edgeui`
+
+	ln -s /opt/data/terrarium-z12.pmtiles /opt/edgemap/edgeui/terrarium_z9.pmtiles
 
