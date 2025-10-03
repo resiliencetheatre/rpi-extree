@@ -53,4 +53,4 @@ source "$BR2_EXTERNAL_rpi_PATH/package/python-irc/Config.in"
 source "$BR2_EXTERNAL_rpi_PATH/package/lvgl-com/Config.in"
 source "$BR2_EXTERNAL_rpi_PATH/package/syncthing/Config.in"
 source "$BR2_EXTERNAL_rpi_PATH/package/wstunnel/Config.in"
-
+source "$BR2_EXTERNAL_rpi_PATH/package/python-pygmc/Config.in"
