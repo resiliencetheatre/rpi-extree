@@ -149,8 +149,23 @@ rm /etc/systemd/system/multi-user.target.wants/pttcomm-multicast*
 rm /etc/systemd/system/multi-user.target.wants/janus.service
 ln -s /etc/systemd/system/mirror.service /etc/systemd/system/multi-user.target.wants/mirror.service
 ln -s /etc/systemd/system/wss-mirror.service /etc/systemd/system/multi-user.target.wants/wss-mirror.service
-
 echo "Services configured!"
+
+#
+# Create & set permissions to following directories
+#
+DIRS="/opt/edgemap-persist /opt/edgemap-persisted"
+
+for DIR in $DIRS; do
+    if [ ! -d "$DIR" ]; then
+        echo "Creating directory: $DIR"
+        mkdir -p "$DIR"
+    else
+        echo "Directory exists: $DIR"
+    fi
+    chmod go+w "$DIR"
+done
+echo "Set permissions to persisted directories"
 
 echo "Adding cryptpad and thelounge users"
 
