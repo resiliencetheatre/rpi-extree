@@ -1200,8 +1200,7 @@
             var incomingMessage = event.data;
             var trimmedString = incomingMessage.substring(0, 80);
             const nodeArray = trimmedString.split(",");
-            appendSpaceLog("Incoming status message");
-            // Meshtastic 
+            // appendSpaceLog("Incoming status message");
             if ( nodeArray[0] === "peernode" )
             {
                 meshtasticRadiosOnSystem.add( nodeArray[1], Math.round(+new Date()/1000),nodeArray[2],nodeArray[3],nodeArray[4],nodeArray[5],nodeArray[6],nodeArray[7],nodeArray[8],nodeArray[9],nodeArray[10],nodeArray[11],nodeArray[12] );
@@ -1211,7 +1210,6 @@
                     updateMeshtasticNodesToMap( nodeArray[1], nodeArray[7], nodeArray[8] );
                 }
             }
-            
             // Reticulumnode,[callsign],[timestamp],[hash]
             if ( nodeArray[0] === "reticulumnode" )
             {
@@ -1238,6 +1236,11 @@
             if ( nodeArray[0] === "client_count" ) { 
                 clients_connected = nodeArray[1];
                 notifyMessage("Clients connected: " + clients_connected, 5000);
+            }
+            // radiation sensor
+            if ( nodeArray[0] === "radsensor" ) { 
+                radsensor_cpm = nodeArray[1];
+                appendSpaceLog("Radiation: " + radsensor_cpm + " CPM");
             }
         };
     }
