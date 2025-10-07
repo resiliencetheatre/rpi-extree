@@ -5,7 +5,7 @@
 ################################################################################
 
 EDGEMAP_SITE = https://codeberg.org/resiliencetheatre/edgeui.git
-EDGEMAP_VERSION = 87578947210c0b8e1ca9039113637e554812ef34
+EDGEMAP_VERSION = 5c4b9eda8a64d8345ad2f3df10d991f5ad8b4d0a
 EDGEMAP_SITE_METHOD = git
 
 EDGEMAP_LICENSE = Custom
