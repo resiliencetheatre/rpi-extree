@@ -30,7 +30,7 @@ try:
 		fifo_write.write(webui_message)
 		fifo_write.flush()
 		fifo_write.close()
-		time.sleep(15)
+		time.sleep(60)
 
 except Exception as e:
 	print(f"Exception caught: {e}")

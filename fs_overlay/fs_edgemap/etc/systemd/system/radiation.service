@@ -1,0 +1,14 @@
+[Unit]
+Description=Radiation Sensor Service
+
+[Service]
+Type=simple
+ExecStart=/bin/python3 /opt/radiation/gmc.py
+WorkingDirectory=/opt/radiation
+Restart=always
+RestartSec=5
+User=root
+StandardOutput=journal
+StandardError=journal
+
+

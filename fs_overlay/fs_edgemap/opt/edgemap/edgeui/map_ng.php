@@ -1459,7 +1459,6 @@
     window.setInterval(function () {
         checkMeshtasticRadioExpiry();
         updateMeshtasticRadioListBlock();
-        appendSpaceLog("Updated radio list");
         if ( messagingFeatureEnabled ) {
             checkReticulumRadioExpiry();
             updateReticulumBlock(); 
