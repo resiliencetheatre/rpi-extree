@@ -67,7 +67,7 @@ try:
         sys.stdout.flush()
 
         # Always send the periodic update to Web UI
-        write_status(f"radsensor,{cpm}")
+        write_status(f"uilog,Radiation: {cpm} CPM")
 
         # Threshold logic
         if cpm >= HIGH_THRESHOLD:
