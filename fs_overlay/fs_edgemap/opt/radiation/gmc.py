@@ -39,6 +39,13 @@ def write_status(message, fifo_path=STATUS_FIFO):
         print(f"Error writing to {fifo_path}: {e}")
         sys.stdout.flush()
 
+
+#
+# Startup delay
+#
+time.sleep(5)
+
+
 #
 # Connect radiation sensor
 #
