@@ -23,21 +23,30 @@ gpu_mem_512=100
 gpu_mem_1024=100
 
 # Enable UART0 for serial console on ttyAMA0
-# dtoverlay=miniuart-bt
+# Don't enable with Hyperpixel 4
+dtoverlay=miniuart-bt
 
 # enable 64bits support
 arm_64bit=1
 
 # Hyperpixel 4
-dtoverlay=vc4-kms-v3d,nohdmi
-max_framebuffers=2
-dtoverlay=vc4-kms-dpi-hyperpixel4
-enable_uart=0
-enable_dpi_lcd=1
-disable_splash=1
+# dtoverlay=vc4-kms-v3d,nohdmi
+# max_framebuffers=2
+# dtoverlay=vc4-kms-dpi-hyperpixel4
+# enable_uart=0
+# enable_dpi_lcd=1
+# disable_splash=1
 
 # waveshare 4.3" DSI
 # dtoverlay=vc4-kms-v3d,nohdmi
 # dtoverlay=vc4-kms-dsi-7inch
 # dtparam=i2c_arm=on
 # display_rotate=1
+
+# Waveshare 6.25" DSI
+dtoverlay=vc4-kms-v3d,nohdmi
+dtoverlay=vc4-kms-dsi-waveshare-panel,6_25_inch
+enable_uart=1
+enable_dpi_lcd=1
+disable_splash=1
+lcd_rotate=1
