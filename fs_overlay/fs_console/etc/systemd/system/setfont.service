@@ -1,0 +1,10 @@
+[Unit]
+Description=setfont
+
+[Service]
+Type=oneshot
+ExecStart=setfont latarcyrheb-sun32.psfu.gz
+
+[Install]
+WantedBy=multi-user.target
+

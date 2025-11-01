@@ -1,0 +1,13 @@
+[Unit]
+Description=Group of services started when a USB partition appears
+Wants=mnt-usb.automount
+After=mnt-usb.automount
+BindsTo=mnt-usb.mount
+RequiresMountsFor=/mnt/usb
+
+# NEW: tie target's life to the mount and allow it to stop
+BindsTo=mnt-usb.mount
+RequiresMountsFor=/mnt/usb
+
+Wants=udptunnel-client.path udptunnel-server.path
+Wants=udp2raw.service wg0-up.service macpipe.service 
