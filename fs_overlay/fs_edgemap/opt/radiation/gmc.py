@@ -9,8 +9,8 @@ import time
 FIFO_PATH = "/tmp/msgincoming"    # For Meshtastic/alerts
 STATUS_FIFO = "/tmp/statusin"     # For Web UI status updates
 
-HIGH_THRESHOLD = 30               # Trigger/repeat alarms at or above this CPM
-CLEAR_THRESHOLD = 25              # Send "back to normal" at or below this CPM (must be < HIGH_THRESHOLD)
+HIGH_THRESHOLD = 50               # Trigger/repeat alarms at or above this CPM
+CLEAR_THRESHOLD = 45              # Send "back to normal" at or below this CPM (must be < HIGH_THRESHOLD)
 SAMPLE_PERIOD_SEC = 60            # Sensor read + WebUI update period
 ALARM_REPEAT_EVERY_SEC = 180      # How often to re-send alarm while exceeded
 
