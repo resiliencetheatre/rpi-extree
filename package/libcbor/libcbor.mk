@@ -2,7 +2,7 @@
 # libcbor
 ################################################################################
 
-LIBCBOR_VERSION       = 0.11.0
+LIBCBOR_VERSION       = 0.13.0
 LIBCBOR_SITE          = $(call github,PJK,libcbor,v$(LIBCBOR_VERSION))
 LIBCBOR_SOURCE        = libcbor-v$(LIBCBOR_VERSION).tar.gz
 LIBCBOR_LICENSE       = MIT
