@@ -1,0 +1,17 @@
+[Unit]
+Description=wstunnel client for wg0
+After=network.target auditd.service
+
+[Service]
+User=root
+WorkingDirectory=/tmp
+EnvironmentFile=/opt/wstunnel/wstunnel.env
+ExecStart=/bin/wstunnel client --http-upgrade-path-prefix $UPGRADE_PREFIX -L 'udp://51871:127.0.0.1:51871?timeout_sec=0' wss://${SERVER_IP}:${SERVER_PORT}
+Type=simple
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+
+

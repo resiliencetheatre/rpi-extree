@@ -1,0 +1,9 @@
+config BR2_PACKAGE_PYTHON_ADAFRUIT_CIRCUITPYTHON_RGB_DISPLAY
+	bool "python-adafruit-circuitpython-rgb-display"
+	help
+	Port of display drivers from 
+	https://github.com/adafruit/micropython-adafruit-rgb-display 
+	to Adafruit CircuitPython for use on Adafruit’s SAMD21-based 
+	and other CircuitPython boards.
+
+	  https://pypi.org/project/adafruit-circuitpython-rgb-display/
