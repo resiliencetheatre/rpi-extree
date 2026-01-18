@@ -1,0 +1,16 @@
+[Unit]
+Description=udptunnel client
+After=network.target sys-devices-virtual-net-wg0.device
+
+[Service]
+User=root
+WorkingDirectory=/opt/udptunnel
+ExecStart=/bin/client -i client.ini
+Type=simple
+Restart=always
+RestartSec=5
+
+# [Install]
+# WantedBy=multi-user.target
+
+
