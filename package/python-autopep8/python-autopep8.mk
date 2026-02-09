@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-PYTHON_AUTOPEP8_VERSION = 2.0.4
+PYTHON_AUTOPEP8_VERSION = 2.3.2
 PYTHON_AUTOPEP8_SOURCE = autopep8-$(PYTHON_AUTOPEP8_VERSION).tar.gz
 PYTHON_AUTOPEP8_SITE = https://pypi.python.org/packages/source/a/autopep8
 PYTHON_AUTOPEP8_LICENSE = MIT
