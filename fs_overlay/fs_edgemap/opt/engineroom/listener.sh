@@ -70,6 +70,23 @@ while true; do
             echo random > /opt/edgemap-persist/pos_interval.txt
         fi
         
+        # Paging experiment
+        if [ "$line" == "paging_allclear" ]; then
+			/opt/edgemap/scripts/paging_allclear.sh 
+            
+        fi
+        if [ "$line" == "paging_evac" ]; then
+            /opt/edgemap/scripts/paging_evac.sh
+        fi
+        if [ "$line" == "paging_status" ]; then
+			/opt/edgemap/scripts/paging_status.sh 
+            
+        fi
+        if [ "$line" == "paging_lockdown" ]; then
+            /opt/edgemap/scripts/paging_lockdown.sh
+        fi
+        
+        
         # Writing settings values back to system from UI (work in progress)
         first_item=$(echo "$line" | cut -d',' -f1)
 
