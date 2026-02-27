@@ -1,0 +1,8 @@
+config BR2_PACKAGE_OPUSSTREAMER
+        bool "opusstreamer"
+        select BR2_PACKAGE_GSTREAMER1
+        select BR2_PACKAGE_GST1_PLUGINS_BASE
+        help 
+              debugging version of opus streamer
+
+

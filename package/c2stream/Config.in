@@ -1,0 +1,9 @@
+config BR2_PACKAGE_C2STREAM
+        bool "c2stream"
+        select BR2_PACKAGE_GSTREAMER1
+        select BR2_PACKAGE_GST1_PLUGINS_BASE
+        select BR2_PACKAGE_LIBCODEC2
+        help 
+              c2stream
+
+
