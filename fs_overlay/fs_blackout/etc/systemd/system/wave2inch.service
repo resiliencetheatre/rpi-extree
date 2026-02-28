@@ -1,0 +1,12 @@
+[Unit]
+Description=spi user interface
+After=multi-user.target
+
+[Service]
+User=root
+WorkingDirectory=/root
+ExecStart=/bin/wave2inch 2
+
+[Install]
+WantedBy=multi-user.target
+

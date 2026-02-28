@@ -1,0 +1,11 @@
+[Unit]
+Description=udpproxy (in)
+After=network.target sys-devices-virtual-net-wg0.device
+
+[Service]
+WorkingDirectory=/opt/udpproxy
+ExecStart=udpproxy -i proxy-in.ini
+
+# [Install]
+# WantedBy=multi-user.target
+

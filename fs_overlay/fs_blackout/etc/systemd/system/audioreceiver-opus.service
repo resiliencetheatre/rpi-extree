@@ -1,0 +1,12 @@
+[Unit]
+Description=audioreceiver
+After=network.target udpproxy-in.service
+
+[Service]
+WorkingDirectory=/tmp
+ExecStart=/bin/audioreceiver -a 127.0.0.1 -p 5002 -s alsasink
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+

@@ -1,0 +1,12 @@
+[Unit]
+Description=audiostreamer (codec2)
+After=network.target udpproxy-out.service
+
+[Service]
+WorkingDirectory=/tmp
+ExecStartPre=aplay /root/ptt_double_beep.wav
+ExecStart=/bin/c2streamer -D default -a 127.0.0.1 -p 5001 -f 2 -m 3200
+
+# [Install]
+# WantedBy=multi-user.target
+

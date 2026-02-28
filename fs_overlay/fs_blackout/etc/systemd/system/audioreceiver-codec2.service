@@ -1,0 +1,12 @@
+[Unit]
+Description=audioreceiver (codec2)
+After=network.target udpproxy-in.service
+
+[Service]
+WorkingDirectory=/tmp
+ExecStart=/bin/c2receiver -D default -p 5002 -j 100 -t 1000 -v --adapt-min-ms 500 --alsa-lat-us 100000
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+

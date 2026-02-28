@@ -1,0 +1,12 @@
+[Unit]
+Description=audiostreamer
+After=network.target udpproxy-out.service
+
+[Service]
+WorkingDirectory=/tmp
+ExecStartPre=aplay /root/ptt_double_beep.wav
+ExecStart=/bin/audiostreamer -a 127.0.0.1 -p 5001 -s alsasrc
+
+# [Install]
+# WantedBy=multi-user.target
+
