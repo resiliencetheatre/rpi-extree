@@ -1,0 +1,37 @@
+config BR2_PACKAGE_UDPPTT
+	bool "udpptt"
+	depends on BR2_TOOLCHAIN_HAS_THREADS
+	depends on !BR2_STATIC_LIBS
+	select BR2_PACKAGE_GSTREAMER1
+	select BR2_PACKAGE_GST1_PLUGINS_BASE
+	select BR2_PACKAGE_GST1_PLUGINS_BASE_PLUGIN_APP
+	select BR2_PACKAGE_GST1_PLUGINS_BASE_PLUGIN_AUDIOCONVERT
+	select BR2_PACKAGE_GST1_PLUGINS_BASE_PLUGIN_AUDIORESAMPLE
+	select BR2_PACKAGE_GST1_PLUGINS_BASE_PLUGIN_OPUS
+	select BR2_PACKAGE_GST1_PLUGINS_GOOD
+	select BR2_PACKAGE_GST1_PLUGINS_GOOD_PLUGIN_AUTODETECT
+	select BR2_PACKAGE_GST1_PLUGINS_GOOD_PLUGIN_WAVPARSE
+	select BR2_PACKAGE_LIBSODIUM
+	help
+	  udpptt is a simple UDP push-to-talk audio test application with
+	  a client/server model.
+
+	  It builds two target binaries:
+	    - /usr/bin/ptt_client
+	    - /usr/bin/ptt_server
+
+if BR2_PACKAGE_UDPPTT
+
+config BR2_PACKAGE_UDPPTT_SITE
+	string "udpptt source directory"
+	default "$(BR2_EXTERNAL_$(BR2_EXTERNAL_NAME)_PATH)/../udpptt"
+	help
+	  Path to the udpptt project source directory containing:
+	    - ptt_client.c
+	    - ptt_server.c
+	    - Makefile (optional)
+
+	  This package uses SITE_METHOD=local, so the directory is copied
+	  into the Buildroot build tree before compilation.
+
+endif
