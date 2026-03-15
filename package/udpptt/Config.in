@@ -20,18 +20,3 @@ config BR2_PACKAGE_UDPPTT
 	    - /usr/bin/ptt_client
 	    - /usr/bin/ptt_server
 
-if BR2_PACKAGE_UDPPTT
-
-config BR2_PACKAGE_UDPPTT_SITE
-	string "udpptt source directory"
-	default "$(BR2_EXTERNAL_$(BR2_EXTERNAL_NAME)_PATH)/../udpptt"
-	help
-	  Path to the udpptt project source directory containing:
-	    - ptt_client.c
-	    - ptt_server.c
-	    - Makefile (optional)
-
-	  This package uses SITE_METHOD=local, so the directory is copied
-	  into the Buildroot build tree before compilation.
-
-endif
