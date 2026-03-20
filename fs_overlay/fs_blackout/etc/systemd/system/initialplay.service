@@ -1,0 +1,12 @@
+[Unit]
+Description=Initial play
+After=network.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/tmp
+ExecStart=aplay /root/stop.wav
+
+[Install]
+WantedBy=multi-user.target
+

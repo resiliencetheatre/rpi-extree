@@ -1,0 +1,13 @@
+[Unit]
+Description=audioreceiver (udpptt)
+After=network.target
+
+[Service]
+WorkingDirectory=/tmp
+ExecStart=/bin/ptt_client [SERVER_IP] --altgr-ptt-delay-ms 2000 --txid link --encrypt --key shared-room --ptt-socket /tmp/udpptt.sock
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+
