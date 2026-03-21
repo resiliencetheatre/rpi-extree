@@ -1,5 +1,6 @@
-UDPPROXY_VERSION = 98234e9cec5255b7f9432fb23b3ead739fcee1f4
-UDPPROXY_SITE = $(call github,0x6c2d1f7b,udpproxy,$(UDPPROXY_VERSION))
+UDPPROXY_VERSION = adbef488d5cb8bb22517afc5c65bbd6d09856066
+UDPPROXY_SITE = https://codeberg.org/resiliencetheatre/udpproxy.git
+UDPPROXY_SITE_METHOD = git
 UDPPROXY_PREFIX = $(TARGET_DIR)/usr
 
 define UDPPROXY_BUILD_CMDS
