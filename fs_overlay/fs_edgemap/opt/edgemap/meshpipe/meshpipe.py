@@ -70,6 +70,7 @@ from pubsub import pub
 from signal import signal, SIGINT
 from sys import exit
 from datetime import datetime
+import collections
 
 
 NAME = 'meshpipe'                   
@@ -110,87 +111,116 @@ def ErrorHandler(ErrorMessage,TraceMessage,AdditionalInfo):
   os._exit(0)  # Forcefully exits the entire Python process
 
 
+import collections
+from datetime import datetime
+
+# ----------------------------
+# Logging function
+# ----------------------------
 def log(msg):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print(f"{timestamp} {msg}")
 
-def format_value(v):
-    if isinstance(v, int):
-        return hex(v)
-    return ""
-    # return str(v)
+# ----------------------------
+# Format functions
+# ----------------------------
+def format_value_hex(val):
+    """Return a string for the HEX column depending on type."""
+    if val is None:
+        return "None"
+    elif isinstance(val, int):
+        return hex(val)
+    elif isinstance(val, bytes):
+        # Show up to 16 bytes, spaced hex
+        display_len = min(len(val), 16)
+        hex_repr = ' '.join(f"{b:02x}" for b in val[:display_len])
+        if len(val) > 16:
+            hex_repr += " …"  # indicate truncation
+        return hex_repr
+    elif isinstance(val, float):
+        return f"{val:.4f}"
+    else:
+        return str(val)
 
-#
-# meshtastic
-#
-def DecodePacket(PacketParent,Packet):
-  global DeviceStatus
-  global DeviceName
-  global DevicePort
-  global PacketsReceived
-  global PacketsSent
-  global LastPacketType
-  global HardwareModel
-  global DeviceID 
-  global DeviceBat  
-  global DeviceAirUtilTx
-  global DeviceRxSnr
-  global DeviceHopLimit
-  global DeviceRxRssi
-  global DeviceMeshtasticLatitude
-  global DeviceMeshtasticLongitude
-  global DeviceMeshtasticPdop
-  global DeviceMeshtasticGroundSpeed
-  global DeviceMeshtasticSatsInView
-  global DeviceMeshtasticPrecisionBits
+def format_value_readable(val):
+    """Return a readable string for the Value column."""
+    if val is None:
+        return "None"
+    elif isinstance(val, bytes):
+        display_len = min(len(val), 16)
+        # Printable ASCII for bytes, replace non-printable with '.'
+        ascii_repr = ''.join(chr(b) if 32 <= b <= 126 else '.' for b in val[:display_len])
+        if len(val) > 16:
+            ascii_repr += " …"
+        return ascii_repr
+    elif isinstance(val, float):
+        return f"{val:.4f}"
+    else:
+        return str(val)
 
-  print(" ")
-  print("{: <20} {: <20} {: <20} {: <20}".format("Time","Key","Value","Value (HEX)"))
-  print("--------------------------------------------------------------------------") 
-  
-  if isinstance(Packet, collections.abc.Mapping):
+# ----------------------------
+# DecodePacket function
+# ----------------------------
+def DecodePacket(PacketParent, Packet):
+    global DeviceStatus, DeviceName, DevicePort, PacketsReceived, PacketsSent
+    global LastPacketType, HardwareModel, DeviceID, DeviceBat, DeviceAirUtilTx
+    global DeviceRxSnr, DeviceHopLimit, DeviceRxRssi, DeviceMeshtasticLatitude
+    global DeviceMeshtasticLongitude, DeviceMeshtasticPdop, DeviceMeshtasticGroundSpeed
+    global DeviceMeshtasticSatsInView, DeviceMeshtasticPrecisionBits
 
-    for Key in Packet.keys():
-      Value = Packet.get(Key) 
-      if isinstance(Value, collections.abc.Mapping):
-        LastPacketType = Key.upper()
-        DecodePacket("{}/{}".format(PacketParent,Key).upper(),Value)  
-      else:
-        if(Key == 'raw'):
-            pass
+    # Print header if top-level call
+    if PacketParent == 'MainPacket':
+        print("\n{: <20} {: <20} {: <20} {: <20}".format("Time","Key","Value","Value (HEX)"))
+        print("--------------------------------------------------------------------------") 
+
+    if not isinstance(Packet, collections.abc.Mapping):
+        print('Warning: Not a packet!\n')
+        return
+
+    for Key, Value in Packet.items():
+        if isinstance(Value, collections.abc.Mapping):
+            # Recurse into nested packets
+            LastPacketType = Key.upper()
+            DecodePacket(f"{PacketParent}/{Key}".upper(), Value)
         else:
-          if not isinstance(Value, bytes):
+            if Key == 'raw':
+                continue  # skip raw data
+            try:
+                # Log safely with readable + hex
+                log(" {: <20} {: <20} {: <20}".format(
+                    Key,
+                    format_value_readable(Value),
+                    format_value_hex(Value)
+                ))
+            except Exception as e:
+                log(f"Error logging {Key}: {e}")
 
-            # Log device messages
-            log(" {: <20} {: <20} {: <20}".format(Key,Value,format_value(Value)))
-            
-            if(Key=='batteryLevel'):
-                DeviceBat = Value
-            if(Key=='airUtilTx'):
-                DeviceAirUtilTx = round(Value,2)
-            if(Key=='rxSnr'):
-                DeviceRxSnr = Value
-            if(Key=='hopLimit'):
-                DeviceHopLimit = Value
-            if(Key=='rxRssi'):
-                DeviceRxRssi = Value
-            if(Key=='latitude'):
-                DeviceMeshtasticLatitude = Value
-            if(Key=='longitude'):
-                DeviceMeshtasticLongitude = Value                
-            if(Key=='PDOP'):
-                DeviceMeshtasticPdop = Value
-            if(Key=='groundSpeed'):
-                DeviceMeshtasticGroundSpeed = Value
-            if(Key=='satsInView'):
-                DeviceMeshtasticSatsInView = Value
-            if(Key=='precisionBits'):
-                DeviceMeshtasticPrecisionBits = Value
-            if(Key=='toId'):
-                print(" ")
-  else:
-      print('Warning: Not a packet!\n')
-
+            # Update globals safely
+            try:
+                if Key == 'batteryLevel':
+                    DeviceBat = Value
+                elif Key == 'airUtilTx':
+                    DeviceAirUtilTx = round(Value, 4)
+                elif Key == 'rxSnr':
+                    DeviceRxSnr = Value
+                elif Key == 'hopLimit':
+                    DeviceHopLimit = Value
+                elif Key == 'rxRssi':
+                    DeviceRxRssi = Value
+                elif Key == 'latitude':
+                    DeviceMeshtasticLatitude = Value
+                elif Key == 'longitude':
+                    DeviceMeshtasticLongitude = Value
+                elif Key == 'PDOP':
+                    DeviceMeshtasticPdop = Value
+                elif Key == 'groundSpeed':
+                    DeviceMeshtasticGroundSpeed = Value
+                elif Key == 'satsInView':
+                    DeviceMeshtasticSatsInView = Value
+                elif Key == 'precisionBits':
+                    DeviceMeshtasticPrecisionBits = Value
+            except Exception as e:
+                log(f"Error updating global {Key}: {e}")
 #
 # Packet receive
 #
