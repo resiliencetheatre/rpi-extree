@@ -109,6 +109,17 @@ def ErrorHandler(ErrorMessage,TraceMessage,AdditionalInfo):
     print("Additonal info:",AdditionalInfo)
   os._exit(0)  # Forcefully exits the entire Python process
 
+
+def log(msg):
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print(f"{timestamp} {msg}")
+
+def format_value(v):
+    if isinstance(v, int):
+        return hex(v)
+    return ""
+    # return str(v)
+
 #
 # meshtastic
 #
@@ -132,6 +143,10 @@ def DecodePacket(PacketParent,Packet):
   global DeviceMeshtasticGroundSpeed
   global DeviceMeshtasticSatsInView
   global DeviceMeshtasticPrecisionBits
+
+  print(" ")
+  print("{: <20} {: <20} {: <20} {: <20}".format("Time","Key","Value","Value (HEX)"))
+  print("--------------------------------------------------------------------------") 
   
   if isinstance(Packet, collections.abc.Mapping):
 
@@ -145,9 +160,9 @@ def DecodePacket(PacketParent,Packet):
             pass
         else:
           if not isinstance(Value, bytes):
-            
-            # Use this to see what your meshtastic device provides:
-            # print("{: <20} {: <20}".format(Key,Value))
+
+            # Log device messages
+            log(" {: <20} {: <20} {: <20}".format(Key,Value,format_value(Value)))
             
             if(Key=='batteryLevel'):
                 DeviceBat = Value
@@ -171,9 +186,10 @@ def DecodePacket(PacketParent,Packet):
                 DeviceMeshtasticSatsInView = Value
             if(Key=='precisionBits'):
                 DeviceMeshtasticPrecisionBits = Value
+            if(Key=='toId'):
+                print(" ")
   else:
       print('Warning: Not a packet!\n')
-  
 
 #
 # Packet receive
