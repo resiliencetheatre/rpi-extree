@@ -1,0 +1,6 @@
+[Unit]
+Description=Unmount and close LUKS volume after Nitrokey removal
+
+[Service]
+Type=oneshot
+ExecStart=/bin/nitrokey-luks.sh stop

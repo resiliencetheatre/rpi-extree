@@ -1,0 +1,4 @@
+ACTION=="add", SUBSYSTEM=="hidraw", ENV{ID_FIDO_TOKEN}=="1", ENV{ID_VENDOR_ID}=="20a0", ENV{ID_MODEL_ID}=="42b2", TAG+="systemd", ENV{SYSTEMD_WANTS}+="nitrokey-luks.service"
+ACTION=="remove", SUBSYSTEM=="hidraw", ENV{ID_FIDO_TOKEN}=="1", ENV{ID_VENDOR_ID}=="20a0", ENV{ID_MODEL_ID}=="42b2", RUN+="/bin/systemctl start nitrokey-luks-close.service"
+
+
