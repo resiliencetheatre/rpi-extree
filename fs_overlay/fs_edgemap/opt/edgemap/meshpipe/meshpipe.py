@@ -121,6 +121,91 @@ def log(msg):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print(f"{timestamp} {msg}")
 
+
+#
+# Debug logging to DB
+#
+import sqlite3
+from datetime import datetime
+
+# ----------------------------
+# SQLite3 setup
+# ----------------------------
+DB_FILE = "/tmp/meshtastic_packets.db"
+
+def get_fromId(packet):
+    """Return a string identifier for the sender of the packet."""
+    # Prefer 'fromId' if present
+    fromId = packet.get('fromId')
+    if fromId:
+        return str(fromId)
+    # Fallback: use numeric 'from' field as hex
+    from_num = packet.get('from')
+    if from_num is not None:
+        return f"!{from_num:08x}"  # same style as Meshtastic fromId
+    # Last resort
+    return "unknown"
+
+def init_db():
+    """Create the database and table if they don't exist."""
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS packets (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp TEXT,
+            fromId TEXT,
+            key TEXT,
+            value TEXT,
+            value_hex TEXT
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+# ----------------------------
+# Insert function
+# ----------------------------
+def insert_packet(fromId, key, value, value_hex):
+    """Insert a single key/value from a packet into the database."""
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute('''
+        INSERT INTO packets (timestamp, fromId, key, value, value_hex)
+        VALUES (?, ?, ?, ?, ?)
+    ''', (
+        datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        fromId,
+        key,
+        str(value),
+        str(value_hex)
+    ))
+    conn.commit()
+    conn.close()
+
+# ----------------------------
+# Batch insert for a packet
+# ----------------------------
+def log_packet_to_db(packet, top_fromId=None):
+    """
+    Log all fields of a packet dict into SQLite, using fromId as subject.
+    top_fromId is inherited by nested dictionaries.
+    """
+    # Determine the top-level fromId once
+    if top_fromId is None:
+        top_fromId = get_fromId(packet)
+
+    for key, val in packet.items():
+        if key == 'raw':  # skip raw
+            continue
+
+        if isinstance(val, dict):
+            # Recurse into nested dict with the same fromId
+            log_packet_to_db(val, top_fromId)
+        else:
+            # Insert row with consistent fromId
+            insert_packet(top_fromId, key, format_value_readable(val), format_value_hex(val))
+
 # ----------------------------
 # Format functions
 # ----------------------------
@@ -161,14 +246,17 @@ def format_value_readable(val):
 # ----------------------------
 # DecodePacket function
 # ----------------------------
-def DecodePacket(PacketParent, Packet):
-    global DeviceStatus, DeviceName, DevicePort, PacketsReceived, PacketsSent
-    global LastPacketType, HardwareModel, DeviceID, DeviceBat, DeviceAirUtilTx
-    global DeviceRxSnr, DeviceHopLimit, DeviceRxRssi, DeviceMeshtasticLatitude
-    global DeviceMeshtasticLongitude, DeviceMeshtasticPdop, DeviceMeshtasticGroundSpeed
-    global DeviceMeshtasticSatsInView, DeviceMeshtasticPrecisionBits
+_packet_buffer = {}  # buffer for each top-level packet
 
-    # Print header if top-level call
+def DecodePacket(PacketParent, Packet):
+    """
+    Recursively decode a packet and batch log it once `fromId` or `toId` is received.
+    Also inserts into database in batch.
+    """
+    global DeviceBat, DeviceAirUtilTx, DeviceRxSnr, DeviceHopLimit, DeviceRxRssi
+    global DeviceMeshtasticLatitude, DeviceMeshtasticLongitude, DeviceMeshtasticPdop
+    global DeviceMeshtasticGroundSpeed, DeviceMeshtasticSatsInView, DeviceMeshtasticPrecisionBits
+
     if PacketParent == 'MainPacket':
         print("\n{: <20} {: <20} {: <20} {: <20}".format("Time","Key","Value","Value (HEX)"))
         print("--------------------------------------------------------------------------") 
@@ -180,20 +268,21 @@ def DecodePacket(PacketParent, Packet):
     for Key, Value in Packet.items():
         if isinstance(Value, collections.abc.Mapping):
             # Recurse into nested packets
-            LastPacketType = Key.upper()
             DecodePacket(f"{PacketParent}/{Key}".upper(), Value)
         else:
             if Key == 'raw':
-                continue  # skip raw data
-            try:
-                # Log safely with readable + hex
-                log(" {: <20} {: <20} {: <20}".format(
-                    Key,
-                    format_value_readable(Value),
-                    format_value_hex(Value)
-                ))
-            except Exception as e:
-                log(f"Error logging {Key}: {e}")
+                continue
+
+            # Buffer the field
+            pkt_id = PacketParent
+            if pkt_id not in _packet_buffer:
+                _packet_buffer[pkt_id] = []
+
+            _packet_buffer[pkt_id].append({
+                "Key": Key,
+                "Value": Value,
+                "ValueHEX": format_value_hex(Value)
+            })
 
             # Update globals safely
             try:
@@ -221,6 +310,25 @@ def DecodePacket(PacketParent, Packet):
                     DeviceMeshtasticPrecisionBits = Value
             except Exception as e:
                 log(f"Error updating global {Key}: {e}")
+
+            # Flush buffer when fromId/toId is received
+            if Key in ("fromId", "toId"):
+                timestamp = Packet.get("time", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                
+                for row in _packet_buffer[pkt_id]:
+                    # Print to console
+                    print("{: <20} {: <20} {: <20} {: <20}".format(
+                        timestamp,
+                        row["Key"],
+                        format_value_readable(row["Value"]),
+                        row["ValueHEX"]
+                    ))
+                
+                # Batch insert to DB (disabled) 
+                # log_packet_to_db(Packet, top_fromId=format_value_readable(Packet.get("fromId", "unknown")))
+
+                # Clear buffer
+                _packet_buffer[pkt_id] = []
 #
 # Packet receive
 #
@@ -889,7 +997,7 @@ def main():
     # Create DB 
     #
     meshtasticDbCreate()
-
+    init_db()
 
     print("Connecting to device at port {}".format(args.port))
     sys.stdout.flush()
