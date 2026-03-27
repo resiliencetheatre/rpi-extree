@@ -1,0 +1,9 @@
+[Unit]
+Description=Open/close LUKS volume based on Nitrokey presence
+After=local-fs.target
+Wants=local-fs.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/nitrokey-luks.sh sync
+

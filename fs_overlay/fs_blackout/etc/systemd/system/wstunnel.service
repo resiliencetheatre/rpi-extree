@@ -1,0 +1,15 @@
+[Unit]
+Description=wstunnel client for wg0
+After=network.target auditd.service
+ConditionPathExists=/mnt/internaldrive/connection/wstunnel.env
+
+[Service]
+Type=simple
+WorkingDirectory=/tmp
+EnvironmentFile=/mnt/internaldrive/connection/wstunnel.env
+ExecStart=/bin/wstunnel client --http-upgrade-path-prefix ${WSTUNNEL_PATH} -L ${WSTUNNEL_LISTEN} ${WSTUNNEL_URL}
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

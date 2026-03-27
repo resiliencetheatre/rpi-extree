@@ -1,0 +1,13 @@
+[Unit]
+Description=Apply connection config from encrypted internaldrive
+After=systemd-networkd.service
+Wants=systemd-networkd.service
+ConditionPathExists=/mnt/internaldrive/connection/wg0.netdev
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/networkctl reload
+ExecStart=/bin/systemctl start wstunnel.service
+ExecStop=/bin/systemctl stop wstunnel.service
+ExecStop=/bin/networkctl delete wg0

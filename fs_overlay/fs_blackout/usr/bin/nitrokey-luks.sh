@@ -72,11 +72,18 @@ do_start() {
     else
         log "mountpoint already mounted"
     fi
+
+    log "starting internaldrive connection services"
+    systemctl start internaldrive-connection.service
 }
 
 do_stop() {
+
+    log "stopping internaldrive connection services"
+    systemctl stop internaldrive-connection.service || true
+
     if is_mounted; then
-        log "unmounting $MOUNT_POINT"
+	log "unmounting $MOUNT_POINT"
         if ! umount "$MOUNT_POINT"; then
             log "unmount failed, device busy; leaving mapping open"
             return 1
