@@ -11,18 +11,25 @@ MAPPER_DEV="/dev/mapper/${MAPPER_NAME}"
 MOUNT_POINT="/mnt/internaldrive"
 
 LOCKDIR="/run/nitrokey-luks.lock"
+STATUS_FILE="/tmp/nitrokey-ui-status"
 
 log() {
     logger -t nitrokey-luks "$*"
     echo "nitrokey-luks: $*"
 }
 
+ui_status() {
+    printf '%s\n' "$1" > "$STATUS_FILE"
+}
+
 is_nitro_present() {
     for d in /sys/bus/usb/devices/*; do
         [ -f "$d/idVendor" ] || continue
         [ -f "$d/idProduct" ] || continue
+
         vid="$(cat "$d/idVendor" 2>/dev/null || true)"
         pid="$(cat "$d/idProduct" 2>/dev/null || true)"
+
         if [ "$vid" = "$USB_VID" ] && [ "$pid" = "$USB_PID" ]; then
             return 0
         fi
@@ -38,30 +45,75 @@ is_mounted() {
     grep -qs "[[:space:]]$MOUNT_POINT[[:space:]]" /proc/mounts
 }
 
+cleanup_lock() {
+    rmdir "$LOCKDIR" 2>/dev/null || true
+}
+
 acquire_lock() {
     i=0
     while ! mkdir "$LOCKDIR" 2>/dev/null; do
         i=$((i + 1))
-        [ "$i" -ge 50 ] && {
+        if [ "$i" -ge 50 ]; then
             log "could not acquire lock"
             exit 1
-        }
+        fi
         sleep 0.1
     done
-    trap 'rmdir "$LOCKDIR" 2>/dev/null || true' EXIT INT TERM
+    trap cleanup_lock EXIT INT TERM
+}
+
+open_luks_with_retries() {
+    try=1
+    max=5
+
+    while [ "$try" -le "$max" ]; do
+        if ! is_nitro_present; then
+            log "Nitrokey disappeared before unlock"
+            ui_status "unlock_failed"
+            return 1
+        fi
+
+        log "opening LUKS device $LUKS_DEV as $MAPPER_NAME (try $try/$max)"
+        ui_status "waiting_for_touch"
+
+        if cryptsetup luksOpen "$LUKS_DEV" "$MAPPER_NAME"; then
+            ui_status "unlock_ok"
+            return 0
+        fi
+
+        log "unlock attempt $try failed"
+        ui_status "unlock_failed"
+        try=$((try + 1))
+
+        if [ "$try" -le "$max" ]; then
+            sleep 1
+        fi
+    done
+
+    log "failed to open LUKS device after retries"
+    ui_status "unlock_failed"
+    return 1
 }
 
 do_start() {
     if ! is_nitro_present; then
         log "Nitrokey not present, nothing to do"
+        ui_status "idle"
         return 0
     fi
 
+    ui_status "token_detected"
+
     if ! is_mapper_open; then
-        log "opening LUKS device $LUKS_DEV as $MAPPER_NAME"
-        cryptsetup luksOpen "$LUKS_DEV" "$MAPPER_NAME"
+        log "waiting 3s for token to settle"
+        sleep 3
+
+        if ! open_luks_with_retries; then
+            return 1
+        fi
     else
         log "mapper already open"
+        ui_status "unlock_ok"
     fi
 
     mkdir -p "$MOUNT_POINT"
@@ -73,17 +125,18 @@ do_start() {
         log "mountpoint already mounted"
     fi
 
+    ui_status "mounted"
+
     log "starting internaldrive connection services"
     systemctl start internaldrive-connection.service
 }
 
 do_stop() {
-
     log "stopping internaldrive connection services"
     systemctl stop internaldrive-connection.service || true
 
     if is_mounted; then
-	log "unmounting $MOUNT_POINT"
+        log "unmounting $MOUNT_POINT"
         if ! umount "$MOUNT_POINT"; then
             log "unmount failed, device busy; leaving mapping open"
             return 1
@@ -98,6 +151,8 @@ do_stop() {
     else
         log "mapper already closed"
     fi
+
+    ui_status "unmounted"
 }
 
 do_sync() {

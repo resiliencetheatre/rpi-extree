@@ -6,4 +6,3 @@ Wants=local-fs.target
 [Service]
 Type=oneshot
 ExecStart=/bin/nitrokey-luks.sh sync
-
