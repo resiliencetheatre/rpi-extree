@@ -38,6 +38,8 @@ if [ ! -f "$TX_TARGET" ]; then
     exit 1
 fi
 
+systemctl stop audioreceiver.service || true
+
 rm -f "$RX_LINK" "$TX_LINK"
 
 ln -s "$RX_TARGET" "$RX_LINK"
