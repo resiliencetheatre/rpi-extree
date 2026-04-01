@@ -45,7 +45,19 @@ ln -s "$TX_TARGET" "$TX_LINK"
 
 systemctl daemon-reload
 
+case "$MODE" in
+    codec2|opus)
+        systemctl start udpproxy-in.service
+        systemctl start udpproxy-out.service
+        ;;
+    udpptt)
+        systemctl stop udpproxy-in.service || true
+        systemctl stop udpproxy-out.service || true
+        ;;
+esac
+
+systemctl restart audioreceiver.service || true
+
 echo "Audio mode set to: $MODE"
 echo "  $RX_LINK -> $RX_TARGET"
 echo "  $TX_LINK -> $TX_TARGET"
-
