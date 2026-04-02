@@ -1,10 +1,14 @@
 [Unit]
 Description=udpproxy (out)
 After=network.target sys-devices-virtual-net-wg0.device
+RequiresMountsFor=/mnt/internaldrive
 
 [Service]
 WorkingDirectory=/opt/udpproxy
+ExecStartPre=/bin/sh -c 'i=0; while [ $i -lt 20 ]; do [ -d /mnt/internaldrive ] && [ -w /mnt/internaldrive ] && exit 0; i=$((i+1)); sleep 1; done; exit 1'
 ExecStart=udpproxy -i proxy-out.ini
+Restart=on-failure
+RestartSec=2
 
 # [Install]
 # WantedBy=multi-user.target
