@@ -1,4 +1,4 @@
-C2PTT_VERSION = 53ce5f83936ab827223211ba3c011588d1d2cd8e
+C2PTT_VERSION = b7e121ef4a367041226af40a33ce0a872086077e
 C2PTT_SITE = https://codeberg.org/resiliencetheatre/c2ptt.git
 C2PTT_SITE_METHOD = git
 C2PTT_DEPENDENCIES = gstreamer1 gst1-plugins-base
@@ -10,7 +10,7 @@ define C2PTT_BUILD_CMDS
 endef
 
 define C2PTT_INSTALL_TARGET_CMDS
-        (cd $(@D); cp pttkey_rec play_spool $(C2PTT_PREFIX)/bin)
+        (cd $(@D); cp pttkey_ctrl pttkey_rec play_spool $(C2PTT_PREFIX)/bin)
 endef
 
 define C2PTT_CLEAN_CMDS
