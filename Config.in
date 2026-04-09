@@ -46,7 +46,6 @@ menu "Network and encapsulation"
 	source "$BR2_EXTERNAL_rpi_PATH/package/gwsocket/Config.in"
 endmenu
 
-
 menu "audio transfer"
 	source "$BR2_EXTERNAL_rpi_PATH/package/audioreceiver/Config.in"
 	source "$BR2_EXTERNAL_rpi_PATH/package/audiostreamer/Config.in"
@@ -55,6 +54,7 @@ menu "audio transfer"
 	source "$BR2_EXTERNAL_rpi_PATH/package/opusstreamer/Config.in"
 	source "$BR2_EXTERNAL_rpi_PATH/package/c2ptt/Config.in"
 	source "$BR2_EXTERNAL_rpi_PATH/package/udpptt/Config.in"
+	source "$BR2_EXTERNAL_rpi_PATH/package/spacecom/Config.in"
 endmenu
 
 menu "User interface (lvgl)"
