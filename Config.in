@@ -55,6 +55,7 @@ menu "audio transfer"
 	source "$BR2_EXTERNAL_rpi_PATH/package/c2ptt/Config.in"
 	source "$BR2_EXTERNAL_rpi_PATH/package/udpptt/Config.in"
 	source "$BR2_EXTERNAL_rpi_PATH/package/spacecom/Config.in"
+	source "$BR2_EXTERNAL_rpi_PATH/package/knock-daemon/Config.in"
 endmenu
 
 menu "User interface (lvgl)"

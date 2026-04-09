@@ -1,0 +1,8 @@
+config BR2_PACKAGE_KNOCK_DAEMON
+	bool "knock-daemon"
+	help
+	  Small port-knock related utilities:
+	    - knock-send
+	    - knock-receiver
+
+	  https://codeberg.org/resiliencetheatre/knock-daemon
