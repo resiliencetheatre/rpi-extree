@@ -1,0 +1,12 @@
+[Unit]
+Description=audiostreamer (spacecom c2ptt)
+After=network.target
+PartOf=spacecom-stack.target
+
+[Service]
+WorkingDirectory=/opt/c2ptt
+ExecStartPre=/bin/mkdir -p /tmp/c2out
+ExecStart=/bin/pttkey_rec
+
+[Install]
+WantedBy=spacecom-stack.target

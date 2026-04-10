@@ -1,11 +1,25 @@
 #!/bin/sh
+#
+# codec2 is OTP (requires udpproxy in/out)
+# opus is OTP (unused)
+#
+# udpptt is symmetric (word of day) (does not require udpproxy)
+# - audioreceiver-udpptt.service:
+#   - /bin/ptt-client-from-ini.sh
+# - audiostreamer-udpptt.service
+#   - ptt_helper --socket /tmp/udpptt.sock --ptt_[down/up]
+#
+# spacecom is cleartext and requires no udpproxy
+# 
+#
+#
 
 set -eu
 
 SYSTEMD_DIR="/etc/systemd/system"
 
 usage() {
-    echo "Usage: $0 {codec2|opus|udpptt}" >&2
+    echo "Usage: $0 {codec2|opus|udpptt|spacecom}" >&2
     exit 1
 }
 
@@ -14,7 +28,7 @@ usage() {
 MODE="$1"
 
 case "$MODE" in
-    codec2|opus|udpptt)
+    codec2|opus|udpptt|spacecom)
         ;;
     *)
         echo "Error: invalid mode: $MODE" >&2
@@ -47,18 +61,34 @@ ln -s "$TX_TARGET" "$TX_LINK"
 
 systemctl daemon-reload
 
+
+# handle udpproxy based on mode
 case "$MODE" in
     codec2|opus)
         systemctl start udpproxy-in.service
         systemctl start udpproxy-out.service
         ;;
-    udpptt)
+    udpptt|spacecom)
         systemctl stop udpproxy-in.service || true
         systemctl stop udpproxy-out.service || true
         ;;
 esac
 
-systemctl restart audioreceiver.service || true
+# handle audioreceiver start based on mode
+case "$MODE" in
+    codec2|opus|udpptt)
+		systemctl stop spacecom-stack.target || true
+		echo "stopped spacecom-stack.target"
+        systemctl restart audioreceiver.service || true
+        echo "restarted audioreceiver.service"
+        ;;
+    spacecom)
+        systemctl restart spacecom-stack.target || true
+        echo "restarted spacecom-stack.target"
+        ;;
+esac
+
+# systemctl restart audioreceiver.service || true
 
 echo "Audio mode set to: $MODE"
 echo "  $RX_LINK -> $RX_TARGET"

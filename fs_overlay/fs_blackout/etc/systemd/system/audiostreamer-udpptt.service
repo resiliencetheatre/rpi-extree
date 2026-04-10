@@ -1,7 +1,6 @@
 [Unit]
 Description=udpptt PTT trigger helper
-After=network.target ptt_client.service
-# Wants=ptt_client.service
+After=network.target
 
 [Service]
 Type=oneshot
@@ -11,5 +10,3 @@ ExecStart=/bin/ptt_helper --socket /tmp/udpptt.sock --ptt_down
 ExecStop=/bin/ptt_helper --socket /tmp/udpptt.sock --ptt_up
 ExecStopPost=aplay /root/stop.wav
 
-[Install]
-# WantedBy=multi-user.target

@@ -1,4 +1,4 @@
-C2PTT_VERSION = b7e121ef4a367041226af40a33ce0a872086077e
+C2PTT_VERSION =  be7d452da94a6257a4cfbe2016dde309d8eee27a
 C2PTT_SITE = https://codeberg.org/resiliencetheatre/c2ptt.git
 C2PTT_SITE_METHOD = git
 C2PTT_DEPENDENCIES = gstreamer1 gst1-plugins-base

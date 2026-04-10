@@ -1,0 +1,15 @@
+[Unit]
+Description=audioreceiver (codec2)
+After=network.target
+PartOf=spacecom-stack.target
+
+[Service]
+
+WorkingDirectory=/tmp
+ExecStartPre=/bin/mkdir -p /tmp/c2in
+ExecStart=/bin/sh -c 'cd /tmp/c2in && exec /bin/play_spool'
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=spacecom-stack.target

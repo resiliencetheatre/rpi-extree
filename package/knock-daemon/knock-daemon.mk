@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-KNOCK_DAEMON_VERSION = fdfd5bc5821c644932aa8cfbe0b9f56711a35b8d
+KNOCK_DAEMON_VERSION = 32145c0b9a8687b4e28a2620025b6e16fb418fc3
 KNOCK_DAEMON_SITE = https://codeberg.org/resiliencetheatre/knock-daemon.git
 KNOCK_DAEMON_SITE_METHOD = git
 

@@ -1,0 +1,12 @@
+[Unit]
+Description=c2ptt PTT trigger helper
+After=network.target spacecom.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStartPre=aplay /root/ptt_double_beep.wav
+ExecStart=/bin/pttkey_ctrl -s /tmp/pttkey.sock ptt_down
+ExecStop=/bin/pttkey_ctrl -s /tmp/pttkey.sock ptt_up
+ExecStopPost=aplay /root/stop.wav
+
