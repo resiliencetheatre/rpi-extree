@@ -1,0 +1,14 @@
+[Unit]
+Description=Spacecom file monitor
+After=network.target spacecom.service audioreceiver-spacecom.service
+PartOf=spacecom-stack.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/c2ptt
+ExecStart=/opt/c2ptt/monitor-dir.sh
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=spacecom-stack.target

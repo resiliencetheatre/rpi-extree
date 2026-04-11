@@ -1,0 +1,15 @@
+[Unit]
+Description=Spacecom file receiver
+After=network.target
+PartOf=spacecom-stack.target
+
+[Service]
+Type=simple
+EnvironmentFile=/opt/c2ptt/normhosts.env
+ExecStartPre=/bin/mkdir -p /tmp/c2in
+ExecStart=/bin/sh -c '/usr/bin/spacecom-recv addr ${NORM_LOCAL}/6003 /tmp/c2in/'
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=spacecom-stack.target
