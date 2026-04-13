@@ -1,7 +1,8 @@
 [Unit]
 Description=Spacecom file receiver
-After=network.target
-PartOf=spacecom-stack.target
+After=network.target internaldrive-connection.service sys-devices-virtual-net-wg0.device
+Requires=internaldrive-connection.service sys-devices-virtual-net-wg0.device
+PartOf=spacecom-stack.target internaldrive-connection.service
 
 [Service]
 Type=simple

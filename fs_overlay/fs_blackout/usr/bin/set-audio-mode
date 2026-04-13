@@ -10,13 +10,18 @@
 #   - ptt_helper --socket /tmp/udpptt.sock --ptt_[down/up]
 #
 # spacecom is cleartext and requires no udpproxy
-# 
-#
 #
 
 set -eu
 
 SYSTEMD_DIR="/etc/systemd/system"
+MODE_STATE="/run/audio-mode-selected"
+LOG_TAG="set-audio-mode"
+
+log() {
+    logger -t "$LOG_TAG" -- "$*"
+    echo "$LOG_TAG: $*"
+}
 
 usage() {
     echo "Usage: $0 {codec2|opus|udpptt|spacecom}" >&2
@@ -31,6 +36,7 @@ case "$MODE" in
     codec2|opus|udpptt|spacecom)
         ;;
     *)
+        log "invalid mode: $MODE"
         echo "Error: invalid mode: $MODE" >&2
         usage
         ;;
@@ -43,53 +49,77 @@ RX_LINK="$SYSTEMD_DIR/audioreceiver.service"
 TX_LINK="$SYSTEMD_DIR/audiostreamer.service"
 
 if [ ! -f "$RX_TARGET" ]; then
+    log "missing receiver service: $RX_TARGET"
     echo "Error: missing receiver service: $RX_TARGET" >&2
     exit 1
 fi
 
 if [ ! -f "$TX_TARGET" ]; then
+    log "missing streamer service: $TX_TARGET"
     echo "Error: missing streamer service: $TX_TARGET" >&2
     exit 1
 fi
 
+mkdir -p /run
+printf '%s\n' "$MODE" > "$MODE_STATE"
+log "saved selected mode: $MODE"
+
+log "stopping generic audio services before relinking"
 systemctl stop audioreceiver.service || true
+systemctl stop audiostreamer.service || true
 
 rm -f "$RX_LINK" "$TX_LINK"
 
 ln -s "$RX_TARGET" "$RX_LINK"
 ln -s "$TX_TARGET" "$TX_LINK"
+log "updated links: $RX_LINK -> $RX_TARGET, $TX_LINK -> $TX_TARGET"
 
 systemctl daemon-reload
+log "systemd daemon reloaded"
 
-
-# handle udpproxy based on mode
 case "$MODE" in
     codec2|opus)
+        log "starting udpproxy services for mode $MODE"
         systemctl start udpproxy-in.service
         systemctl start udpproxy-out.service
+
+        log "stopping spacecom stack"
+        systemctl stop spacecom-stack.target || true
+
+        log "restarting audioreceiver.service"
+        systemctl restart audioreceiver.service || true
         ;;
-    udpptt|spacecom)
+    udpptt)
+        log "stopping udpproxy services for mode udpptt"
         systemctl stop udpproxy-in.service || true
         systemctl stop udpproxy-out.service || true
-        ;;
-esac
 
-# handle audioreceiver start based on mode
-case "$MODE" in
-    codec2|opus|udpptt)
-		systemctl stop spacecom-stack.target || true
-		echo "stopped spacecom-stack.target"
+        log "stopping spacecom stack"
+        systemctl stop spacecom-stack.target || true
+
+        log "restarting audioreceiver.service"
         systemctl restart audioreceiver.service || true
-        echo "restarted audioreceiver.service"
         ;;
     spacecom)
+        log "stopping udpproxy services for mode spacecom"
+        systemctl stop udpproxy-in.service || true
+        systemctl stop udpproxy-out.service || true
+
+        if ! mountpoint -q /mnt/internaldrive; then
+            log "spacecom selected, but /mnt/internaldrive is not mounted yet"
+            exit 0
+        fi
+
+        if ! ip link show wg0 >/dev/null 2>&1; then
+            log "spacecom selected, but wg0 is not up yet"
+            exit 0
+        fi
+
+        log "restarting spacecom-stack.target"
         systemctl restart spacecom-stack.target || true
-        echo "restarted spacecom-stack.target"
         ;;
 esac
 
-# systemctl restart audioreceiver.service || true
-
-echo "Audio mode set to: $MODE"
-echo "  $RX_LINK -> $RX_TARGET"
-echo "  $TX_LINK -> $TX_TARGET"
+log "audio mode set to: $MODE"
+log "$RX_LINK -> $RX_TARGET"
+log "$TX_LINK -> $TX_TARGET"

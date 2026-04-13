@@ -1,12 +1,15 @@
 [Unit]
 Description=audiostreamer (spacecom c2ptt)
-After=network.target
-PartOf=spacecom-stack.target
+After=network.target internaldrive-connection.service sys-devices-virtual-net-wg0.device
+Requires=internaldrive-connection.service sys-devices-virtual-net-wg0.device
+PartOf=spacecom-stack.target internaldrive-connection.service
 
 [Service]
 WorkingDirectory=/opt/c2ptt
 ExecStartPre=/bin/mkdir -p /tmp/c2out
 ExecStart=/bin/pttkey_rec
+Restart=on-failure
+RestartSec=5
 
 [Install]
 WantedBy=spacecom-stack.target

@@ -12,6 +12,7 @@ MOUNT_POINT="/mnt/internaldrive"
 
 LOCKDIR="/run/nitrokey-luks.lock"
 STATUS_FILE="/tmp/nitrokey-ui-status"
+MODE_STATE="/run/audio-mode-selected"
 
 log() {
     logger -t nitrokey-luks "$*"
@@ -95,6 +96,39 @@ open_luks_with_retries() {
     return 1
 }
 
+wait_for_wg0() {
+    i=0
+    max=30
+
+    while [ "$i" -lt "$max" ]; do
+        if ip link show wg0 >/dev/null 2>&1; then
+            log "wg0 is up"
+            return 0
+        fi
+        i=$((i + 1))
+        sleep 1
+    done
+
+    log "wg0 did not appear within timeout"
+    return 1
+}
+
+reapply_selected_audio_mode() {
+    [ -f "$MODE_STATE" ] || return 0
+
+    mode="$(cat "$MODE_STATE" 2>/dev/null || true)"
+
+    case "$mode" in
+        codec2|opus|udpptt|spacecom)
+            log "reapplying selected audio mode: $mode"
+            /usr/bin/set-audio-mode "$mode" || true
+            ;;
+        *)
+            log "no valid saved audio mode found"
+            ;;
+    esac
+}
+
 do_start() {
     if ! is_nitro_present; then
         log "Nitrokey not present, nothing to do"
@@ -105,8 +139,8 @@ do_start() {
     ui_status "token_detected"
 
     if ! is_mapper_open; then
-        log "waiting 3s for token to settle"
-        sleep 3
+        log "waiting 5s for token to settle"
+        sleep 5
 
         if ! open_luks_with_retries; then
             return 1
@@ -129,9 +163,16 @@ do_start() {
 
     log "starting internaldrive connection services"
     systemctl start internaldrive-connection.service
+
+    if wait_for_wg0; then
+        reapply_selected_audio_mode
+    fi
 }
 
 do_stop() {
+    log "stopping spacecom stack"
+    systemctl stop spacecom-stack.target || true
+
     log "stopping internaldrive connection services"
     systemctl stop internaldrive-connection.service || true
 
