@@ -5,8 +5,10 @@ After=network.target spacecom.service
 [Service]
 Type=oneshot
 RemainAfterExit=yes
+ExecStartPre=/bin/knock_cmd_send -u /tmp/knock-send.sock type=alert mode=codec2 sender=link text=incoming send=now
 ExecStartPre=aplay /root/ptt_double_beep.wav
 ExecStart=/bin/pttkey_ctrl -s /tmp/pttkey.sock ptt_down
 ExecStop=/bin/pttkey_ctrl -s /tmp/pttkey.sock ptt_up
+ExecStop=/bin/knock_cmd_send -u /tmp/knock-send.sock type=alert mode=codec2 sender=link text="" send=now
 ExecStopPost=aplay /root/stop.wav
 
