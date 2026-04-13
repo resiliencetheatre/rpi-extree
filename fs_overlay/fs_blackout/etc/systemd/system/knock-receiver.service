@@ -1,0 +1,15 @@
+[Unit]
+Description=Knock receiver UI listener
+Wants=sys-devices-virtual-net-wg0.device
+After=sys-devices-virtual-net-wg0.device network-online.target lvgl-com.service
+Requires=sys-devices-virtual-net-wg0.device
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/knock-receiver -p 50000 -u /tmp/knock-ui.sock
+Restart=on-failure
+RestartSec=2
+
+#[Install]
+#WantedBy=multi-user.target
+#WantedBy=sys-devices-virtual-net-wg0.device

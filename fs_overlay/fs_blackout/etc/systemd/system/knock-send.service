@@ -1,0 +1,16 @@
+[Unit]
+Description=Knock sender
+Wants=sys-devices-virtual-net-wg0.device
+After=sys-devices-virtual-net-wg0.device network-online.target
+Requires=sys-devices-virtual-net-wg0.device
+
+[Service]
+Type=simple
+EnvironmentFile=/opt/c2ptt/normhosts.env
+ExecStartPre=/bin/rm -f /tmp/knock-send.sock
+ExecStart=/bin/sh -c 'exec /usr/bin/knock-send -r "$NORM_REMOTE" -p 50000 -u /tmp/knock-send.sock -s link -i 1000'
+Restart=on-failure
+RestartSec=2
+
+#[Install]
+#WantedBy=multi-user.target
