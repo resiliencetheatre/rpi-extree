@@ -4,8 +4,8 @@ Link is open source resilience demonstration for communication with confidence.
 
 ![Intro picture](images/title-image.png "Introduction")
 
-It's main purpose is to serve as training project for [https://resilience-theatre.com/wiki/doku.php?id=articles:cellular#mobiles](critical thinking)
-and [https://www.thesalesblog.com/blog/how-to-avoid-having-your-beliefs-become-dogma](dogma avoidance).
+It's main purpose is to serve as training project for [critical thinking](https://resilience-theatre.com/wiki/doku.php?id=articles:cellular#mobiles)
+and [dogma avoidance](https://www.thesalesblog.com/blog/how-to-avoid-having-your-beliefs-become-dogma).
 
 ## Features
 
