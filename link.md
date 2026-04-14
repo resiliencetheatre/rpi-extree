@@ -2,16 +2,24 @@
 
 Link is open source resilience demonstration for communication with confidence. 
 
-# Build
+## Prepare buildroot
+
+Clone buildroot and rpi-extree repositories:
+
+    git clone https://gitlab.com/buildroot.org/buildroot.git
+    git clone https://codeberg.org/resiliencetheatre/rpi-extree.git
+
+## Build
 
 Build 'Link' image:
-
+    
+    cd builroot
 	export BR2_EXTERNAL=[PATH]/rpi-extree
 	make clean
 	make raspberrypi4_64_com_hyperpixel_defconfig
 	make
 
-This first step build image with libfido2 enabled. After initial build is
+This first step builds image with libfido2 enabled. After initial build is
 completed, you need to change `SYSTEMD_CONF_OPTS` at `package/systemd/systemd.mk`
 to enable fido2 support for systemd. Change `-Dlibfido2=disabled` to `-Dlibfido2=enabled`
 and rebuild systemd and full image. 
