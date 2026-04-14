@@ -21,6 +21,7 @@ Link is open source resilience demonstration for communication with confidence.
 * User interface with [[https://lvgl.io/|LVGL]] on top of framebuffer
 * Rekeying and configuration over separate [[https://en.wikipedia.org/wiki/IEEE_802.1AE|macsec]] LAN segment
 * Utilizes several AI generated components
+* Delivers maker skills approach to your [[https://resilience-theatre.com/wiki/doku.php?id=link:introduction|strategy]] 
 
 ## Bill of materials, Rasbperry Pi
 
