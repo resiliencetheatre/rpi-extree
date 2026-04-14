@@ -4,6 +4,7 @@ Link is open source resilience demonstration for communication with confidence.
 
 ## Features
 
+* Suitable for small scale embedded SoC's (broadcom, rockchip, risc-v)
 * Full source code available for on-prem building and modifications
 * Buildroot supported [[https://buildroot.org/downloads/manual/manual.html#_generating_cyclonedx_sbom|CycloneDX SBOM]]
 * Fully controlled server entity for connectivity between NAT'ed entities
