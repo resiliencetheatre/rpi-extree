@@ -8,7 +8,7 @@ Link is open source resilience demonstration for communication with confidence.
 
 * Suitable for small scale embedded SoC's (broadcom, rockchip, risc-v)
 * Full source code available for on-prem building and modifications
-* Buildroot supported [[https://buildroot.org/downloads/manual/manual.html#_generating_cyclonedx_sbom|CycloneDX SBOM]]
+* Buildroot supported [CycloneDX SBOM](https://buildroot.org/downloads/manual/manual.html#_generating_cyclonedx_sbom)
 * Fully controlled server entity for connectivity between NAT'ed entities
 * Server entity does not store communication content or presist data
 * Functionality is fully ephemeral and point-to-point
@@ -16,45 +16,45 @@ Link is open source resilience demonstration for communication with confidence.
 * Three encryption examples: plain text, symmetric (XChaCha20) and logical XOR
 * Speech compression with OPUS and CODEC2, depending the mode
 * Capable to deliver two way speech communication via GEO satellite communication systems
-* Can be used with [[https://en.wikipedia.org/wiki/Dark_fibre|dark fiber]] or twisted pair copper lines
+* Can be used with [dark fiber](https://en.wikipedia.org/wiki/Dark_fibre) or twisted pair copper lines
 * Training platform for crypto agility, onboard your implementation and train on platform threats
-* User interface with [[https://lvgl.io/|LVGL]] on top of framebuffer
-* Rekeying and configuration over separate [[https://en.wikipedia.org/wiki/IEEE_802.1AE|macsec]] LAN segment
+* User interface with [LVGL](https://lvgl.io/) on top of framebuffer
+* Rekeying and configuration over separate [macsec](https://en.wikipedia.org/wiki/IEEE_802.1AE) LAN segment
 * Utilizes several AI generated components
 * Delivers maker skills approach to your [strategy](https://resilience-theatre.com/wiki/doku.php?id=link:introduction)
 
 ## Bill of materials, Rasbperry Pi
 
-* [[https://www.raspberrypi.com/products/raspberry-pi-4-model-b/|Raspberry Pi4]]
-* [[https://shop.pimoroni.com/products/hyperpixel-4?variant=12569485443155|Hyperpixel 4.0 display]]
-* [[https://shop.nitrokey.com/shop/nk3an-nitrokey-3a-nfc-147|Nitrokey 3A NFC]]
+* [Raspberry Pi4](https://www.raspberrypi.com/products/raspberry-pi-4-model-b/)
+* [Hyperpixel 4.0 display](https://shop.pimoroni.com/products/hyperpixel-4?variant=12569485443155)
+* [Nitrokey 3A NFC](https://shop.nitrokey.com/shop/nk3an-nitrokey-3a-nfc-147)
 * USB headset
-* [[https://www.printables.com/model/689580-raspberry-pi-4-hyperpixel-40-standing-portrait-cas|Case 1]]
-* [[https://www.printables.com/model/157791-hyperpixel-40-pi-4-case|Case 2]]
+* [Case 1](https://www.printables.com/model/689580-raspberry-pi-4-hyperpixel-40-standing-portrait-cas)
+* [Case 2](https://www.printables.com/model/157791-hyperpixel-40-pi-4-case)
 
 ## Bill of materials, Rockchip
 
-* [[https://www.vividunit.com|Vivid unit]]
+* [Vivid unit](https://www.vividunit.com)
 
 ## Bill of materials, RISC-V
 
-* [[https://www.waveshare.com/wiki/VisionFive2|VisionFive2]]
+* [VisionFive2](https://www.waveshare.com/wiki/VisionFive2)
 
 ## Operation modes
 
 * Full duplex voice, codec2 with XOR secrecy
 * Push-To-Talk with 'word of day' symmetric cipher (XChaCha20) using OPUS
-* Push-To-Talk SATCOM using [[https://www.nrl.navy.mil/Our-Work/Areas-of-Research/Information-Technology/NCS/NORM/|NACK-Oriented Reliable Multicast (NORM, RFC 5740) protocol]] 
+* Push-To-Talk SATCOM using [NACK-Oriented Reliable Multicast (NORM, RFC 5740) protocol](https://www.nrl.navy.mil/Our-Work/Areas-of-Research/Information-Technology/NCS/NORM/) 
 
 ## Networking
 
 * NAT circumvention with VPS as gateway
-* Wireguard inside [[https://github.com/erebe/wstunnel|wstunnel]]
+* Wireguard inside [wstunnel](https://github.com/erebe/wstunnel)
 * XOR inside wireguard (on full duplex mode)
 
 ## Data at rest security
 
-* LUKS2 encrypted data partition (or media) using [[https://shop.nitrokey.com/shop/nk3an-nitrokey-3a-nfc-147|FIDO2 token]]
+* LUKS2 encrypted data partition (or media) using [FIDO2 token](https://shop.nitrokey.com/shop/nk3an-nitrokey-3a-nfc-147)
 
 ## Prepare buildroot
 
