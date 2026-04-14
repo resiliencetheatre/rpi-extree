@@ -44,7 +44,7 @@ Link is open source resilience demonstration for communication with confidence.
 ## Networking
 
 * NAT circumvention with VPS as gateway
-* Wireguard inside [[https://github.com/erebe/wstunnel|wstunnel]
+* Wireguard inside [[https://github.com/erebe/wstunnel|wstunnel]]
 * XOR inside wireguard (on full duplex mode)
 
 ## Data at rest security
