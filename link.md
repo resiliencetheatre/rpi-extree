@@ -49,8 +49,7 @@ Link is open source resilience demonstration for communication with confidence.
 
 ## Data at rest security
 
-* LUKS2 encrypted data partition or media
-* LUKS2 with [[https://shop.nitrokey.com/shop/nk3an-nitrokey-3a-nfc-147|FIDO2 token]]
+* LUKS2 encrypted data partition (or media) using [[https://shop.nitrokey.com/shop/nk3an-nitrokey-3a-nfc-147|FIDO2 token]]
 
 ## Prepare buildroot
 
