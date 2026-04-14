@@ -44,7 +44,7 @@ Link is open source resilience demonstration for communication with confidence.
 
 * Full duplex voice, codec2 with XOR secrecy
 * Push-To-Talk with 'word of day' symmetric cipher (XChaCha20) using OPUS
-* Push-To-Talk SATCOM using [NACK-Oriented Reliable Multicast (NORM, RFC 5740) protocol](https://www.nrl.navy.mil/Our-Work/Areas-of-Research/Information-Technology/NCS/NORM/) 
+* Push-To-Talk SATCOM using RFC 5740, [NACK-Oriented Reliable Multicast (NORM) protocol](https://www.nrl.navy.mil/Our-Work/Areas-of-Research/Information-Technology/NCS/NORM/) 
 
 ## Networking
 
