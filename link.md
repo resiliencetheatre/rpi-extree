@@ -21,7 +21,7 @@ Link is open source resilience demonstration for communication with confidence.
 ## Bill of materials, Rasbperry Pi
 
 * [[https://www.raspberrypi.com/products/raspberry-pi-4-model-b/|Raspberry Pi4]]
-* [[https://shop.pimoroni.com/products/hyperpixel-4?variant=12569485443155|Hyperpixel 4.0 display]
+* [[https://shop.pimoroni.com/products/hyperpixel-4?variant=12569485443155|Hyperpixel 4.0 display]]
 * [[https://shop.nitrokey.com/shop/nk3an-nitrokey-3a-nfc-147|Nitrokey 3A NFC]]
 * USB headset
 * [[https://www.printables.com/model/689580-raspberry-pi-4-hyperpixel-40-standing-portrait-cas|Case 1]]
