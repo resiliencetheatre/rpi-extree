@@ -20,6 +20,7 @@ Link is open source resilience demonstration for communication with confidence.
 * Training platform for crypto agility, onboard your implementation and train on platform threats
 * User interface with [[https://lvgl.io/|LVGL]] on top of framebuffer
 * Rekeying and configuration over separate [[https://en.wikipedia.org/wiki/IEEE_802.1AE|macsec]] LAN segment
+* Utilizes several AI generated components
 
 ## Bill of materials, Rasbperry Pi
 
