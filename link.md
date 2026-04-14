@@ -15,7 +15,25 @@ Link is open source resilience demonstration for communication with confidence.
 * Speech compression with OPUS and CODEC2, depending the mode
 * Capable to deliver two way speech communication via GEO satellite communication systems
 * Can be used with [[https://en.wikipedia.org/wiki/Dark_fibre|dark fiber]] or twisted pair copper lines
+* Training platform for crypto agility, onboard your implementation and train on platform threats
+* User interface with [[https://lvgl.io/|LVGL]] on top of framebuffer
 
+## Bill of materials, Rasbperry Pi
+
+* [[https://www.raspberrypi.com/products/raspberry-pi-4-model-b/|Raspberry Pi4]]
+* [[https://shop.pimoroni.com/products/hyperpixel-4?variant=12569485443155|Hyperpixel 4.0 display]
+* [[https://shop.nitrokey.com/shop/nk3an-nitrokey-3a-nfc-147|Nitrokey 3A NFC]]
+* USB headset
+* [[https://www.printables.com/model/689580-raspberry-pi-4-hyperpixel-40-standing-portrait-cas|Case 1]]
+* [[https://www.printables.com/model/157791-hyperpixel-40-pi-4-case|Case 2]]
+
+## Bill of materials, Rockchip
+
+* [[https://www.vividunit.com|Vivid unit]]
+
+## Bill of materials, RISC-V
+
+* [[https://www.waveshare.com/wiki/VisionFive2|VisionFive2]]
 
 ## Prepare buildroot
 
