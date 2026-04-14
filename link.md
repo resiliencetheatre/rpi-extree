@@ -2,6 +2,8 @@
 
 Link is open source resilience demonstration for communication with confidence. 
 
+![Intro picture](images/title-image.png "Introduction")
+
 ## Features
 
 * Suitable for small scale embedded SoC's (broadcom, rockchip, risc-v)
