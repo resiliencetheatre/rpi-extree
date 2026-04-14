@@ -42,6 +42,8 @@ Link is open source resilience demonstration for communication with confidence.
 
 ## Operation modes
 
+![Intro picture](images/operation-modes.png "operation modes")
+
 * Full duplex voice, codec2 with XOR secrecy
 * Push-To-Talk with 'word of day' symmetric cipher (XChaCha20) using OPUS
 * Push-To-Talk SATCOM using RFC 5740, [NACK-Oriented Reliable Multicast (NORM) protocol](https://www.nrl.navy.mil/Our-Work/Areas-of-Research/Information-Technology/NCS/NORM/) 
