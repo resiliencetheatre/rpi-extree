@@ -35,6 +35,23 @@ Link is open source resilience demonstration for communication with confidence.
 
 * [[https://www.waveshare.com/wiki/VisionFive2|VisionFive2]]
 
+## Operation modes
+
+* Full duplex voice, codec2 with XOR secrecy
+* Push-To-Talk with 'word of day' symmetric cipher (XChaCha20) using OPUS
+* Push-To-Talk SATCOM using [[https://www.nrl.navy.mil/Our-Work/Areas-of-Research/Information-Technology/NCS/NORM/|NACK-Oriented Reliable Multicast (NORM, RFC 5740) protocol]] 
+
+## Networking
+
+* NAT circumvention with VPS as gateway
+* Wireguard inside [[https://github.com/erebe/wstunnel|wstunnel]
+* XOR inside wireguard (on full duplex mode)
+
+## Data at rest security
+
+* LUKS2 encrypted data partition or media
+* LUKS2 with [[https://shop.nitrokey.com/shop/nk3an-nitrokey-3a-nfc-147|FIDO2 token]]
+
 ## Prepare buildroot
 
 Clone buildroot and rpi-extree repositories:
