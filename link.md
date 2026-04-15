@@ -34,6 +34,7 @@ and [dogma avoidance](https://www.thesalesblog.com/blog/how-to-avoid-having-your
 * USB headset
 * [Case 1](https://www.printables.com/model/689580-raspberry-pi-4-hyperpixel-40-standing-portrait-cas)
 * [Case 2](https://www.printables.com/model/157791-hyperpixel-40-pi-4-case)
+* [PiSugar](https://www.pisugar.com/) UPS (optional)
 
 ## Bill of materials, Rockchip
 
