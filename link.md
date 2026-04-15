@@ -2,7 +2,7 @@
 
 Link is open source resilience demonstration for communication with confidence. 
 
-![Intro picture](images/link-units.png "link units")
+![Intro picture](images/title-image.png "Introduction")
 
 It's main purpose is to serve as training project for [critical thinking](https://resilience-theatre.com/wiki/doku.php?id=articles:cellular#mobiles)
 and [dogma avoidance](https://www.thesalesblog.com/blog/how-to-avoid-having-your-beliefs-become-dogma). Project is based on knowledge, experience and mistakes.
@@ -200,6 +200,6 @@ Optional: After fido2 is enrolled, you may remove luks2 passphrase from luks hea
 
 TBC
 
-# Images
 
-![Intro picture](images/title-image.png "Introduction")
+
+
