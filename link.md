@@ -2,6 +2,8 @@
 
 Link is open source resilience demonstration for communication with confidence. 
 
+![Intro picture](images/link-units.png "link units")
+
 ![Intro picture](images/title-image.png "Introduction")
 
 It's main purpose is to serve as training project for [critical thinking](https://resilience-theatre.com/wiki/doku.php?id=articles:cellular#mobiles)
