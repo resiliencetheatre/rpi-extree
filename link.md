@@ -99,4 +99,96 @@ this you are able to SSH as root to unit and take following steps.
 
 # Configure
 
-[TBC]
+Boot unit and login with SSH (keep FIDO2 token unplugged) and Start by creating 
+encrypted partition to your micro sd card:
+
+```
+buildroot:~# create-partition.sh 
+[create-partition] Starting on /dev/mmcblk0
+[create-partition] Closing old mappings and unmounting old filesystems if present
+[create-partition] Partition 2 ends at sector 2162688
+[create-partition] Creating partition 3 from 2164736s to 100%
+[create-partition] Partition device is present: /dev/mmcblk0p3
+[create-partition] Zeroing first 8 MiB of /dev/mmcblk0p3
+[create-partition] About to DESTROY all data on /dev/mmcblk0p3 and create a new LUKS2 container
+
+WARNING!
+========
+This will overwrite data on /dev/mmcblk0p3 irrevocably.
+
+Are you sure? (Type 'yes' in capital letters): YES
+Enter passphrase for /dev/mmcblk0p3: 
+Verify passphrase: 
+[create-partition] Opening LUKS container as internaldrive
+Enter passphrase for /dev/mmcblk0p3: 
+[create-partition] Zeroing first 8 MiB of /dev/mapper/internaldrive
+[create-partition] Creating ext4 filesystem with label internaldrive on /dev/mapper/internaldrive
+mke2fs 1.47.4 (6-Mar-2025)
+Creating filesystem with 14996224 4k blocks and 3751936 inodes
+Filesystem UUID: 0f49f271-bab1-48ad-9821-24fafc45fdd1
+Superblock backups stored on blocks: 
+	32768, 98304, 163840, 229376, 294912, 819200, 884736, 1605632, 2654208, 
+	4096000, 7962624, 11239424
+
+Allocating group tables: done                            
+Writing inode tables: done                            
+Creating journal (65536 blocks): done
+Writing superblocks and filesystem accounting information: done   
+
+[create-partition] Final LUKS status
+/dev/mapper/internaldrive is active.
+  type:    LUKS2
+  cipher:  aes-xts-plain64
+  keysize: 512 [bits]
+  key location: keyring
+  device:  /dev/mmcblk0p3
+  sector size:  512 [bytes]
+  offset:  32768 [512-byte units] (16777216 [bytes])
+  size:    119969792 [512-byte units] (61424533504 [bytes])
+  mode:    read/write
+[create-partition] Final partition table
+Model: SD SD64G (sd/mmc)
+Disk /dev/mmcblk0: 122167296s
+Sector size (logical/physical): 512B/512B
+Partition Table: msdos
+Disk Flags: 
+
+Number  Start     End         Size        Type     File system  Flags
+ 1      1s        65536s      65536s      primary  fat16        boot, lba
+ 2      65537s    2162688s    2097152s    primary  ext4
+ 3      2164736s  122167295s  120002560s  primary
+
+[create-partition] Done
+[create-partition] Encrypted device: /dev/mmcblk0p3
+[create-partition] Mapped device:    /dev/mapper/internaldrive
+buildroot:~#
+```
+
+Note down password you entered. Then reboot unit and keep fido2 token unplugged.
+
+While keeping fido2 token unplugged, enroll fido with script:
+
+```
+link:~# enroll-fido2.sh 
+[enroll-fido2] Starting FIDO2 enrollment for /dev/mmcblk0p3
+[enroll-fido2] Temporarily disabling udev rule /etc/udev/rules.d/99-nitrokey-luks.rules
+
+Insert your FIDO2 token now.
+When it is inserted and ready, press Enter to continue.
+
+[enroll-fido2] Enrolling FIDO2 token to /dev/mmcblk0p3
+🔐 Please enter current passphrase for disk /dev/mmcblk0p3: ••••••                  
+Initializing FIDO2 credential on security token.
+👆 (Hint: This might require confirmation of user presence on security token.)
+Generating secret key on FIDO2 security token.
+👆 In order to allow secret key generation, please confirm presence on security token.
+New FIDO2 token enrolled as key slot 1.
+[enroll-fido2] FIDO2 enrollment completed successfully
+[enroll-fido2] Restoring udev rule /etc/udev/rules.d/99-nitrokey-luks.rules
+[enroll-fido2] Done
+link:~#
+```
+
+Optional: After fido2 enrolled, you may remove luks2 passphrase from luks headers.
+
+
