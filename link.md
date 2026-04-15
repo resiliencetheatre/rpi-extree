@@ -97,9 +97,9 @@ After card creation is completed, re-insert card and mount rootfs partition
 so that you could copy your ssh key to `/root/.ssh/authorized_keys`. With
 this you are able to SSH as root to unit and take following steps.
 
-# Configure
+# Configuration
 
-Boot unit and login with SSH (keep FIDO2 token unplugged) and Start by creating 
+Boot unit and login with SSH (keep FIDO2 token unplugged) and start by creating 
 encrypted partition to your micro sd card:
 
 ```
@@ -164,9 +164,9 @@ Number  Start     End         Size        Type     File system  Flags
 buildroot:~#
 ```
 
-Note down password you entered. Then reboot unit and keep fido2 token unplugged.
+Note down password you entered. Keep fido2 token unplugged and reboot unit.
 
-While keeping fido2 token unplugged, enroll fido with script:
+While keeping fido2 token unplugged, enroll fido2 token with script:
 
 ```
 link:~# enroll-fido2.sh 
@@ -189,6 +189,12 @@ New FIDO2 token enrolled as key slot 1.
 link:~#
 ```
 
-Optional: After fido2 enrolled, you may remove luks2 passphrase from luks headers.
+After fido2 token is enrolled, reboot by keeping fido2 token disconnected. Follow
+instructions on screen after boot and insert fido2 token. After fido2 token is detected,
+touch presence verification on token as instructed and while led on token is flashing.
 
+Optional: After fido2 is enrolled, you may remove luks2 passphrase from luks headers.
 
+## Connection configuration 
+
+TBC
