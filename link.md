@@ -26,6 +26,13 @@ and [dogma avoidance](https://www.thesalesblog.com/blog/how-to-avoid-having-your
 * Utilizes several AI generated components
 * Delivers maker skills approach to your [strategy](https://resilience-theatre.com/wiki/doku.php?id=link:introduction)
 
+## Missing and non completed features
+
+- [ ] Selection of communication party
+- [ ] Messaging 
+- [ ] Wifi network scan and attach
+- [ ] Gateway selection
+
 ## Bill of materials, Rasbperry Pi
 
 * [Raspberry Pi4](https://www.raspberrypi.com/products/raspberry-pi-4-model-b/)
