@@ -321,7 +321,12 @@ image contains `boot` and `rootfs` partitions. Image contains no package manager
 specific tooling for updates and modifications.
 
 Implementation is based on [unix philosophy](https://en.wikipedia.org/wiki/Unix_philosophy) and relies
-heavily to systemd functionality and services.
+heavily to systemd functionality and services. These services are activated based on mode selected (PTT, Full Duplex or PTT SATCOM). 
+
+Connection configurations and OTP key material is stored on LUKS2 protected partition, so that connection and OTP usage is only permitted after
+succesful LUKS2 open and `/mnt/internaldrive` mount. Communication is deferred before successful LUKS2 open with FIDO2 token.
+
+
 
 ![functionality](images/link-operation-modes.excalidraw.png "functional diagram")
 
