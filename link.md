@@ -201,7 +201,7 @@ Optional: After fido2 is enrolled, you may remove luks2 passphrase from luks hea
 NOTE: THIS SECTION IS WORK IN PROGRESS
 
 Bellow is configuration extract from `10.0.0.6/24` unit. It communicates to another end
-configured as `10.0.0.5/24`. Mountpoint /mnt/internaldrive is LUKS2 encrypted partition.
+configured as `10.0.0.5/24`. Mountpoint `/mnt/internaldrive` is LUKS2 encrypted partition.
 
 LVGL user interface (lvgl-com) ini file:
 
@@ -293,3 +293,15 @@ key material for udpproxy and counter files:
 	/mnt/internaldrive/out.key
 
 Let it sink.
+
+# Functionality
+
+Link is implemented as embedded Linux image which is built using buildroot. Implementation
+is not based on any Linux distribution and all components are statically built and deployed.
+
+Implementation is based on [unis philosophy](https://en.wikipedia.org/wiki/Unix_philosophy) and relies
+heavily to systemd functionality and services.
+
+![functionality](images/link-operation-modes.excalidraw.png "functional diagram")
+
+NOTE: This is WiP section
