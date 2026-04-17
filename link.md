@@ -33,6 +33,10 @@ and [dogma avoidance](https://www.thesalesblog.com/blog/how-to-avoid-having-your
 - [ ] Wifi network scan and attach
 - [ ] Gateway selection
 
+## Out of scope features
+
+- [X] TRNG provisioning environment
+
 ## Bill of materials, Rasbperry Pi
 
 * [Raspberry Pi4](https://www.raspberrypi.com/products/raspberry-pi-4-model-b/)
