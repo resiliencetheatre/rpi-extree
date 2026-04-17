@@ -13,7 +13,7 @@ and [dogma avoidance](https://www.thesalesblog.com/blog/how-to-avoid-having-your
 * Full source code available for on-prem building and modifications
 * Buildroot supported [CycloneDX SBOM](https://buildroot.org/downloads/manual/manual.html#_generating_cyclonedx_sbom)
 * Fully controlled server entity for connectivity between NAT'ed entities
-* Server entity does not store communication content or presist data
+* Server entity does not store communication content or persist data
 * Functionality is fully ephemeral and point-to-point
 * Three operating modes: Push-To-Talk (PTT), Full Duplex voice and SATCOM Push-To-Talk
 * Three encryption examples: plain text, symmetric (XChaCha20) and logical XOR
