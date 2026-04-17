@@ -40,6 +40,8 @@ and [dogma avoidance](https://www.thesalesblog.com/blog/how-to-avoid-having-your
 
 ## Example implementations
 
+Pictures of devices where Link is built and tested:
+
 ![Devices](images/link-units.png "implementations")
 
 ## Bill of materials, Rasbperry Pi
