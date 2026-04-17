@@ -315,9 +315,12 @@ Let it sink.
 # Functionality
 
 Link is implemented as embedded Linux image which is built using buildroot. Implementation
-is not based on any Linux distribution and all components are statically built and deployed.
+is not based on any Linux distribution and all components are statically built and deployed. Typically
+this means that build system produces bootable `sdcard.img` file under `output/images/` and that
+image contains `boot` and `rootfs` partitions. Image contains no package managers or other distro
+specific tooling for updates and modifications.
 
-Implementation is based on [unis philosophy](https://en.wikipedia.org/wiki/Unix_philosophy) and relies
+Implementation is based on [unix philosophy](https://en.wikipedia.org/wiki/Unix_philosophy) and relies
 heavily to systemd functionality and services.
 
 ![functionality](images/link-operation-modes.excalidraw.png "functional diagram")
