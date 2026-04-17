@@ -196,10 +196,100 @@ touch presence verification on token as instructed and while led on token is fla
 
 Optional: After fido2 is enrolled, you may remove luks2 passphrase from luks headers.
 
-## Connection configuration 
+## Configuration 
 
-TBC
+NOTE: THIS SECTION IS WORK IN PROGRESS
 
+Bellow is configuration extract from `10.0.0.6/24` unit. It communicates to another end
+configured as `10.0.0.5/24`. Mountpoint /mnt/internaldrive is LUKS2 encrypted partition.
 
+LVGL user interface (lvgl-com) ini file:
 
+	# /opt/lvgl-com/lvgl.ini 
+	[lvgl]
+	ip_address=
+	word_of_day=oldsecret
+	backlight_timeout=0
+	backlight_wakeup=0
+	ptt_mode=3
+	ptt_word_of_day=cojot
+	gateway=1
 
+Ini file for macsec key exchange daemon:
+
+	# /opt/macpipe/macpipe.ini 
+	[settings]
+	my_address=[MACSEC_ADDRESS]/24
+	my_interface=end0
+	shared_secret=[SHARED_SECRET]
+	
+Wireguard configuration for systemd-networkd daemon:
+	
+	# /mnt/internaldrive/connection/wg0.netdev
+	[NetDev]
+	Name=wg0
+	Kind=wireguard
+	Description=WireGuard tunnel wg0
+	[WireGuard]
+	PrivateKey=[PRIVATE_KEY]
+	[WireGuardPeer]
+	PublicKey=[PUBLIC_KEY]
+	PresharedKey=[PRESHARED_KEY]
+	AllowedIPs=10.0.0.1/32, 0.0.0.0/0
+	Endpoint=127.0.0.1:51871
+	PersistentKeepalive=30
+
+	# /mnt/internaldrive/connection/wg0.network
+	[Match]
+	Name=wg0
+	[Link]
+	MTUBytes=1200
+	[Network]
+	Address=10.0.0.6/24
+
+wstunnel configuration values for wireguard encapsulation:
+
+	# /mnt/internaldrive/connection/wstunnel.env
+	WSTUNNEL_PATH=[HTTP_UPGRADE_PATH_PREFIX]
+	WSTUNNEL_LISTEN=udp://51871:127.0.0.1:51871?timeout_sec=0
+	WSTUNNEL_URL=wss://[SERVER_IP]:[SERVER_PORT]
+
+norm protocol endpoints:
+
+	# /opt/c2ptt/normhosts.env 
+	NORM_LOCAL=10.0.0.6
+	NORM_REMOTE=10.0.0.5
+
+udpproxy (inbound & outbound) configuration:
+
+	# /opt/udpproxy/proxy-in.ini
+	[proxy]
+	incoming_address=10.0.0.6
+	incoming_port=6001
+	outgoing_address=127.0.0.1
+	outgoing_port=5002
+	outbound_key=/mnt/internaldrive/out.key
+	inbound_key=/mnt/internaldrive/in.key
+	outbound_counter_file=/mnt/internaldrive/out.count
+	inbound_counter_file=/mnt/internaldrive/in.count
+
+	# /opt/udpproxy/proxy-out.ini
+	[proxy]
+	incoming_address=127.0.0.1
+	incoming_port=5001
+	outgoing_address=10.0.0.5
+	outgoing_port=6001
+	outbound_key=/mnt/internaldrive/out.key
+	inbound_key=/mnt/internaldrive/in.key
+	outbound_counter_file=/mnt/internaldrive/out.count
+	inbound_counter_file=/mnt/internaldrive/in.count
+
+key material for udpproxy and counter files:
+
+	# OTP keys and counter files
+	/mnt/internaldrive/in.count
+	/mnt/internaldrive/in.key
+	/mnt/internaldrive/out.count
+	/mnt/internaldrive/out.key
+
+Let it sink.
