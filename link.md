@@ -37,6 +37,11 @@ and [dogma avoidance](https://www.thesalesblog.com/blog/how-to-avoid-having-your
 
 - [X] TRNG provisioning environment
 
+
+## Example implementations
+
+![Devices](images/link-units.png "implementations")
+
 ## Bill of materials, Rasbperry Pi
 
 * [Raspberry Pi4](https://www.raspberrypi.com/products/raspberry-pi-4-model-b/)
