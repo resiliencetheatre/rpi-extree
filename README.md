@@ -79,7 +79,8 @@ git log
 utils/update_defconfig_commit.sh 4421ed134f9f03351a4a26293a29f009b8fff725
 ```
 
-Remember to add kernel hash into `linux/linux.hash` under buildroot directory.
+Remember to add kernel hash into `$BR2_EXTERNAL/patches/linux/custom/linux.hash`
+and `$BR2_EXTERNAL/patches/linux-headers/custom/linux-headers.hash`
 
 ```
 # Get hash of downloaded kernel 
