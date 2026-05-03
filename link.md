@@ -109,7 +109,7 @@ You now have an image with systemd FIDO2 token support enabled.
 
 After the card has been written, reinsert it and mount the rootfs partition so that you can copy your SSH key to `/root/.ssh/authorized_keys`. This allows you to log in as root over SSH and continue with the following steps.
 
-# Configuration
+# Unit preparation
 
 Boot the unit and log in over SSH with the FIDO2 token unplugged. Start by creating an encrypted partition on the microSD card:
 
@@ -204,9 +204,17 @@ After the FIDO2 token has been enrolled, reboot the unit while keeping the token
 
 Optional: After FIDO2 enrollment, you may remove the LUKS2 passphrase from the LUKS header.
 
-## Configuration
+## Provisioning
 
-**Note:** This section is still a work in progress.
+Provisioning two Link unit for communication happens with two sub projects:
+
+ - [wg-init-link](https://codeberg.org/resiliencetheatre/wg-init-link)
+ - [linkprovision](https://codeberg.org/resiliencetheatre/linkprovision)
+
+First, wg-init-link can be used to create wireguard setup for your VPS and link devices
+and second linkprovision allows you to create ini/env files and development OTP key material.
+
+### Reference files
 
 Below is a configuration extract from the `10.0.0.6/24` unit. It communicates with another endpoint configured as `10.0.0.5/24`. The mount point `/mnt/internaldrive` is the LUKS2-encrypted partition.
 
