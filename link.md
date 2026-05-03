@@ -8,28 +8,28 @@ Its main purpose is to serve as a training project for [critical thinking](https
 
 ## Features
 
-* Suitable for small-scale embedded SoCs (Broadcom, Rockchip, RISC-V)
+* Suitable for small-scale embedded SoCs, including Broadcom, Rockchip, and RISC-V platforms
 * Full source code available for on-premises builds and modifications
-* Buildroot-supported [CycloneDX SBOM](https://buildroot.org/downloads/manual/manual.html#_generating_cyclonedx_sbom)
+* Buildroot-supported [CycloneDX SBOM](https://buildroot.org/downloads/manual/manual.html#_generating_cyclonedx_sbom); see the `sbom` directory
 * Fully controlled server entity for connectivity between NATed endpoints
 * Server entity does not store communication content or persist data
-* Functionality is fully ephemeral and point-to-point
+* Fully ephemeral and point-to-point operation
 * Three operating modes: Push-To-Talk (PTT), full-duplex voice, and SATCOM Push-To-Talk
-* Three encryption examples: plaintext, symmetric encryption (XChaCha20), and logical XOR
-* Speech compression with Opus and Codec2, depending on the mode
+* Three encryption examples: plaintext, symmetric encryption with XChaCha20, and logical XOR
+* Speech compression with Opus and Codec2, depending on the selected mode
 * Capable of delivering two-way speech communication via GEO satellite communication systems
 * Can be used with [dark fiber](https://en.wikipedia.org/wiki/Dark_fibre) or twisted-pair copper lines
 * Training platform for crypto agility: onboard your own implementation and train against platform threats
-* User interface with [LVGL](https://lvgl.io/) on top of the framebuffer
+* User interface built with [LVGL](https://lvgl.io/) on top of the framebuffer
 * Rekeying and configuration over a separate [MACsec](https://en.wikipedia.org/wiki/IEEE_802.1AE) LAN segment
-* Utilizes several AI-generated components
+* Uses several AI-generated components
 * Delivers a maker-skills approach to your [strategy](https://resilience-theatre.com/wiki/doku.php?id=link:introduction)
 
 ## Missing and incomplete features
 
 - [ ] Communication party selection
 - [ ] Messaging
-- [ ] Wi-Fi network scan and attach
+- [ ] Wi-Fi network scanning and attachment
 - [ ] Gateway selection
 
 ## Out-of-scope features
@@ -50,7 +50,7 @@ Pictures of devices on which Link has been built and tested:
 * USB headset
 * [Case 1](https://www.printables.com/model/689580-raspberry-pi-4-hyperpixel-40-standing-portrait-cas)
 * [Case 2](https://www.printables.com/model/157791-hyperpixel-40-pi-4-case)
-* [PiSugar](https://www.pisugar.com/) UPS (optional)
+* [PiSugar](https://www.pisugar.com/) UPS, optional
 
 ## Bill of materials: Rockchip
 
@@ -65,8 +65,8 @@ Pictures of devices on which Link has been built and tested:
 ![Intro picture](images/operation-modes.png "Operating modes")
 
 * Full-duplex voice with Codec2 and XOR-based secrecy
-* Push-To-Talk with a "word of the day" symmetric cipher (XChaCha20) using Opus
-* Push-To-Talk SATCOM using RFC 5740 and the [NACK-Oriented Reliable Multicast (NORM) protocol](https://www.nrl.navy.mil/Our-Work/Areas-of-Research/Information-Technology/NCS/NORM/)
+* Push-To-Talk with a “word of the day” symmetric cipher using XChaCha20 and Opus
+* SATCOM Push-To-Talk using RFC 5740 and the [NACK-Oriented Reliable Multicast (NORM) protocol](https://www.nrl.navy.mil/Our-Work/Areas-of-Research/Information-Technology/NCS/NORM/)
 
 ## Networking
 
@@ -76,40 +76,58 @@ Pictures of devices on which Link has been built and tested:
 
 ## Data-at-rest security
 
-* LUKS2-encrypted data partition (or media) using a [FIDO2 token](https://shop.nitrokey.com/shop/nk3an-nitrokey-3a-nfc-147)
+* LUKS2-encrypted data partition or media using a [FIDO2 token](https://shop.nitrokey.com/shop/nk3an-nitrokey-3a-nfc-147)
 
 ## Prepare Buildroot
 
 Clone the Buildroot and `rpi-extree` repositories:
 
-    git clone https://gitlab.com/buildroot.org/buildroot.git
-    git clone https://codeberg.org/resiliencetheatre/rpi-extree.git
+```sh
+git clone https://gitlab.com/buildroot.org/buildroot.git
+git clone https://codeberg.org/resiliencetheatre/rpi-extree.git
+```
 
 ## Build
 
 Build the Link image:
 
-    cd buildroot
-    export BR2_EXTERNAL=[PATH]/rpi-extree
-    make clean
-    make raspberrypi4_64_com_hyperpixel_defconfig
-    make
+```sh
+cd buildroot
+export BR2_EXTERNAL=[PATH]/rpi-extree
+make clean
+make raspberrypi4_64_com_hyperpixel_defconfig
+make
+```
 
-This first step builds the image with `libfido2` enabled. After the initial build is completed, you need to change `SYSTEMD_CONF_OPTS` in `package/systemd/systemd.mk` to enable FIDO2 support in systemd. Change `-Dlibfido2=disabled` to `-Dlibfido2=enabled`, then rebuild systemd and the full image.
+This first step builds the image with `libfido2` enabled. After the initial build is complete, change `SYSTEMD_CONF_OPTS` in `package/systemd/systemd.mk` to enable FIDO2 support in systemd. Change `-Dlibfido2=disabled` to `-Dlibfido2=enabled`, then rebuild systemd and the full image:
 
-    make systemd-dirclean
-    make systemd-rebuild
-    make
+```sh
+make systemd-dirclean
+make systemd-rebuild
+make
+```
 
 You now have an image with systemd FIDO2 token support enabled.
 
 ## Create the microSD card
 
-    sudo dd if=output/images/sdcard.img of=[TARGET_DEVICE] status=progress
+```sh
+sudo dd if=output/images/sdcard.img of=[TARGET_DEVICE] status=progress
+```
 
 After the card has been written, reinsert it and mount the rootfs partition so that you can copy your SSH key to `/root/.ssh/authorized_keys`. This allows you to log in as root over SSH and continue with the following steps.
 
-# Unit preparation
+# Unit provisioning
+
+![Provisioning picture](images/link-provisoning.excalidraw.png "Provisioning")
+
+Link units are provisioned as pairs because communication party selection is not yet implemented. Units always operate as point-to-point pairs.
+
+Unit provisioning happens in several steps. First, a LUKS2 partition is created. Second, a FIDO2 token is enrolled so that it can unlock that partition. Finally, unit configuration is onboarded for connectivity, including `wstunnel`, WireGuard, VPS settings, and OTP key material.
+
+The provided provisioning scripts use an insecure PRNG. For real use cases, configure your TRNG environment in the provisioning scripts.
+
+## Configure the LUKS2 partition
 
 Boot the unit and log in over SSH with the FIDO2 token unplugged. Start by creating an encrypted partition on the microSD card:
 
@@ -200,19 +218,18 @@ New FIDO2 token enrolled as key slot 1.
 link:~#
 ```
 
-After the FIDO2 token has been enrolled, reboot the unit while keeping the token disconnected. Follow the instructions on screen after boot, then insert the FIDO2 token. Once the token is detected, perform the presence verification by touching the token while its LED is flashing.
+After the FIDO2 token has been enrolled, reboot the unit while keeping the token disconnected. Follow the on-screen instructions after boot, then insert the FIDO2 token. Once the token is detected, perform presence verification by touching the token while its LED is flashing.
 
 Optional: After FIDO2 enrollment, you may remove the LUKS2 passphrase from the LUKS header.
 
-## Provisioning
+## Provisioning a unit
 
-Provisioning two Link unit for communication happens with two sub projects:
+Provisioning two Link units for communication uses two subprojects:
 
- - [wg-init-link](https://codeberg.org/resiliencetheatre/wg-init-link)
- - [linkprovision](https://codeberg.org/resiliencetheatre/linkprovision)
+* [wg-init-link](https://codeberg.org/resiliencetheatre/wg-init-link)
+* [linkprovision](https://codeberg.org/resiliencetheatre/linkprovision)
 
-First, wg-init-link can be used to create wireguard setup for your VPS and link devices
-and second linkprovision allows you to create ini/env files and development OTP key material.
+First, `wg-init-link` creates the WireGuard setup for your VPS and Link devices. Then, `linkprovision` creates the INI and environment files, along with development OTP key material.
 
 ### Reference files
 
@@ -220,103 +237,125 @@ Below is a configuration extract from the `10.0.0.6/24` unit. It communicates wi
 
 LVGL user interface (`lvgl-com`) INI file:
 
-    # /opt/lvgl-com/lvgl.ini 
-    [lvgl]
-    ip_address=
-    word_of_day=oldsecret
-    backlight_timeout=0
-    backlight_wakeup=0
-    ptt_mode=3
-    ptt_word_of_day=cojot
-    gateway=1
+```ini
+# /opt/lvgl-com/lvgl.ini 
+[lvgl]
+ip_address=
+word_of_day=oldsecret
+backlight_timeout=0
+backlight_wakeup=0
+ptt_mode=3
+ptt_word_of_day=cojot
+gateway=1
+```
 
 INI file for the MACsec key exchange daemon:
 
-    # /opt/macpipe/macpipe.ini 
-    [settings]
-    my_address=[MACSEC_ADDRESS]/24
-    my_interface=end0
-    shared_secret=[SHARED_SECRET]
+```ini
+# /opt/macpipe/macpipe.ini 
+[settings]
+my_address=[MACSEC_ADDRESS]/24
+my_interface=end0
+shared_secret=[SHARED_SECRET]
+```
 
-WireGuard configuration for the `systemd-networkd` daemon:
+WireGuard configuration for `systemd-networkd`:
 
-    # /mnt/internaldrive/connection/wg0.netdev
-    [NetDev]
-    Name=wg0
-    Kind=wireguard
-    Description=WireGuard tunnel wg0
-    [WireGuard]
-    PrivateKey=[PRIVATE_KEY]
-    [WireGuardPeer]
-    PublicKey=[PUBLIC_KEY]
-    PresharedKey=[PRESHARED_KEY]
-    AllowedIPs=10.0.0.1/32, 0.0.0.0/0
-    Endpoint=127.0.0.1:51871
-    PersistentKeepalive=30
+```ini
+# /mnt/internaldrive/connection/wg0.netdev
+[NetDev]
+Name=wg0
+Kind=wireguard
+Description=WireGuard tunnel wg0
 
-    # /mnt/internaldrive/connection/wg0.network
-    [Match]
-    Name=wg0
-    [Link]
-    MTUBytes=1200
-    [Network]
-    Address=10.0.0.6/24
+[WireGuard]
+PrivateKey=[PRIVATE_KEY]
+
+[WireGuardPeer]
+PublicKey=[PUBLIC_KEY]
+PresharedKey=[PRESHARED_KEY]
+AllowedIPs=10.0.0.1/32, 0.0.0.0/0
+Endpoint=127.0.0.1:51871
+PersistentKeepalive=30
+```
+
+```ini
+# /mnt/internaldrive/connection/wg0.network
+[Match]
+Name=wg0
+
+[Link]
+MTUBytes=1200
+
+[Network]
+Address=10.0.0.6/24
+```
 
 `wstunnel` configuration values for WireGuard encapsulation:
 
-    # /mnt/internaldrive/connection/wstunnel.env
-    WSTUNNEL_PATH=[HTTP_UPGRADE_PATH_PREFIX]
-    WSTUNNEL_LISTEN=udp://51871:127.0.0.1:51871?timeout_sec=0
-    WSTUNNEL_URL=wss://[SERVER_IP]:[SERVER_PORT]
+```sh
+# /mnt/internaldrive/connection/wstunnel.env
+WSTUNNEL_PATH=[HTTP_UPGRADE_PATH_PREFIX]
+WSTUNNEL_LISTEN=udp://51871:127.0.0.1:51871?timeout_sec=0
+WSTUNNEL_URL=wss://[SERVER_IP]:[SERVER_PORT]
+```
 
 NORM protocol endpoints:
 
-    # /opt/c2ptt/normhosts.env 
-    NORM_LOCAL=10.0.0.6
-    NORM_REMOTE=10.0.0.5
+```sh
+# /opt/c2ptt/normhosts.env 
+NORM_LOCAL=10.0.0.6
+NORM_REMOTE=10.0.0.5
+```
 
 `udpproxy` inbound and outbound configuration:
 
-    # /opt/udpproxy/proxy-in.ini
-    [proxy]
-    incoming_address=10.0.0.6
-    incoming_port=6001
-    outgoing_address=127.0.0.1
-    outgoing_port=5002
-    outbound_key=/mnt/internaldrive/out.key
-    inbound_key=/mnt/internaldrive/in.key
-    outbound_counter_file=/mnt/internaldrive/out.count
-    inbound_counter_file=/mnt/internaldrive/in.count
+```ini
+# /opt/udpproxy/proxy-in.ini
+[proxy]
+incoming_address=10.0.0.6
+incoming_port=6001
+outgoing_address=127.0.0.1
+outgoing_port=5002
+outbound_key=/mnt/internaldrive/out.key
+inbound_key=/mnt/internaldrive/in.key
+outbound_counter_file=/mnt/internaldrive/out.count
+inbound_counter_file=/mnt/internaldrive/in.count
+```
 
-    # /opt/udpproxy/proxy-out.ini
-    [proxy]
-    incoming_address=127.0.0.1
-    incoming_port=5001
-    outgoing_address=10.0.0.5
-    outgoing_port=6001
-    outbound_key=/mnt/internaldrive/out.key
-    inbound_key=/mnt/internaldrive/in.key
-    outbound_counter_file=/mnt/internaldrive/out.count
-    inbound_counter_file=/mnt/internaldrive/in.count
+```ini
+# /opt/udpproxy/proxy-out.ini
+[proxy]
+incoming_address=127.0.0.1
+incoming_port=5001
+outgoing_address=10.0.0.5
+outgoing_port=6001
+outbound_key=/mnt/internaldrive/out.key
+inbound_key=/mnt/internaldrive/in.key
+outbound_counter_file=/mnt/internaldrive/out.count
+inbound_counter_file=/mnt/internaldrive/in.count
+```
 
 Key material for `udpproxy` and counter files:
 
-    # OTP keys and counter files
-    /mnt/internaldrive/in.count
-    /mnt/internaldrive/in.key
-    /mnt/internaldrive/out.count
-    /mnt/internaldrive/out.key
+```text
+# OTP keys and counter files
+/mnt/internaldrive/in.count
+/mnt/internaldrive/in.key
+/mnt/internaldrive/out.count
+/mnt/internaldrive/out.key
+```
 
 Let that sink in.
 
 # Functionality
 
-Link is implemented as an embedded Linux image built with Buildroot. The implementation is not based on any general-purpose Linux distribution; instead, all components are statically built and deployed. Typically, the build system produces a bootable `sdcard.img` file under `output/images/`, and that image contains `boot` and `rootfs` partitions. The image contains no package manager or other distro-specific tooling for updates and modifications.
+Link is implemented as an embedded Linux image built with Buildroot. The implementation is not based on any general-purpose Linux distribution. Instead, all components are statically built and deployed. Typically, the build system produces a bootable `sdcard.img` file under `output/images/`, and that image contains `boot` and `rootfs` partitions. The image contains no package manager or other distribution-specific tooling for updates or modifications.
 
 The implementation follows the [Unix philosophy](https://en.wikipedia.org/wiki/Unix_philosophy) and relies heavily on systemd services and functionality. These services are activated based on the selected mode: Push-To-Talk, full-duplex, or SATCOM Push-To-Talk.
 
 Connection configuration and OTP key material are stored on a LUKS2-protected partition, so connection setup and OTP usage are only permitted after a successful LUKS2 unlock and mounting of `/mnt/internaldrive`. Communication is deferred until the encrypted partition has been opened with a FIDO2 token.
 
-![functionality](images/link-operation-modes.excalidraw.png "Functional diagram")
+![Functionality](images/link-operation-modes.excalidraw.png "Functional diagram")
 
 **Note:** This section is still a work in progress.
