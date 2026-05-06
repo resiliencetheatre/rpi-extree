@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-UDPPTT_VERSION = 9de9317ae39cb1fca954ee139a2f368d953befee
+UDPPTT_VERSION = 14778aca3d7f5afc5828d40f88c559ee22e220ca
 UDPPTT_SITE = https://codeberg.org/resiliencetheatre/udpptt.git
 UDPPTT_SITE_METHOD = git
 UDPPTT_LICENSE = GPL-3.0-or-later
