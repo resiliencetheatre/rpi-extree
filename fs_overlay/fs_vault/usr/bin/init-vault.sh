@@ -6,8 +6,10 @@
 #
 # * Sets hostname to various places (hostapd, dnsmasq, cryptpad)
 # * Sets services to initial state
-# * Creates cryptpad and thelounge users
+# * Creates syncthing user
 # * Creates third partition to microsd for data
+# * Mounts third partition to /opt/data
+# * Creates /opt/data/syncthing owned by syncthing:syncthing
 #
 # * DNS name is equipped as wifi AP name to /etc/hostapd.conf
 # * DNS name is equipped to /etc/dnsmasq.conf and /etc/dnsmasq.hosts
@@ -17,155 +19,177 @@
 #
 # ./init-vault.sh [HOSTNAME]
 #
-#
-# NOTE: No more TLS in vault. It's mainly attribution help and 
-#		does not provide real security against adversaries.
-#
+# NOTE: No more TLS in vault. It's mainly attribution help and
+#       does not provide real security against adversaries.
 #
 
+set -eu
+
+fail() {
+    echo "ERROR: $*" >&2
+    exit 1
+}
+
+need_cmd() {
+    command -v "$1" >/dev/null 2>&1 || fail "Required command not found: $1"
+}
+
+[ "$(id -u)" -eq 0 ] || fail "This script must be run as root"
+
+if [ $# -lt 1 ] || [ -z "${1:-}" ]; then
+    echo "Usage: init-vault.sh [DNS-NAME]"
+    exit 1
+fi
 
 DNS_NAME=$1
 
-if [ -z "$DNS_NAME" ]
-then
-echo "Usage: init-vault.sh [DNS-NAME]"
-exit
-else
 echo "DNS: $DNS_NAME"
-fi
 
+need_cmd sed
+need_cmd rm
+need_cmd mkdir
+need_cmd chown
+need_cmd id
+need_cmd adduser
+need_cmd parted
+need_cmd awk
+need_cmd mkfs.ext4
+need_cmd mount
+need_cmd grep
+need_cmd sync
+need_cmd sleep
 
 #
 # Set wifi AP name
 #
-sed -i "s/^ssid=.*/ssid=${DNS_NAME}/" /etc/hostapd.conf
+#[ -f /etc/hostapd.conf ] || fail "/etc/hostapd.conf not found"
+#sed -i "s/^ssid=.*/ssid=${DNS_NAME}/" /etc/hostapd.conf
 
 #
 # Set /etc/dnsmasq.hosts and /etc/hostname
 #
-echo "10.1.1.1 $DNS_NAME" > /etc/dnsmasq.hosts
-echo $DNS_NAME > /etc/hostname
+# echo "10.1.1.1 $DNS_NAME" > /etc/dnsmasq.hosts
+echo "$DNS_NAME" > /etc/hostname
 
 #
 # Set /etc/dnsmasq.conf
 #
-sed -i "s/^local=.*/local=\/${DNS_NAME}\//" /etc/dnsmasq.conf
+#[ -f /etc/dnsmasq.conf ] || fail "/etc/dnsmasq.conf not found"
+#sed -i "s/^local=.*/local=\/${DNS_NAME}\//" /etc/dnsmasq.conf
 
 #
-# /opt/ircpipe/ircpipe.ini 
+# /opt/ircpipe/ircpipe.ini
 #
-
-sed -i -E "s/^[[:space:]]*user[[:space:]]*=[[:space:]]*.*/user = ${DNS_NAME}/" /opt/ircpipe/ircpipe.ini
-sed -i -E "s/^[[:space:]]*nick[[:space:]]*=[[:space:]]*.*/nick = ${DNS_NAME}/" /opt/ircpipe/ircpipe.ini
-sed -i -E "s/^[[:space:]]*channel[[:space:]]*=[[:space:]]*.*/channel = #edgemap/" /opt/ircpipe/ircpipe.ini
-
-echo "Configured: /opt/ircpipe/ircpipe.ini"
-
-#
-# cryptpad
-#
-cp /opt/cryptpad/config/config.example.js /opt/cryptpad/config/config.js
-sed -i -E "s|^[[:space:]]*httpUnsafeOrigin:[[:space:]]*.*|httpUnsafeOrigin: 'http://${DNS_NAME}:3000',|" /opt/cryptpad/config/config.js
-sed -i -E "s|^[[:space:]]*//[[:space:]]*httpAddress:[[:space:]]*'[^']*',?|httpAddress: '0.0.0.0',|" /opt/cryptpad/config/config.js
-
-echo "Configured: /opt/cryptpad/config/config.js"
-echo "NOTE: Cryptpad is work in progress"
+#[ -f /opt/ircpipe/ircpipe.ini ] || fail "/opt/ircpipe/ircpipe.ini not found"
+#sed -i -E "s/^[[:space:]]*user[[:space:]]*=[[:space:]]*.*/user = ${DNS_NAME}/" /opt/ircpipe/ircpipe.ini
+#sed -i -E "s/^[[:space:]]*nick[[:space:]]*=[[:space:]]*.*/nick = ${DNS_NAME}/" /opt/ircpipe/ircpipe.ini
+#sed -i -E "s/^[[:space:]]*channel[[:space:]]*=[[:space:]]*.*/channel = #edgemap/" /opt/ircpipe/ircpipe.ini
+#echo "Configured: /opt/ircpipe/ircpipe.ini"
 
 #
 # Configure services as you like
 #
-rm /etc/systemd/system/multi-user.target.wants/i2pd.service
-rm /etc/systemd/system/multi-user.target.wants/smcroute.service
-rm /etc/systemd/system/multi-user.target.wants/motion.service
-rm /etc/systemd/system/multi-user.target.wants/gpsd.service
-
+rm -f /etc/systemd/system/multi-user.target.wants/i2pd.service
+rm -f /etc/systemd/system/multi-user.target.wants/smcroute.service
+rm -f /etc/systemd/system/multi-user.target.wants/motion.service
+rm -f /etc/systemd/system/multi-user.target.wants/gpsd.service
 
 echo "Services configured!"
 echo " "
-echo "Adding cryptpad and thelounge users"
+echo "Adding syncthing user"
 
 #
-# Cryptpad user
+# Syncthing user
 #
-adduser -H -h /opt/cryptpad/ -D cryptpad cryptpad
-chown -R cryptpad:cryptpad /opt/cryptpad
+mkdir -p /opt/syncthing
 
-#
-# syncthing user
-#
-mkdir /opt/syncthing
-adduser -H -h /opt/syncthing/ -D syncthing syncthing
+if id syncthing >/dev/null 2>&1; then
+    echo "User syncthing already exists"
+else
+    adduser -H -h /opt/syncthing/ -D syncthing syncthing
+fi
+
 chown -R syncthing:syncthing /opt/syncthing
-# Store syncthing folders under encrypted partition /opt/data/syncthing/
-mkdir /opt/data/syncthing
-chown syncthing:synchting /opt/data/syncthing/
-
 
 #
-# The lounge user
+# Create and mount unencrypted third partition for data
 #
-adduser -H -h /opt/thelounge/ -D thelounge thelounge
-chown -R thelounge:thelounge /opt/thelounge
+dev=/dev/mmcblk0
+part="${dev}p3"
+fslabel="data"
+datadir=/opt/data
+syncthingdir="${datadir}/syncthing"
+
+echo "Checking third partition on $dev"
+
+[ -b "$dev" ] || fail "Block device not found: $dev"
+
+if [ -b "$part" ]; then
+    echo "It seems that your card already has third partition ($part)!"
+    echo "-> Skipping partition create."
+else
+    echo "Creating third partition without encryption on MicroSD"
+
+    end2=$(parted -m "$dev" unit s print | awk -F: '$1==2 { gsub("s","",$3); print $3 }')
+
+    if [ -z "$end2" ]; then
+        fail "Could not find partition 2 on $dev"
+    fi
+
+    start3=$(( ((end2 + 1) + 2047) / 2048 * 2048 ))
+
+    echo "Partition 2 ends at sector ${end2}"
+    echo "Creating partition 3 from ${start3}s to 100%"
+
+    parted --script "$dev" mkpart primary ext4 "${start3}s" 100% || \
+        fail "Failed to create partition 3"
+
+    sync
+    partprobe "$dev" 2>/dev/null || true
+    sleep 2
+
+    if [ ! -b "$part" ]; then
+        fail "Partition device did not appear: $part"
+    fi
+
+    echo "Creating filesystem on $part"
+    mkfs.ext4 -F -L "$fslabel" "$part" || \
+        fail "Failed to create ext4 filesystem on $part"
+fi
 
 #
-# Link 'thelounge' command
+# Prepare mount point and persistent fstab entry
 #
-ln -s /usr/lib/thelounge/node_modules/thelounge/index.js /usr/bin/thelounge
+echo "Preparing $datadir"
+mkdir -p "$datadir"
+
+if [ -f /etc/fstab ]; then
+    grep -q "^LABEL=${fslabel}[[:space:]]" /etc/fstab 2>/dev/null || \
+        echo "LABEL=${fslabel} ${datadir} ext4 defaults,noatime 0 2" >> /etc/fstab
+else
+    echo "LABEL=${fslabel} ${datadir} ext4 defaults,noatime 0 2" > /etc/fstab
+fi
+
+if mount | grep -q " on ${datadir} "; then
+    echo "$datadir is already mounted"
+else
+    echo "Mounting $part to $datadir"
+    mount "$part" "$datadir" || fail "Failed to mount $part to $datadir"
+fi
+
+if ! mount | grep -q " on ${datadir} "; then
+    fail "$datadir is not mounted"
+fi
 
 #
-# Create unencrypted third partition (taken from create-partition-noenc.sh)
-# NOTE: Disabled
-
-#if [ -b /dev/mmcblk0p3 ]; then
-#    echo "It seems that your card has already third partition (/dev/mmcblk0p3)!"
-#    echo "-> Skipping partition create."
-#else
-#    echo "Creating third partition (without encryption) to MicroSD"
-#    TARGET_DEV=/dev/mmcblk0
-#    parted --script $TARGET_DEV 'mkpart primary ext4 3500 -1'
-#    # Creating filesystems
-#    echo "Creating filesystem to $TARGET_DEVp3"
-#    mkfs.ext4 -F -L data ${TARGET_DEV}p3
-#fi
-
+# Syncthing data directory on mounted data partition
 #
-# Instruct cryptpad first run to finalize setup
-#
-echo " "
-echo "== CRYPTPAD =="
-echo " "
-echo "To finalize cryptpad setup, you need manually do following:"
-echo "(or you can ignore this, if you plan not to use cryptpad)"
-echo " "
-echo "systemctl stop cryptpad "
-echo "su cryptpad"
-echo "cd"
-echo "node server.js"
-echo " "
-echo " -> Visit indicated setup URL and create admin user & password"
-echo " -> After you are good, you can enable service:"
-echo " "
-echo "systemctl enable cryptpad.service"
-echo " "
-echo "You can do this now or after reboot"
-echo " "
-echo "== The Lounge (browser based IRC client) =="
-echo " "
-echo "Before using Thelounge, configure it via  /opt/thelounge/config.js"
-echo " "
-echo " IMPORTANT: You need to change port to 'port: 9001,' at line 32"
-echo " "
-echo " NOTE: You need to start thelounge once for config.js to be created"
-echo "       run it with 'thelounge start' (as root) or start service:"
-echo "       systemctl start thelounge"
-echo " "
-echo " After initial run, you can edit config.js and add users (as 'thelounge' user) "
-echo " "
-echo "Remember you need to be 'thelounge' user to use 'thelounge' command:"
-echo " "
-echo "su thelounge"
-echo "cd"
-echo "thelounge help"
+echo "Preparing Syncthing data directory"
+mkdir -p "$syncthingdir"
+chown -R syncthing:syncthing "$syncthingdir" || \
+    fail "Failed to chown $syncthingdir"
+
+echo "Data partition is ready at $datadir"
 echo " "
 echo "All set, reboot unit."
 echo " "
