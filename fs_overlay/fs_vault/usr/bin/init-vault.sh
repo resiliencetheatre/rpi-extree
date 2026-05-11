@@ -4,15 +4,13 @@
 #
 # Functions
 #
-# * Sets hostname to various places (hostapd, dnsmasq, cryptpad)
+# * Sets hostname 
 # * Sets services to initial state
 # * Creates syncthing user
 # * Creates third partition to microsd for data
 # * Mounts third partition to /opt/data
 # * Creates /opt/data/syncthing owned by syncthing:syncthing
 #
-# * DNS name is equipped as wifi AP name to /etc/hostapd.conf
-# * DNS name is equipped to /etc/dnsmasq.conf and /etc/dnsmasq.hosts
 # * DNS name is used as /etc/hostname
 #
 # Example run:
@@ -59,32 +57,11 @@ need_cmd grep
 need_cmd sync
 need_cmd sleep
 
-#
-# Set wifi AP name
-#
-#[ -f /etc/hostapd.conf ] || fail "/etc/hostapd.conf not found"
-#sed -i "s/^ssid=.*/ssid=${DNS_NAME}/" /etc/hostapd.conf
 
 #
-# Set /etc/dnsmasq.hosts and /etc/hostname
+# Set /etc/hostname
 #
-# echo "10.1.1.1 $DNS_NAME" > /etc/dnsmasq.hosts
 echo "$DNS_NAME" > /etc/hostname
-
-#
-# Set /etc/dnsmasq.conf
-#
-#[ -f /etc/dnsmasq.conf ] || fail "/etc/dnsmasq.conf not found"
-#sed -i "s/^local=.*/local=\/${DNS_NAME}\//" /etc/dnsmasq.conf
-
-#
-# /opt/ircpipe/ircpipe.ini
-#
-#[ -f /opt/ircpipe/ircpipe.ini ] || fail "/opt/ircpipe/ircpipe.ini not found"
-#sed -i -E "s/^[[:space:]]*user[[:space:]]*=[[:space:]]*.*/user = ${DNS_NAME}/" /opt/ircpipe/ircpipe.ini
-#sed -i -E "s/^[[:space:]]*nick[[:space:]]*=[[:space:]]*.*/nick = ${DNS_NAME}/" /opt/ircpipe/ircpipe.ini
-#sed -i -E "s/^[[:space:]]*channel[[:space:]]*=[[:space:]]*.*/channel = #edgemap/" /opt/ircpipe/ircpipe.ini
-#echo "Configured: /opt/ircpipe/ircpipe.ini"
 
 #
 # Configure services as you like
@@ -110,6 +87,23 @@ else
 fi
 
 chown -R syncthing:syncthing /opt/syncthing
+
+# Git user
+mkdir -p /home/git
+
+if id git >/dev/null 2>&1; then
+    echo "User git already exists"
+else
+    adduser -H -h /home/git/ -D git git
+fi
+
+echo "Set 'git' user password manually after this scrip is completed:"
+echo " "
+echo "passwd git"
+echo " "
+echo "This enables git user. Note that you need still set ssh key for git user"
+echo " "
+
 
 #
 # Create and mount unencrypted third partition for data
@@ -158,17 +152,12 @@ else
 fi
 
 #
-# Prepare mount point and persistent fstab entry
+# Prepare mount point
 #
+systemctl daemon-reload
+
 echo "Preparing $datadir"
 mkdir -p "$datadir"
-
-if [ -f /etc/fstab ]; then
-    grep -q "^LABEL=${fslabel}[[:space:]]" /etc/fstab 2>/dev/null || \
-        echo "LABEL=${fslabel} ${datadir} ext4 defaults,noatime 0 2" >> /etc/fstab
-else
-    echo "LABEL=${fslabel} ${datadir} ext4 defaults,noatime 0 2" > /etc/fstab
-fi
 
 if mount | grep -q " on ${datadir} "; then
     echo "$datadir is already mounted"
@@ -180,6 +169,7 @@ fi
 if ! mount | grep -q " on ${datadir} "; then
     fail "$datadir is not mounted"
 fi
+
 
 #
 # Syncthing data directory on mounted data partition

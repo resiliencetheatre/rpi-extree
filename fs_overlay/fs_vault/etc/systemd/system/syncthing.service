@@ -1,11 +1,11 @@
 [Unit]
 Description=syncthing
-After=network.target macsec.service sshd.service
+After=network.target sshd.service
 
 [Service]
 User=syncthing
 WorkingDirectory=/opt/syncthing
-ExecStartPre=/bin/noupdates-syncthing.sh
+# ExecStartPre=/bin/noupdates-syncthing.sh
 ExecStart=/bin/syncthing serve --no-browser --no-restart --logflags=0
 Restart=on-failure
 RestartSec=5
