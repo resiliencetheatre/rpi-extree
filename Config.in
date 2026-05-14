@@ -44,6 +44,7 @@ menu "Network and encapsulation"
 	source "$BR2_EXTERNAL_rpi_PATH/package/samplicator/Config.in"
 	source "$BR2_EXTERNAL_rpi_PATH/package/dpinger/Config.in"
 	source "$BR2_EXTERNAL_rpi_PATH/package/gwsocket/Config.in"
+	source "$BR2_EXTERNAL_rpi_PATH/package/fidohmac/Config.in"
 endmenu
 
 menu "audio transfer"

@@ -1,0 +1,8 @@
+config BR2_PACKAGE_FIDOHMAC
+	bool "fidohmac"
+	help
+	  Small command-line utility from the Resilience Theatre
+	  fidohmac project.
+	  
+	  Source repository:
+	  https://codeberg.org/resiliencetheatre/fidohmac
