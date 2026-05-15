@@ -1,0 +1,8 @@
+config BR2_PACKAGE_BLINKSTICKCTL
+	bool "blinkstickctl"
+	select BR2_PACKAGE_LIBUSB
+	help
+	  Small C command-line utility for controlling a BlinkStick
+	  RGB LED over USB using libusb-1.0.
+
+	  https://codeberg.org/resiliencetheatre/blinkstickctl
