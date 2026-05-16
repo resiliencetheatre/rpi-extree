@@ -12,7 +12,7 @@ FIDOHMAC_SITE_METHOD = git
 
 # If the project links against libraries provided by Buildroot packages,
 # add them here, for example:
-# FIDOHMAC_DEPENDENCIES = libfido2
+FIDOHMAC_DEPENDENCIES = libfido2 openssl
 
 # The upstream repository contents could not be inspected from the packaging
 # environment that generated this file, so license metadata is intentionally
