@@ -6,7 +6,7 @@
 
 # For reproducible Buildroot builds, replace "main" with a fixed commit hash
 # or a release tag once you decide which repository revision to pin.
-BLINKSTICKCTL_VERSION = 5fed6e0428f82f51614a523a6b731e3453bdc65a
+BLINKSTICKCTL_VERSION = da12584016ea097eec057b1dc2302173a4034b51
 BLINKSTICKCTL_SITE = https://codeberg.org/resiliencetheatre/blinkstickctl.git
 BLINKSTICKCTL_SITE_METHOD = git
 
