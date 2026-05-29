@@ -1,0 +1,21 @@
+config BR2_PACKAGE_FORGEJO
+	bool "forgejo"
+	depends on BR2_PACKAGE_HOST_GO_TARGET_ARCH_SUPPORTS
+	depends on BR2_TOOLCHAIN_HAS_THREADS
+	depends on BR2_USE_MMU
+	select BR2_PACKAGE_GIT
+	select BR2_PACKAGE_OPENSSH
+	help
+	  Forgejo self-hosted Git forge.
+
+	  This package builds Forgejo from source using host Go and
+	  host Node.js/npm. The final target image receives the Forgejo
+	  binary plus runtime dependencies such as git and openssh.
+
+	  Runtime data is expected under /var/lib/forgejo.
+	  Configuration is expected under /etc/forgejo/app.ini.
+
+	  https://forgejo.org/
+
+comment "forgejo needs a toolchain with threads and MMU"
+	depends on !BR2_TOOLCHAIN_HAS_THREADS || !BR2_USE_MMU

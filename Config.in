@@ -71,6 +71,7 @@ menu "Collabration tools"
 	source "$BR2_EXTERNAL_rpi_PATH/package/cryptpad/Config.in"
 	source "$BR2_EXTERNAL_rpi_PATH/package/thelounge/Config.in"
 	source "$BR2_EXTERNAL_rpi_PATH/package/kamailio/Config.in"
+	source "$BR2_EXTERNAL_rpi_PATH/package/forgejo/Config.in"
 endmenu
 
 menu "Meshtastic"
