@@ -31,7 +31,6 @@ FORGEJO_MAKE_ENV = \
 	$(HOST_GO_TARGET_ENV) \
 	GOTOOLCHAIN=local \
 	CGO_ENABLED=1 \
-	GOFLAGS="-mod=vendor -buildvcs=false" \
 	TAGS="$(FORGEJO_TAGS)" \
 	SHARP_IGNORE_GLOBAL_LIBVIPS=true \
 	ENABLE_SOURCEMAP=false
@@ -47,7 +46,11 @@ endef
 FORGEJO_POST_PATCH_HOOKS += FORGEJO_WRITE_VERSION
 
 define FORGEJO_BUILD_CMDS
-	$(FORGEJO_MAKE_ENV) $(MAKE) -C $(@D) build
+	cd $(@D) && \
+	$(FORGEJO_MAKE_ENV) \
+	GOFLAGS="-mod=vendor -buildvcs=false" \
+	$(MAKE) build \
+		GOFLAGS="-mod=vendor -buildvcs=false"
 endef
 
 define FORGEJO_INSTALL_TARGET_CMDS
