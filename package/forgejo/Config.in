@@ -5,6 +5,7 @@ config BR2_PACKAGE_FORGEJO
 	depends on BR2_USE_MMU
 	select BR2_PACKAGE_GIT
 	select BR2_PACKAGE_OPENSSH
+	select BR2_PACKAGE_BASH
 	help
 	  Forgejo self-hosted Git forge.
 
