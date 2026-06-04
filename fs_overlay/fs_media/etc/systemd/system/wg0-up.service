@@ -1,0 +1,22 @@
+# /etc/systemd/system/wg0-up.service
+[Unit]
+Description=Bring up wg0 when USB is present
+Wants=mnt-usb.automount
+After=udp2raw.service mnt-usb.mount
+RequiresMountsFor=/mnt/usb
+BindsTo=mnt-usb.mount
+# PartOf=usb-plug.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+# make networkd pick up any config edits
+ExecStart=/usr/bin/networkctl reload
+# bring the interface up
+ExecStart=/usr/bin/networkctl up wg0
+# tear it down when this unit stops (e.g., USB yanked)
+ExecStop=/usr/bin/networkctl delete wg0
+
+[Install]
+WantedBy=usb-plug.target
+
