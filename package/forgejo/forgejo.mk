@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-FORGEJO_VERSION = v15.0.2
+FORGEJO_VERSION = v16.0.2
 FORGEJO_VERSION_SEMVER = $(patsubst v%,%,$(FORGEJO_VERSION))
 FORGEJO_SITE = https://codeberg.org/forgejo/forgejo.git
 FORGEJO_SITE_METHOD = git
@@ -49,7 +49,7 @@ define FORGEJO_BUILD_CMDS
 	cd $(@D) && \
 	$(FORGEJO_MAKE_ENV) \
 	GOFLAGS="-mod=vendor -buildvcs=false" \
-	$(MAKE) build \
+	$(MAKE1) build \
 		GOFLAGS="-mod=vendor -buildvcs=false"
 endef
 
