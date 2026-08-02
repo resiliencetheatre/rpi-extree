@@ -1,0 +1,15 @@
+config BR2_PACKAGE_RCLONE
+	bool "rclone"
+	depends on BR2_PACKAGE_HOST_GO_TARGET_ARCH_SUPPORTS
+	help
+	  Rclone is a command-line program for managing files on
+	  cloud storage.
+
+	  It supports S3-compatible storage, WebDAV, SFTP, Google
+	  Drive, Dropbox, Microsoft OneDrive and many other storage
+	  providers.
+
+	  https://rclone.org/
+
+comment "rclone needs a toolchain supported by Go"
+	depends on !BR2_PACKAGE_HOST_GO_TARGET_ARCH_SUPPORTS

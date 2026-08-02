@@ -1,0 +1,4 @@
+# Locally calculated
+sha256  1292c5fae9d10d6df3ea0c2ba96de42336e96e2e878729af1f02f86900434ee0  rclone-1.75.0.tar.gz
+sha256  c2027ee060ba86e338f81be46ef4a98fdaa02256b4acb72c1b8c48be7c825981  rclone-v1.75.0-vendor.tar.gz
+sha256  8cd2e9e750b90a04b7d82dbbca3930c696ae0309d7c10464f90a44f45754cd04  COPYING
