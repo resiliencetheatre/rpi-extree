@@ -1,0 +1,37 @@
+config BR2_PACKAGE_INN2
+	bool "inn2"
+	depends on BR2_USE_MMU
+	help
+	  INN (InterNetNews) is a complete Usenet/Netnews server.
+	  It provides innd for server-to-server feeds and nnrpd for
+	  newsreader access over NNTP.
+
+	  This package builds the core server without embedded Perl,
+	  Python, Berkeley DB, Cyrus SASL, Kerberos, or libcanlock
+	  support by default.
+
+	  https://github.com/InterNetNews/inn
+
+if BR2_PACKAGE_INN2
+
+config BR2_PACKAGE_INN2_ZLIB
+	bool "zlib compression support"
+	select BR2_PACKAGE_ZLIB
+	help
+	  Enable NNTP COMPRESS support and compression support for
+	  overview backends that can use zlib.
+
+config BR2_PACKAGE_INN2_OPENSSL
+	bool "TLS support"
+	select BR2_PACKAGE_OPENSSL
+	help
+	  Enable TLS support in nnrpd using OpenSSL.
+
+config BR2_PACKAGE_INN2_SQLITE
+	bool "SQLite overview/history support"
+	select BR2_PACKAGE_SQLITE
+	help
+	  Enable the ovsqlite overview backend and hissqlite history
+	  backend.
+
+endif

@@ -46,6 +46,7 @@ menu "Network and encapsulation"
 	source "$BR2_EXTERNAL_rpi_PATH/package/gwsocket/Config.in"
 	source "$BR2_EXTERNAL_rpi_PATH/package/fidohmac/Config.in"
 	source "$BR2_EXTERNAL_rpi_PATH/package/rclone/Config.in"
+	source "$BR2_EXTERNAL_rpi_PATH/package/inn2/Config.in"
 endmenu
 
 menu "audio transfer"
