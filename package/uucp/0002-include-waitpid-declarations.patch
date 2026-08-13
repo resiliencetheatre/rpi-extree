@@ -1,0 +1,15 @@
+Description: Include declarations required for waitpid
+Origin: Debian implicit.patch
+--- a/unix/pipe.c
++++ b/unix/pipe.c
+@@ -37,6 +37,10 @@
+ 
+ #include <errno.h>
+ 
++/* needed for waitpid */
++#include <sys/types.h>
++#include <sys/wait.h>
++
+ #if HAVE_FCNTL_H
+ #include <fcntl.h>
+ #else

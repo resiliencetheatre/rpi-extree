@@ -1,0 +1,4 @@
+# TCP transport used between UUCP peers.
+port tcp
+ type tcp
+ service 540

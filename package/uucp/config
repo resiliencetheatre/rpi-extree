@@ -1,0 +1,7 @@
+# Taylor UUCP main configuration.
+#
+# Leave nodename unset to use the system hostname, or set it explicitly:
+# nodename rpi-home
+#
+# The standard companion files are /etc/uucp/sys, /etc/uucp/port,
+# /etc/uucp/call and /etc/uucp/passwd.

@@ -1,0 +1,12 @@
+config BR2_PACKAGE_UUCP
+	bool "uucp"
+	depends on BR2_USE_MMU
+	help
+	  Taylor UUCP (Unix-to-Unix Copy) provides store-and-forward
+	  file transfer and remote command execution, including uucico,
+	  uucp, uux, uuxqt, uustat, uulog and related utilities.
+
+	  This package is useful for intermittently connected systems and
+	  can operate over TCP, including TCP carried over WireGuard.
+
+	  https://www.gnu.org/software/uucp/

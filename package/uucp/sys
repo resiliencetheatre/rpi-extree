@@ -1,0 +1,11 @@
+# Add one stanza per peer. Example:
+#
+# system vps
+#   time Any
+#   port tcp
+#   address 10.0.0.1
+#   call-login rpi-home
+#   call-password CHANGE-ME
+#
+# For production, prefer putting credentials in /etc/uucp/call rather than
+# keeping them in this world-readable file.
