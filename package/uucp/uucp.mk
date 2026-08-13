@@ -19,9 +19,6 @@ UUCP_CONF_OPTS = \
 	--with-oldconfigdir=/etc/uucp \
 	--disable-build-warnings
 
-# Taylor UUCP 1.07 predates current GCC/glibc interfaces.  Do these small,
-# deterministic substitutions after the normal patch phase instead of carrying
-# one fragile multi-file unified diff.
 define UUCP_FIX_MODERN_COMPILERS
 	$(SED) 's/char ab\[23\]/char ab[128]/' $(@D)/unix/lock.c
 	$(SED) 's/char ab\[12\]/char ab[128]/' $(@D)/unix/lock.c
@@ -33,7 +30,6 @@ define UUCP_FIX_MODERN_COMPILERS
 	$(SED) 's/size_t clen;/socklen_t clen;/' $(@D)/unix/portnm.c
 	$(SED) 's/size_t clen;/socklen_t clen;/' $(@D)/unix/tcp.c
 	$(SED) '/extern int strcmp (), strcasecmp ();/d' $(@D)/uuconf/cmdarg.c
-
 	$(SED) '/extern off_t lseek ();/d' $(@D)/unix/filnam.c
 	$(SED) '/^int statfs ();/d' $(@D)/unix/fsusg.c
 	$(SED) '/^int statvfs ();/d' $(@D)/unix/fsusg.c
@@ -75,6 +71,11 @@ define UUCP_INSTALL_TARGET_CMDS
 	$(INSTALL) -m 0600 $(UUCP_PKGDIR)/passwd $(TARGET_DIR)/etc/uucp/passwd
 	$(INSTALL) -m 0644 $(UUCP_PKGDIR)/port $(TARGET_DIR)/etc/uucp/port
 	$(INSTALL) -m 0644 $(UUCP_PKGDIR)/sys $(TARGET_DIR)/etc/uucp/sys
+
+	$(INSTALL) -d -m 0755 $(TARGET_DIR)/var/spool/uucp
+	$(INSTALL) -d -m 1777 $(TARGET_DIR)/var/spool/uucppublic
+	$(INSTALL) -d -m 0755 $(TARGET_DIR)/var/lock/uucp
+	$(INSTALL) -d -m 0755 $(TARGET_DIR)/var/log/uucp
 endef
 
 UUCP_PERMISSIONS = $(UUCP_PKGDIR)/uucp.permissions

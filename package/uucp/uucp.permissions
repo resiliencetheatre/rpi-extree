@@ -1,6 +1,4 @@
-/var/spool/uucp       d 0750 uucp uucp - - - - -
+/var/spool/uucp d 0755 uucp uucp - - - - -
 /var/spool/uucppublic d 1777 uucp uucp - - - - -
-/var/log/uucp         d 0750 uucp uucp - - - - -
-/etc/uucp             d 0755 root root - - - - -
-/etc/uucp/call        f 0600 root root - - - - -
-/etc/uucp/passwd      f 0600 root root - - - - -
+/var/lock/uucp d 0755 uucp uucp - - - - -
+/var/log/uucp d 0755 uucp uucp - - - - -
