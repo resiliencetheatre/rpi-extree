@@ -1,0 +1,65 @@
+# /etc/ssh/sshd_config
+#
+# PiVault / Forgejo SSH daemon configuration
+
+Port 22
+AddressFamily any
+
+# Host keys
+HostKey /etc/ssh/ssh_host_ed25519_key
+#HostKey /etc/ssh/ssh_host_rsa_key
+#HostKey /etc/ssh/ssh_host_ecdsa_key
+
+# Logging
+SyslogFacility AUTH
+LogLevel INFO
+
+# Authentication
+LoginGraceTime 30s
+PermitRootLogin prohibit-password
+StrictModes yes
+MaxAuthTries 3
+MaxSessions 4
+
+PubkeyAuthentication yes
+AuthorizedKeysFile .ssh/authorized_keys
+
+PasswordAuthentication no
+PermitEmptyPasswords no
+KbdInteractiveAuthentication no
+
+HostbasedAuthentication no
+IgnoreRhosts yes
+
+# Session restrictions
+X11Forwarding no
+AllowTcpForwarding no
+AllowAgentForwarding no
+GatewayPorts no
+PermitTunnel no
+PermitUserEnvironment no
+Compression no
+
+TCPKeepAlive yes
+ClientAliveInterval 300
+ClientAliveCountMax 2
+
+UseDNS no
+MaxStartups 3:30:10
+
+# Buildroot/OpenSSH path
+Subsystem sftp /usr/libexec/sftp-server
+
+# Forgejo git user block
+#
+# Forgejo writes forced-command entries to git user's authorized_keys.
+# Do NOT add ForceCommand here.
+Match User git
+    PasswordAuthentication no
+    KbdInteractiveAuthentication no
+    PubkeyAuthentication yes
+    PermitTTY no
+    X11Forwarding no
+    AllowTcpForwarding no
+    AllowAgentForwarding no
+    PermitTunnel no

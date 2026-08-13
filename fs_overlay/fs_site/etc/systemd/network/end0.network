@@ -1,0 +1,16 @@
+[Match]
+Name=end0
+
+[Network]
+DHCP=ipv4
+
+#[Link]
+#Unmanaged=no
+
+#[Network]
+#LinkLocalAddressing=no
+#LLMNR=no
+#MulticastDNS=no
+#DNSSEC=no
+#DHCP=no
+#IPv6AcceptRA=no

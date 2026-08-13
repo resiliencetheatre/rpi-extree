@@ -1,0 +1,8 @@
+[Unit]
+Description=Flush UUCP queue to VPS
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/uucico -S vps

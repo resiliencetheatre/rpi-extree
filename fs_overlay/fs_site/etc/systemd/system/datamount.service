@@ -1,0 +1,11 @@
+[Unit]
+Description=/opt/data mount
+After=network.target multi-user.target
+
+[Service]
+ExecStart=mount /opt/data
+TimeoutStartSec=5
+
+[Install]
+WantedBy=multi-user.target
+
