@@ -5,4 +5,4 @@ Wants=network-online.target
 
 [Service]
 Type=oneshot
-ExecStart=/usr/sbin/uucico -S vps
+ExecStart=/usr/sbin/uucico -D -q -S vps
