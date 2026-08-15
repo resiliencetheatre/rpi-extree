@@ -25,6 +25,7 @@ INN2_CONF_OPTS = \
 	--with-tmp-dir=/var/spool/news/tmp \
 	--with-news-user=news \
 	--with-news-group=news \
+	--with-sendmail=/usr/sbin/sendmail \
 	--with-news-master=news \
 	--enable-reduced-depends \
 	--without-bdb \
