@@ -1,5 +1,11 @@
 config BR2_PACKAGE_PYTHON_NOMADNET
 	bool "python-nomadnet"
+	select BR2_PACKAGE_PYTHON_RNS
+	select BR2_PACKAGE_PYTHON_LXMF
+	select BR2_PACKAGE_PYTHON_URWID
+	select BR2_PACKAGE_PYTHON_QRCODE
 	help
-	
-	  Nomad Network - Communicate Freely
+	  Nomad Network is a resilient, encrypted communication
+	  system built on Reticulum and LXMF.
+
+	  https://github.com/markqvist/NomadNet
