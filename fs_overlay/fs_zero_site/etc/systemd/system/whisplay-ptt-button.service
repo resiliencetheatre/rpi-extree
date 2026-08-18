@@ -1,0 +1,17 @@
+# /etc/systemd/system/whisplay-ptt-button.service
+[Unit]
+Description=Whisplay GPIO PTT button
+Requires=udpptt-client.service
+After=udpptt-client.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/wait-and-run-ptt-button
+Restart=always
+RestartSec=1
+
+# On service stop, force PTT release
+ExecStopPost=-/usr/bin/ptt_helper --socket /tmp/udpptt.sock --ptt_up
+
+[Install]
+WantedBy=multi-user.target

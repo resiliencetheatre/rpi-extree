@@ -1,0 +1,13 @@
+[Unit]
+Description=Prepare concurrent Wi-Fi access point
+After=iwd.service systemd-networkd.service
+Requires=iwd.service
+Before=hostapd.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/prepare-wifi-ap
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

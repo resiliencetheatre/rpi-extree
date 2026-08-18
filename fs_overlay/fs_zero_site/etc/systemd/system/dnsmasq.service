@@ -1,0 +1,15 @@
+# /etc/systemd/system/dnsmasq.service
+
+[Unit]
+Description=DHCP/DNS server for Wi-Fi AP
+Requires=hostapd.service
+After=hostapd.service systemd-networkd.service
+
+[Service]
+Type=simple
+ExecStart=/bin/dnsmasq --keep-in-foreground --conf-file=/etc/dnsmasq.conf
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,8 @@
+# /etc/systemd/network/30-ap0.network
+
+[Match]
+Name=ap0
+
+[Network]
+Address=192.168.50.1/24
+ConfigureWithoutCarrier=yes

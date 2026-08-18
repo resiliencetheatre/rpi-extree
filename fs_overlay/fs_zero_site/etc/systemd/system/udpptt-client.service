@@ -1,0 +1,17 @@
+# /etc/systemd/system/udpptt-client.service
+[Unit]
+Description=UDPPTT client
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/ptt_client 91.98.237.100 --ptt-socket /tmp/udpptt.sock --txid zero --encrypt --key shared-room
+Restart=always
+RestartSec=2
+
+# Make sure stale socket is gone before start
+ExecStartPre=-/bin/rm -f /tmp/udpptt.sock
+
+[Install]
+WantedBy=multi-user.target
