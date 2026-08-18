@@ -1,0 +1,17 @@
+[Unit]
+Description=Situation Meshtastic position adapter
+After=situation-map.service
+Requires=situation-map.service
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/situation
+ExecStart=/usr/bin/python3 /opt/situation/meshtastic-plugin.py \
+    --url http://127.0.0.1:8080/api/positions
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

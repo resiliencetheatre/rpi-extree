@@ -1,0 +1,21 @@
+[Unit]
+Description=Situation offline map server
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/situation
+StateDirectory=situation
+ExecStart=/usr/bin/python3 /opt/situation/python-front.py \
+    --listen 0.0.0.0 \
+    --port 8080 \
+    --web-dir /opt/situation/web \
+    --map-dir /opt/situation/maps \
+    --database /var/lib/situation/situation.db
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,12 @@
+config BR2_PACKAGE_CADDY
+	bool "caddy"
+	depends on BR2_PACKAGE_HOST_GO_TARGET_ARCH_SUPPORTS
+	select BR2_PACKAGE_HOST_GO
+	help
+	  Caddy is an extensible web server with automatic HTTPS.
+
+	  This package installs Caddy with a systemd service and a default
+	  Caddyfile that terminates HTTPS on port 8443 and reverse-proxies
+	  to 127.0.0.1:8080.
+
+	  https://caddyserver.com/

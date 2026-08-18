@@ -1,0 +1,41 @@
+config BR2_PACKAGE_SITUATION_MAP
+	bool "situation-map"
+	depends on BR2_USE_MMU
+	depends on BR2_USE_WCHAR
+	depends on BR2_TOOLCHAIN_HAS_THREADS
+	depends on !BR2_STATIC_LIBS
+	select BR2_PACKAGE_PYTHON3
+	select BR2_PACKAGE_PYTHON3_SQLITE
+	help
+	  Situation is a small offline-capable situation-awareness web
+	  application using MapLibre GL JS, PMTiles and a Python standard
+	  library HTTP server with a local SQLite position database.
+
+	  The package installs the application under /opt/situation.
+	  PMTiles map archives are deployment data and are not included.
+
+	  https://github.com/resiliencetheatre/map
+
+if BR2_PACKAGE_SITUATION_MAP
+
+config BR2_PACKAGE_SITUATION_MAP_TAK
+	bool "install TAK bridge"
+	select BR2_PACKAGE_PYTHON3_PYEXPAT
+	help
+	  Install tak-bridge.py and its systemd service. The bridge receives
+	  Cursor-on-Target XML over plain TCP and forwards positions to the
+	  local Situation API.
+
+	  The service is installed but not enabled automatically.
+
+config BR2_PACKAGE_SITUATION_MAP_MESHTASTIC
+	bool "install Meshtastic adapter"
+	select BR2_PACKAGE_PYTHON_MESHTASTIC
+	help
+	  Install meshtastic-plugin.py and its systemd service.
+
+	  This assumes BR2_PACKAGE_PYTHON_MESHTASTIC is provided by your
+	  external tree. The service uses Meshtastic's serial auto-detection
+	  by default and is installed but not enabled automatically.
+
+endif

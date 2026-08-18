@@ -48,6 +48,7 @@ menu "Network and encapsulation"
 	source "$BR2_EXTERNAL_rpi_PATH/package/rclone/Config.in"
 	source "$BR2_EXTERNAL_rpi_PATH/package/inn2/Config.in"
 	source "$BR2_EXTERNAL_rpi_PATH/package/uucp/Config.in"
+	source "$BR2_EXTERNAL_rpi_PATH/package/caddy/Config.in"
 endmenu
 
 menu "audio transfer"
@@ -69,6 +70,10 @@ menu "User interface"
 	source "$BR2_EXTERNAL_rpi_PATH/package/blinkstickctl/Config.in"
 endmenu
 
+menu "Edgemap Lite"
+	source "$BR2_EXTERNAL_rpi_PATH/package/situation-map/Config.in"
+endmenu
+
 menu "Collabration tools"
 	source "$BR2_EXTERNAL_rpi_PATH/package/syncthing/Config.in"
 	source "$BR2_EXTERNAL_rpi_PATH/package/cryptpad/Config.in"
@@ -79,6 +84,7 @@ endmenu
 
 menu "Meshtastic"
 	source "$BR2_EXTERNAL_rpi_PATH/package/python-meshtastic/Config.in"
+	source "$BR2_EXTERNAL_rpi_PATH/package/python-pypubsub/Config.in"
 endmenu
 
 menu "Reticulum"
