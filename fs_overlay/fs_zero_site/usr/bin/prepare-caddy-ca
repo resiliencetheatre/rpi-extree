@@ -2,7 +2,7 @@
 
 SOURCE=/var/lib/caddy/caddy/pki/authorities/local/root.crt
 TARGET_DIR=/tmp/certs
-TARGET="$TARGET_DIR/zero-root-ca.crt"
+TARGET="$TARGET_DIR/zero-root-ca.pem"
 
 mkdir -p "$TARGET_DIR"
 
