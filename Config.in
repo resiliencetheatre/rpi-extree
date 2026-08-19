@@ -72,6 +72,7 @@ endmenu
 
 menu "Edgemap Lite"
 	source "$BR2_EXTERNAL_rpi_PATH/package/situation-map/Config.in"
+	source "$BR2_EXTERNAL_rpi_PATH/package/python-taky-ng/Config.in"
 endmenu
 
 menu "Collabration tools"
