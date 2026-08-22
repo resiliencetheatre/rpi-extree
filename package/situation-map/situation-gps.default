@@ -1,0 +1,8 @@
+# Installed as /etc/default/situation-gps.
+# Keep board- and deployment-specific values here, not in the systemd unit.
+GPS_PORT=/dev/ttyUSB1
+GPS_BAUD=38400
+SITUATION_URL=http://127.0.0.1:8080/api/positions
+GPS_DEVICE_ID=local-gps
+GPS_DESIGNATION="Local GPS"
+GPS_SIDC=SNGPU------K---

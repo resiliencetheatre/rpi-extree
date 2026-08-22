@@ -1,0 +1,14 @@
+[Unit]
+Description=Situation local GPS adapter
+Documentation=https://github.com/resiliencetheatre/map
+After=network.target
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/default/situation-gps
+ExecStart=/usr/bin/python3 /opt/situation/gps-plugin.py --port ${GPS_PORT} --baud ${GPS_BAUD} --url ${SITUATION_URL} --device-id ${GPS_DEVICE_ID} --designation ${GPS_DESIGNATION} --sidc ${GPS_SIDC}
+Restart=on-failure
+RestartSec=3s
+
+[Install]
+WantedBy=multi-user.target

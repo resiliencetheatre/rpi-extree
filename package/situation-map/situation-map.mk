@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-SITUATION_MAP_VERSION = 6977da1beb607e097890862dc646edc8fcc46d42
+SITUATION_MAP_VERSION = 933701b200f3537ba3d92aeaa1b3619a0cb1993f
 SITUATION_MAP_SITE = https://github.com/resiliencetheatre/map.git
 SITUATION_MAP_SITE_METHOD = git
 SITUATION_MAP_LICENSE = GPL-3.0-only
@@ -17,6 +17,8 @@ define SITUATION_MAP_INSTALL_TARGET_CMDS
 
 	$(INSTALL) -m 0755 $(@D)/python-front.py \
 		$(TARGET_DIR)/opt/situation/python-front.py
+	$(INSTALL) -m 0755 $(@D)/gps-plugin.py \
+		$(TARGET_DIR)/opt/situation/gps-plugin.py
 
 	cp -a $(@D)/web $(TARGET_DIR)/opt/situation/
 	cp -a $(@D)/maplibre-gl-js $(TARGET_DIR)/opt/situation/
@@ -45,6 +47,10 @@ endif
 define SITUATION_MAP_INSTALL_INIT_SYSTEMD
 	$(INSTALL) -D -m 0644 $(SITUATION_MAP_PKGDIR)/situation-map.service \
 		$(TARGET_DIR)/usr/lib/systemd/system/situation-map.service
+	$(INSTALL) -D -m 0644 $(SITUATION_MAP_PKGDIR)/situation-gps.service \
+		$(TARGET_DIR)/usr/lib/systemd/system/situation-gps.service
+	$(INSTALL) -D -m 0644 $(SITUATION_MAP_PKGDIR)/situation-gps.default \
+		$(TARGET_DIR)/etc/default/situation-gps
 
 	mkdir -p $(TARGET_DIR)/etc/systemd/system/multi-user.target.wants
 	ln -sf ../../../../usr/lib/systemd/system/situation-map.service \
