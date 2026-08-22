@@ -1,0 +1,75 @@
+#!/bin/sh
+
+set -eu
+
+STA_IF="wlan0"
+AP_IF="ap0"
+RUNTIME_CONF="/run/hostapd-ap0.conf"
+
+SSID="zero"
+PASSPHRASE="abc12345"
+COUNTRY="LU"
+
+CHANNEL="${1:-}"
+
+if [ -z "$CHANNEL" ]; then
+    echo "prepare-wifi-ap: waiting for ${STA_IF} to associate"
+
+    while :; do
+        if /usr/bin/iw dev "$STA_IF" link 2>/dev/null |
+           grep -q '^Connected to '; then
+            break
+        fi
+
+        sleep 1
+    done
+
+    CHANNEL="$(
+        /usr/bin/iw dev "$STA_IF" info |
+        awk '$1 == "channel" { print $2; exit }'
+    )"
+
+    if [ -z "$CHANNEL" ]; then
+        echo "prepare-wifi-ap: unable to determine ${STA_IF} channel" >&2
+        exit 1
+    fi
+fi
+
+case "$CHANNEL" in
+    *[!0-9]*|'')
+        echo "prepare-wifi-ap: invalid channel: ${CHANNEL}" >&2
+        exit 1
+        ;;
+esac
+
+echo "prepare-wifi-ap: using channel ${CHANNEL}"
+
+if ! /usr/bin/iw dev "$AP_IF" info >/dev/null 2>&1; then
+    echo "prepare-wifi-ap: creating ${AP_IF}"
+    /usr/bin/iw dev "$STA_IF" interface add "$AP_IF" type __ap
+fi
+
+TMP_CONF="${RUNTIME_CONF}.tmp"
+
+cat >"$TMP_CONF" <<EOF
+interface=${AP_IF}
+driver=nl80211
+
+ssid=${SSID}
+
+country_code=${COUNTRY}
+ieee80211d=1
+
+hw_mode=g
+channel=${CHANNEL}
+
+wpa=2
+wpa_passphrase=${PASSPHRASE}
+wpa_key_mgmt=WPA-PSK
+rsn_pairwise=CCMP
+EOF
+
+chmod 600 "$TMP_CONF"
+mv "$TMP_CONF" "$RUNTIME_CONF"
+
+echo "prepare-wifi-ap: generated ${RUNTIME_CONF} for channel ${CHANNEL}"

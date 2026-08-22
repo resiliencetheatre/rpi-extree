@@ -1,0 +1,13 @@
+[Unit]
+Description=Wi-Fi AP routing and NAT
+Requires=wifi-ap-prepare.service
+After=wifi-ap-prepare.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/nft -f /etc/nftables.conf
+ExecReload=/usr/bin/nft -f /etc/nftables.conf
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

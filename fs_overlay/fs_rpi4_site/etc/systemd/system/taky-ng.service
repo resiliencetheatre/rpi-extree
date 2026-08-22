@@ -1,0 +1,23 @@
+[Unit]
+Description=taky-ng CoT server
+Documentation=https://codeberg.org/hunterSG7/taky-ng
+Requires=generate-taky-ng-server-certs.service
+Wants=network.target wifi-ap-interface.service
+After=generate-taky-ng-server-certs.service systemd-networkd.service wifi-ap-interface.service network.target
+ConditionPathExists=/etc/taky/taky.conf
+ConditionPathExists=/etc/taky/ssl/ca.crt
+ConditionPathExists=/etc/taky/ssl/server.crt
+ConditionPathExists=/etc/taky/ssl/server.key
+
+[Service]
+Type=simple
+ExecStartPre=/bin/mkdir -p /var/taky
+ExecStartPre=/bin/mkdir -p /tmp/certs
+ExecStartPre=/bin/cp /etc/taky/ssl/ca.crt /tmp/certs/taky-ca.pem
+ExecStart=/usr/bin/taky -c /etc/taky/taky.conf
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=15
+
+[Install]
+WantedBy=multi-user.target

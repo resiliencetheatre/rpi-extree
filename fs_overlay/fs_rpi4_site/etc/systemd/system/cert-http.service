@@ -1,0 +1,25 @@
+[Unit]
+Description=Serve Caddy root CA certificate
+After=network-online.target caddy.service
+Wants=network-online.target
+Requires=caddy.service
+
+[Service]
+Type=simple
+
+ExecStartPre=/usr/bin/prepare-caddy-ca
+
+ExecStart=/usr/bin/python3 /usr/bin/cert-http-server \
+    --bind 192.168.50.1 \
+    --port 8000 \
+    --directory /tmp/certs
+
+Restart=on-failure
+RestartSec=2
+
+PrivateTmp=false
+ProtectHome=true
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

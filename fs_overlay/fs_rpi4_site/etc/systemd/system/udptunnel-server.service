@@ -1,0 +1,18 @@
+[Unit]
+Description=udptunnel server
+After=multi-user.target mnt-usb.mount mnt-usb.automount
+RequiresMountsFor=/mnt/usb
+BindsTo=mnt-usb.mount
+PartOf=usb-plug.target
+Wants=mnt-usb.automount
+ConditionPathExists=/mnt/usb/server.ini
+
+[Service]
+WorkingDirectory=/opt/udptunnel
+Type=simple
+ExecStart=/bin/server -i server.ini
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=usb-plug.target
