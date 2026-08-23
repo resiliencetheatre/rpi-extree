@@ -1,0 +1,8 @@
+[Unit]
+Description=Process incoming UUCP execution jobs
+
+[Service]
+Type=oneshot
+User=uucp
+ExecStart=/usr/sbin/uuxqt
+KillMode=process
