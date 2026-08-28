@@ -1,0 +1,10 @@
+config BR2_PACKAGE_SECURE_AUDIO
+	bool "secure-audio"
+	select BR2_PACKAGE_LIBCODEC2
+	select BR2_PACKAGE_LIQUID_DSP
+	help
+	  Build the secure-audio Codec2 transport and project-owned MSK modem
+	  tools. securetx and securerx process Codec2 transport frames, while
+	  modemtx and modemrx convert framed data to and from 48 kHz mono PCM.
+
+	  This package contains no encryption, FEC, or full-duplex support.

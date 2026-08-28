@@ -1,0 +1,41 @@
+#
+# Incrementally update a running Buildroot root filesystem
+#
+
+BUILDROOT_DIR ?= $(CURDIR)/buildroot
+TARGET_IP     ?= site-e
+SSH_PORT      ?= 22
+
+RSYNC_EXCLUDE = \
+	--exclude='/etc/hostname' \
+	--exclude='/etc/hosts' \
+	--exclude='/etc/passwd' \
+	--exclude='/etc/group' \
+	--exclude='/etc/shadow' \
+	--exclude='/etc/gshadow' \
+	--exclude='/etc/dropbear/***' \
+	--exclude='/etc/machine-id' \
+	--exclude='/var/lib/***' \
+	--exclude='/var/log/***' \
+	--exclude='/root/***' \
+	--exclude='/tmp/***' \
+	--exclude='/dev/***' \
+	--exclude='/proc/***' \
+	--exclude='/sys/***' \
+	--exclude='/run/***' \
+	--exclude='/boot/***' \
+	--exclude='/opt/maps/***' \
+	--exclude='*~'
+
+.PHONY: update_rootfs
+
+update_rootfs:
+	rsync \
+		-e "ssh -p $(SSH_PORT) -l root" \
+		$(RSYNC_EXCLUDE) \
+		-rclvxW \
+		--ignore-times \
+		--super \
+		--itemize-changes \
+		$(BUILDROOT_DIR)/output/target/ \
+		$(TARGET_IP)::root

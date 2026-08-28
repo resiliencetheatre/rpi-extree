@@ -61,6 +61,7 @@ menu "audio transfer"
 	source "$BR2_EXTERNAL_rpi_PATH/package/udpptt/Config.in"
 	source "$BR2_EXTERNAL_rpi_PATH/package/spacecom/Config.in"
 	source "$BR2_EXTERNAL_rpi_PATH/package/knock-daemon/Config.in"
+	source "$BR2_EXTERNAL_rpi_PATH/package/secure-audio/Config.in"
 endmenu
 
 menu "User interface"

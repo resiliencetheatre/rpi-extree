@@ -67,25 +67,27 @@ You can store and use custom kernel config:
 BR2_LINUX_KERNEL_CUSTOM_CONFIG_FILE="${BR2_EXTERNAL}/configs/kernel/bcm2711_defconfig"
 ```
 
-Update kernel version on all raspberry pi defconfigs:
+To update the kernel version, obtain the commit ID from the Raspberry Pi kernel
+repository and update `BR2_LINUX_KERNEL_CUSTOM_TARBALL_LOCATION` in the relevant
+defconfig:
 
 ```
 # Clone kernel to separate directory outside project directory
 git clone https://github.com/raspberrypi/linux.git
 # Get latest commit ID
 git log
-
-# Update commit id, invoke script in rpi-extree directory
-utils/update_defconfig_commit.sh 4421ed134f9f03351a4a26293a29f009b8fff725
 ```
 
-Remember to add kernel hash into `$BR2_EXTERNAL/patches/linux/custom/linux.hash`
-and `$BR2_EXTERNAL/patches/linux-headers/custom/linux-headers.hash`
+The archive hash must be added in two locations:
+
+- Kernel: `patches/linux/custom/linux.hash`
+- Toolchain kernel headers: `patches/linux-headers/custom/linux-headers.hash`
 
 ```
-# Get hash of downloaded kernel 
-sha256 dl/linux/linux-[COMMIT_ID].tar.gz >> linux/linux.hash
-# Edit manually file linux/linux.hash and edit last line as:
+# Get the hash of the downloaded kernel archive
+sha256sum dl/linux/linux-[COMMIT_ID].tar.gz
+
+# Add this line to both hash files listed above:
 sha256  [HASH_OF_DOWNLOADED_TAR]  linux-[COMMIT_ID].tar.gz
 ```
 
@@ -159,5 +161,4 @@ In case you get 'broken pipe' error with your USB-C attached HF, add following:
 # /etc/modprobe.d/sndusbaudio.conf 
 options snd_usb_audio index=0 ignore_ctl_error=1
 ```
-
 
