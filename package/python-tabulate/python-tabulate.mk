@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-PYTHON_TABULATE_VERSION = 0.9.0
+PYTHON_TABULATE_VERSION = 0.10.0
 PYTHON_TABULATE_SOURCE = tabulate-$(PYTHON_TABULATE_VERSION).tar.gz
 PYTHON_TABULATE_SITE = https://pypi.python.org/packages/source/t/tabulate
 PYTHON_TABULATE_LICENSE = MIT

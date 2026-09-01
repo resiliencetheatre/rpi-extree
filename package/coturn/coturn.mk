@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-COTURN_VERSION = 4.6.2
+COTURN_VERSION = 4.17.2
 COTURN_SITE = $(call github,coturn,coturn,$(COTURN_VERSION))
 COTURN_DEPENDENCIES = libevent
 COTURN_INSTALL_STAGING = YES

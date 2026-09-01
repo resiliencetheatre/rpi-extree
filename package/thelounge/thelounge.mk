@@ -6,7 +6,7 @@
 #
 ################################################################################
 
-THELOUNGE_VERSION = v4.4.3 
+THELOUNGE_VERSION = v4.5.2
 THELOUNGE_SITE =  $(call github,thelounge,thelounge,$(THELOUNGE_VERSION))
 
 THELOUNGE_DEPENDENCIES = nodejs

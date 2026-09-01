@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-PYTHON_PUBSUB_VERSION = v4.0.3
+PYTHON_PUBSUB_VERSION = v4.0.7
 PYTHON_PUBSUB_SOURCE = $(PYTHON_PUBSUB_VERSION).tar.gz
 PYTHON_PUBSUB_SITE = https://github.com/schollii/pypubsub/archive/refs/tags
 PYTHON_PUBSUB_LICENSE =  BSD License (BSD License)

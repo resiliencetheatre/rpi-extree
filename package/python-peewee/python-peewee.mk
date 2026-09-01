@@ -8,9 +8,9 @@
 #
 ################################################################################
 
-PYTHON_PEEWEE_VERSION = 3.17.6
+PYTHON_PEEWEE_VERSION = 4.4.0
 PYTHON_PEEWEE_SOURCE = peewee-$(PYTHON_PEEWEE_VERSION).tar.gz
-PYTHON_PEEWEE_SITE = https://files.pythonhosted.org/packages/bd/be/e9c886b4601a19f4c34a1b75c5fe8b98a2115dd964251a76b24c977c369d
+PYTHON_PEEWEE_SITE = https://files.pythonhosted.org/packages/46/98/919cd14a0115c4e81093d723faff2ed03145966c61c5c8dac13104d4d94f
 PYTHON_PEEWEE_LICENSE = MIT
 PYTHON_PEEWEE_LICENSE_FILES = LICENSE-PSF LICENSE
 PYTHON_PEEWEE_SETUP_TYPE = setuptools

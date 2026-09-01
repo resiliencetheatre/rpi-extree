@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-FORGEJO_VERSION = v16.0.2
+FORGEJO_VERSION = v16.0.3
 FORGEJO_VERSION_SEMVER = $(patsubst v%,%,$(FORGEJO_VERSION))
 FORGEJO_SITE = https://codeberg.org/forgejo/forgejo.git
 FORGEJO_SITE_METHOD = git

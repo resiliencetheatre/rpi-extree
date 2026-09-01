@@ -1,4 +1,4 @@
-LVGL_COM_VERSION = df64bf7f531e02072e3e2fe62686d0bc570f3d2c
+LVGL_COM_VERSION = fd5cb184d8a481668fc85f14d8da7cf9acdfc96f
 LVGL_COM_SITE = https://codeberg.org/resiliencetheatre/lvgl-com.git
 LVGL_COM_SITE_METHOD = git
 LVGL_COM_DEPENDENCIES += libpng zlib

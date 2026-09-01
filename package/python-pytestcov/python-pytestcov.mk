@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-PYTHON_PYTESTCOV_VERSION = 4.1.0
+PYTHON_PYTESTCOV_VERSION = 7.1.0
 PYTHON_PYTESTCOV_SOURCE = pytest-cov-$(PYTHON_PYTESTCOV_VERSION).tar.gz
 PYTHON_PYTESTCOV_SITE = https://pypi.python.org/packages/source/p/pytest-cov
 PYTHON_PYTESTCOV_LICENSE = MIT

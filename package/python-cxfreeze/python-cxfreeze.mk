@@ -8,9 +8,9 @@
 #
 ################################################################################
 
-PYTHON_CXFREEZE_VERSION = 7.2.0
+PYTHON_CXFREEZE_VERSION = 8.7.0
 PYTHON_CXFREEZE_SOURCE = cx_freeze-$(PYTHON_CXFREEZE_VERSION).tar.gz
-PYTHON_CXFREEZE_SITE = https://files.pythonhosted.org/packages/6e/23/6947cd90cfe87712099fbeab2061309ab1d2a95d54f3453cb6bb21b00034
+PYTHON_CXFREEZE_SITE = https://files.pythonhosted.org/packages/5e/27/6f363ec63d167845f2bbbbe2ac5414f3679276a527e7f605029e7395fbf0
 PYTHON_CXFREEZE_LICENSE = MIT
 PYTHON_CXFREEZE_LICENSE_FILES = LICENSE-PSF LICENSE
 PYTHON_CXFREEZE_SETUP_TYPE = setuptools

@@ -6,7 +6,7 @@
 
 # Keep this as "main" for convenience during active development.
 # For reproducible builds, replace it with a fixed upstream commit hash.
-FIDOHMAC_VERSION = ca9beedbe203c03979c0d1c2ac01adc413598d95
+FIDOHMAC_VERSION = 5edd14d762faae852dde74474a6e432f297813e9
 FIDOHMAC_SITE = https://codeberg.org/resiliencetheatre/fidohmac.git
 FIDOHMAC_SITE_METHOD = git
 

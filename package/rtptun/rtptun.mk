@@ -1,4 +1,4 @@
-RTPTUN_VERSION = 5dd92376844387da018dee7f8ba4589edbb7407f
+RTPTUN_VERSION = v0.5
 RTPTUN_SITE = https://github.com/me-asri/rtptun.git
 RTPTUN_SITE_METHOD = git
 RTPTUN_PREFIX = $(TARGET_DIR)/usr

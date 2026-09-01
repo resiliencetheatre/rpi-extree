@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-SPACECOM_VERSION = 21cf43c28de6f5193fd5c559d13bf9b310bdb089
+SPACECOM_VERSION = ba8823505b4038d45ad27b9d282091169c552e13
 SPACECOM_SITE = https://codeberg.org/resiliencetheatre/spacecom.git
 SPACECOM_SITE_METHOD = git
 

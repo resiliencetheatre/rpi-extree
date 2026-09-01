@@ -2,7 +2,7 @@
 # libfido2
 ################################################################################
 
-LIBFIDO2_VERSION = 1.16.0
+LIBFIDO2_VERSION = 1.17.0
 LIBFIDO2_SITE    = $(call github,Yubico,libfido2,$(LIBFIDO2_VERSION))
 LIBFIDO2_SOURCE  = libfido2-$(LIBFIDO2_VERSION).tar.gz
 

@@ -5,9 +5,9 @@
 # https://files.pythonhosted.org/packages/eb/32/601fd9002509b32d1f9d3ec1e8cc5af9af619def83327adbb1ea18e1502a/print_color-0.4.6.tar.gz
 ################################################################################
 
-PYTHON_PRINT_COLOR_VERSION = 0.4.6
+PYTHON_PRINT_COLOR_VERSION = 0.4.7
 PYTHON_PRINT_COLOR_SOURCE = print_color-$(PYTHON_PRINT_COLOR_VERSION).tar.gz
-PYTHON_PRINT_COLOR_SITE = https://files.pythonhosted.org/packages/eb/32/601fd9002509b32d1f9d3ec1e8cc5af9af619def83327adbb1ea18e1502a
+PYTHON_PRINT_COLOR_SITE = https://files.pythonhosted.org/packages/2b/f4/1cdb69e5628aa15fbb7937bb7d13d0d336c126f378107414604f3f662d36
 PYTHON_PRINT_COLOR_LICENSE = MIT
 PYTHON_PRINT_COLOR_LICENSE_FILES = LICENSE-PSF LICENSE
 PYTHON_PRINT_COLOR_SETUP_TYPE = setuptools

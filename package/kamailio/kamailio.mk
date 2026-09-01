@@ -1,7 +1,7 @@
 #
 # kamailio sip server
 #
-KAMAILIO_VERSION = 8e398b8675079e1baac7c7575e70283175cdebe2
+KAMAILIO_VERSION = 6.1.4
 KAMAILIO_SITE = https://github.com/kamailio/kamailio.git
 KAMAILIO_SITE_METHOD = git
 KAMAILIO_DEPENDENCIES += mariadb sqlite

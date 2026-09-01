@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-WSTUNNEL_VERSION = v10.4.4
+WSTUNNEL_VERSION = v10.7.0
 WSTUNNEL_SITE    = https://github.com/erebe/wstunnel/archive/refs/tags
 WSTUNNEL_SOURCE  = $(WSTUNNEL_VERSION).tar.gz
 

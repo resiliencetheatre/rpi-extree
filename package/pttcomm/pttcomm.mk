@@ -1,4 +1,4 @@
-PTTCOMM_VERSION = 7adb61c5b95aedf2fd97536d44459c7c011d909c
+PTTCOMM_VERSION = 71fca3bdbf3fb4c2692e05bf5f9dd6021ffc19f2
 PTTCOMM_SITE = https://codeberg.org/48554e6d/pttcomm.git
 PTTCOMM_SITE_METHOD = git
 PTTCOMM_DEPENDENCIES = gstreamer1 gst1-plugins-base
@@ -18,4 +18,3 @@ define PTTCOMM_CLEAN_CMDS
 endef
 
 $(eval $(generic-package))
-
