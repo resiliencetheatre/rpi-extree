@@ -1,7 +1,7 @@
 [Unit]
 Description=Prepare concurrent Wi-Fi access point
-After=iwd.service systemd-networkd.service
-Requires=iwd.service
+After=iwd.service systemd-networkd.service wifi-ap-interface.service
+Requires=iwd.service wifi-ap-interface.service
 Before=hostapd.service
 
 [Service]

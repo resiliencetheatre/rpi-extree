@@ -2,8 +2,8 @@
 
 [Unit]
 Description=Wi-Fi Access Point
-Requires=wifi-ap-interface.service
-After=wifi-ap-interface.service
+Requires=wifi-ap-interface.service wifi-ap-prepare.service
+After=wifi-ap-interface.service wifi-ap-prepare.service
 After=iwd.service
 
 [Service]

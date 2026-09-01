@@ -42,7 +42,15 @@ case "$CHANNEL" in
         ;;
 esac
 
-echo "prepare-wifi-ap: using channel ${CHANNEL}"
+# hostapd maps 2.4 GHz channels through hw_mode=g and 5 GHz channels
+# through hw_mode=a. A fixed "g" mode makes channel 44 invalid.
+if [ "$CHANNEL" -le 14 ]; then
+    HW_MODE="g"
+else
+    HW_MODE="a"
+fi
+
+echo "prepare-wifi-ap: using channel ${CHANNEL} (hw_mode=${HW_MODE})"
 
 if ! /usr/bin/iw dev "$AP_IF" info >/dev/null 2>&1; then
     echo "prepare-wifi-ap: creating ${AP_IF}"
@@ -60,7 +68,7 @@ ssid=${SSID}
 country_code=${COUNTRY}
 ieee80211d=1
 
-hw_mode=g
+hw_mode=${HW_MODE}
 channel=${CHANNEL}
 
 wpa=2
