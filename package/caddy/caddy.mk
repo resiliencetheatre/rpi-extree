@@ -35,4 +35,7 @@ define CADDY_USERS
 	caddy -1 caddy -1 * /var/lib/caddy /bin/false - Caddy
 endef
 
+CADDY_GO_ENV = GOPROXY=https://proxy.golang.org
+
+
 $(eval $(golang-package))

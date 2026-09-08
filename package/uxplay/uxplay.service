@@ -1,0 +1,19 @@
+[Unit]
+Description=UxPlay headless AirPlay receiver
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/uxplay \
+    -n "AirPlay Capture" \
+    -nh \
+    -p 7100 \
+    -pin \
+    -vrtp "config-interval=1 ! udpsink host=192.168.50.20 port=5000" \
+    -artp "pt=96 ! udpsink host=192.168.50.20 port=5002"
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

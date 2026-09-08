@@ -97,4 +97,5 @@ endmenu
 
 menu "test packages"
 	source "$BR2_EXTERNAL_rpi_PATH/package/python-adafruit-circuitpython-rgb-display/Config.in"
+	source "$BR2_EXTERNAL_rpi_PATH/package/uxplay/Config.in"
 endmenu
