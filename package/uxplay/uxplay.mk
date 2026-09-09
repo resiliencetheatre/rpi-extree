@@ -15,12 +15,16 @@ UXPLAY_DEPENDENCIES = \
 	libplist \
 	gstreamer1 \
 	gst1-plugins-base \
-	gst1-plugins-good
+	gst1-plugins-good \
+	gst1-plugins-bad \
+	gst1-libav \
+	avahi
 
 UXPLAY_CONF_OPTS = \
 	-DNO_MARCH_NATIVE=ON \
 	-DNO_X11_DEPS=ON \
-	-DUSE_MDNS=ON
+	-DUSE_DNS_SD=ON \
+	-Dlevel=enabled
 
 define UXPLAY_INSTALL_INIT_SYSTEMD
 	$(INSTALL) -D -m 0644 \
