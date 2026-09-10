@@ -166,7 +166,16 @@ so for example `/opt/data/syncthing/Sync` is your path for default `Sync` folder
  
 # Using git 
 
-You can use git-shell commands `list` and `create` to create and list repositories at vault.
+For a vault without Forgejo, `init-lite-vault.sh DNS-NAME` configures the
+`git` user with `git-shell` and installs the commands from
+`/root/git-shell-commands` into `/opt/data/git/git-shell-commands`.
+Add your SSH public key to `/opt/data/git/.ssh/authorized_keys` after setup.
+The standalone `create-git-user.sh` also installs these commands.
+
+You can use git-shell commands `help`, `list` and `create` to manage repositories.
+Interactive login is disabled by `no-interactive-login`; invoke commands over SSH
+as shown below. The Forgejo initializer (`init-vault.sh`) keeps `/bin/sh` for
+Forgejo's forced SSH commands.
 
 	# Create repository to vault
 	ssh git@vault create [project].git

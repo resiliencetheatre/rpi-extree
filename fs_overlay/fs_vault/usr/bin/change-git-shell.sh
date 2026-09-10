@@ -1,8 +1,10 @@
 #!/bin/sh
 # fix-git-shell.sh (BusyBox compatible, any position)
-# Ensure git user's shell is /bin/git-shell
+# Ensure git user's shell is the installed git-shell
 
 set -eu
+
+GIT_SHELL=$(command -v git-shell) || { echo "Error: git-shell not found." >&2; exit 1; }
 
 PASSWD_FILE="/etc/passwd"
 TS="$(date +%Y%m%d-%H%M%S)"
@@ -29,12 +31,12 @@ fi
 
 # check current shell
 case "$git_line" in
-    *:/bin/git-shell)
-        echo "Already using /bin/git-shell, nothing to do."
+    *:"$GIT_SHELL")
+        echo "Already using $GIT_SHELL, nothing to do."
         exit 0
         ;;
     *:/bin/sh)
-        new_git_line="$(echo "$git_line" | sed 's#/bin/sh$#/bin/git-shell#')"
+        new_git_line="$(echo "$git_line" | sed "s#/bin/sh$#${GIT_SHELL}#")"
         ;;
     *)
         echo "Git user has unexpected shell, refusing." >&2
@@ -51,5 +53,5 @@ sed "s#^git:.*#${new_git_line}#" "$PASSWD_FILE" > "$TMP"
 
 mv "$TMP" "$PASSWD_FILE"
 
-echo "git user shell updated to /bin/git-shell"
+echo "git user shell updated to $GIT_SHELL"
 
