@@ -1,0 +1,14 @@
+kernel=Image
+arm_64bit=1
+disable_overscan=1
+
+# Serial console on the 40-pin header, matching the Pi 5 vault config.
+# Pin 6: GND, pin 8: TX (GPIO14), pin 10: RX (GPIO15).
+dtparam=uart0_console
+enable_uart=1
+
+# Waveshare 6.25inch DSI LCD on CAM/DISP1 (the original, non-B panel).
+# For CAM/DISP0, append ,dsi0 to the panel overlay below.
+display_auto_detect=0
+dtoverlay=vc4-kms-v3d
+dtoverlay=vc4-kms-dsi-waveshare-panel,6_25_inch
