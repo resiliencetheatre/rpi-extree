@@ -1,0 +1,15 @@
+# /usr/lib/systemd/system/wifi-web-ui.service
+
+[Unit]
+Description=Wi-Fi configuration web UI
+After=iwd.service hostapd.service
+Requires=iwd.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/wifi-web-ui
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

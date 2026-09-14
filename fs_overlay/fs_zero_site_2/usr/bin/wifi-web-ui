@@ -1,0 +1,1004 @@
+#!/usr/bin/python3
+
+import html
+import ipaddress
+import re
+import subprocess
+import time
+import urllib.parse
+
+from http.server import BaseHTTPRequestHandler, HTTPServer
+
+
+BIND = "192.168.50.1"
+PORT = 8082
+INTERFACE = "wlan0"
+
+IWCTL = "/usr/bin/iwctl"
+NETWORKCTL = "/usr/bin/networkctl"
+IP = "/usr/bin/ip"
+
+ANSI_RE = re.compile(
+    r"\x1b(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])"
+)
+
+
+def run_command(args, timeout=20):
+    env = {
+        "PATH": "/usr/bin:/bin",
+        "TERM": "dumb",
+    }
+
+    p = subprocess.run(
+        args,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        timeout=timeout,
+        env=env,
+    )
+
+    output = ANSI_RE.sub("", p.stdout)
+    return p.returncode, output.strip()
+
+
+def run_iwctl(*args, timeout=20):
+    return run_command(
+        [IWCTL, *args],
+        timeout=timeout,
+    )
+
+
+def run_networkctl(*args, timeout=20):
+    return run_command(
+        [NETWORKCTL, *args],
+        timeout=timeout,
+    )
+
+
+def get_station_status():
+    rc, output = run_iwctl(
+        "station",
+        INTERFACE,
+        "show",
+    )
+
+    if rc != 0:
+        return {
+            "connected": False,
+            "ssid": None,
+            "text": output or "Unable to read station status",
+        }
+
+    connected = False
+    ssid = None
+
+    for line in output.splitlines():
+
+        if "State" in line:
+            value = line.split(
+                "State",
+                1,
+            )[-1].strip().lower()
+
+            if value == "connected":
+                connected = True
+
+        if "Connected network" in line:
+            ssid = line.split(
+                "Connected network",
+                1,
+            )[-1].strip()
+
+    return {
+        "connected": connected,
+        "ssid": ssid,
+        "text": output,
+    }
+
+
+def get_ipv4_address():
+    rc, output = run_command(
+        [
+            IP,
+            "-4",
+            "-o",
+            "addr",
+            "show",
+            "dev",
+            INTERFACE,
+            "scope",
+            "global",
+        ]
+    )
+
+    if rc != 0:
+        return None
+
+    for line in output.splitlines():
+        fields = line.split()
+
+        try:
+            index = fields.index("inet")
+            address = fields[index + 1]
+
+            return str(
+                ipaddress.ip_interface(address).ip
+            )
+
+        except (
+            ValueError,
+            IndexError,
+        ):
+            continue
+
+    return None
+
+
+def wait_for_ipv4(timeout=12):
+    end = time.monotonic() + timeout
+
+    while time.monotonic() < end:
+
+        address = get_ipv4_address()
+
+        if address:
+            return address
+
+        time.sleep(1)
+
+    return None
+
+
+def reconfigure_network():
+    return run_networkctl(
+        "reconfigure",
+        INTERFACE,
+        timeout=15,
+    )
+
+
+def disconnect_network():
+    rc, output = run_iwctl(
+        "station",
+        INTERFACE,
+        "disconnect",
+        timeout=15,
+    )
+
+    net_rc, net_output = reconfigure_network()
+
+    if rc != 0:
+        return False, output or "Wi-Fi disconnect failed"
+
+    if net_rc != 0:
+        return False, (
+            "Wi-Fi disconnected, but networkd reconfigure failed: "
+            + (net_output or "unknown error")
+        )
+
+    return True, "Disconnected"
+
+
+def scan_networks():
+    run_iwctl(
+        "station",
+        INTERFACE,
+        "scan",
+        timeout=15,
+    )
+
+    time.sleep(2)
+
+    rc, output = run_iwctl(
+        "station",
+        INTERFACE,
+        "get-networks",
+        timeout=15,
+    )
+
+    if rc != 0:
+        raise RuntimeError(
+            output or "Unable to retrieve Wi-Fi networks"
+        )
+
+    networks = []
+
+    for line in output.splitlines():
+
+        line = line.strip()
+
+        if not line:
+            continue
+
+        current = False
+
+        if line.startswith(">"):
+            current = True
+            line = line[1:].strip()
+
+        fields = re.split(
+            r"\s{2,}",
+            line,
+        )
+
+        if len(fields) < 3:
+            continue
+
+        ssid = fields[0].strip()
+        security = fields[1].strip().lower()
+        signal = fields[2].strip()
+
+        if ssid.lower() in (
+            "network name",
+            "name",
+        ):
+            continue
+
+        if security not in (
+            "open",
+            "psk",
+            "8021x",
+        ):
+            continue
+
+        networks.append(
+            {
+                "ssid": ssid,
+                "security": security,
+                "signal": signal,
+                "current": current,
+            }
+        )
+
+    return networks
+
+
+def get_known_networks():
+    rc, output = run_iwctl(
+        "known-networks",
+        "list",
+        timeout=15,
+    )
+
+    if rc != 0:
+        return []
+
+    networks = []
+
+    for line in output.splitlines():
+
+        line = line.strip()
+
+        if not line:
+            continue
+
+        fields = re.split(
+            r"\s{2,}",
+            line,
+        )
+
+        if len(fields) < 2:
+            continue
+
+        ssid = fields[0].strip()
+
+        if ssid.lower() in (
+            "name",
+            "network name",
+        ):
+            continue
+
+        if not ssid:
+            continue
+
+        if set(ssid) <= {"-", " "}:
+            continue
+
+        networks.append(ssid)
+
+    return networks
+
+
+def connect_network(ssid, security, password):
+    if not ssid:
+        return False, "SSID is empty"
+
+    status = get_station_status()
+
+    #
+    # Explicitly disconnect before switching networks.
+    #
+    if status["connected"]:
+
+        run_iwctl(
+            "station",
+            INTERFACE,
+            "disconnect",
+            timeout=15,
+        )
+
+        reconfigure_network()
+
+        time.sleep(1)
+
+    known = get_known_networks()
+
+    if security == "open":
+
+        args = [
+            "station",
+            INTERFACE,
+            "connect",
+            ssid,
+        ]
+
+    elif ssid in known and not password:
+
+        #
+        # Saved network: let iwd use its stored credentials.
+        #
+        args = [
+            "station",
+            INTERFACE,
+            "connect",
+            ssid,
+        ]
+
+    else:
+
+        if not password:
+            return False, "Password is required"
+
+        args = [
+            "--passphrase",
+            password,
+            "station",
+            INTERFACE,
+            "connect",
+            ssid,
+        ]
+
+    try:
+        rc, output = run_iwctl(
+            *args,
+            timeout=40,
+        )
+
+    except subprocess.TimeoutExpired:
+        return False, "Wi-Fi connection attempt timed out"
+
+    if rc != 0:
+        return False, output or "Wi-Fi connection failed"
+
+    #
+    # iwd now owns the association.
+    # Ask systemd-networkd to restart IP configuration/DHCP.
+    #
+    net_rc, net_output = reconfigure_network()
+
+    if net_rc != 0:
+        return False, (
+            "Wi-Fi connected, but systemd-networkd "
+            "reconfiguration failed: "
+            + (net_output or "unknown error")
+        )
+
+    address = wait_for_ipv4(
+        timeout=12
+    )
+
+    if address:
+        return True, (
+            f"Connected to {ssid}. "
+            f"IPv4 address: {address}"
+        )
+
+    return True, (
+        f"Connected to {ssid}, "
+        "but no IPv4 address was received yet."
+    )
+
+
+def forget_network(ssid):
+    if not ssid:
+        return False, "SSID is empty"
+
+    status = get_station_status()
+
+    #
+    # Disconnect first if this is the currently active network.
+    #
+    if (
+        status["connected"]
+        and status["ssid"] == ssid
+    ):
+
+        rc, output = run_iwctl(
+            "station",
+            INTERFACE,
+            "disconnect",
+            timeout=15,
+        )
+
+        if rc != 0:
+            return False, (
+                "Unable to disconnect before forgetting: "
+                + (output or "unknown error")
+            )
+
+        reconfigure_network()
+
+        time.sleep(1)
+
+    rc, output = run_iwctl(
+        "known-networks",
+        ssid,
+        "forget",
+        timeout=15,
+    )
+
+    if rc != 0:
+        return False, (
+            output or "Unable to forget network"
+        )
+
+    reconfigure_network()
+
+    return True, f"Forgot network: {ssid}"
+
+
+def page(message=""):
+    try:
+        networks = scan_networks()
+        scan_error = None
+
+    except Exception as e:
+        networks = []
+        scan_error = str(e)
+
+    status = get_station_status()
+    ipv4 = get_ipv4_address()
+    known = set(get_known_networks())
+
+    message_html = ""
+
+    if message:
+        message_html = f"""
+        <div class="message">
+            {html.escape(message)}
+        </div>
+        """
+
+    if status["ssid"]:
+        status_ssid = html.escape(
+            status["ssid"]
+        )
+    else:
+        status_ssid = "-"
+
+    status_ip = html.escape(
+        ipv4 or "-"
+    )
+
+    rows = ""
+
+    for network in networks:
+
+        raw_ssid = network["ssid"]
+
+        ssid_text = html.escape(
+            raw_ssid
+        )
+
+        ssid_value = html.escape(
+            raw_ssid,
+            quote=True,
+        )
+
+        security_raw = network[
+            "security"
+        ]
+
+        security_text = html.escape(
+            security_raw
+        )
+
+        security_value = html.escape(
+            security_raw,
+            quote=True,
+        )
+
+        signal = html.escape(
+            network["signal"]
+        )
+
+        is_known = raw_ssid in known
+
+        badges = []
+
+        if network["current"]:
+            badges.append(
+                "connected"
+            )
+
+        if is_known:
+            badges.append(
+                "saved"
+            )
+
+        badge_html = ""
+
+        if badges:
+            badge_html = (
+                '<span class="badge">'
+                + " / ".join(badges)
+                + "</span>"
+            )
+
+        password_field = ""
+
+        if (
+            security_raw != "open"
+            and not is_known
+        ):
+            password_field = """
+            <input
+                type="password"
+                name="password"
+                placeholder="Wi-Fi password"
+                autocomplete="off"
+                required
+            >
+            """
+
+        rows += f"""
+        <div class="network">
+
+            <div class="network-info">
+
+                <div>
+                    <strong>{ssid_text}</strong>
+                    {badge_html}
+                </div>
+
+                <div>
+                    {security_text}
+                    &nbsp;
+                    {signal}
+                </div>
+
+            </div>
+
+            <form
+                method="POST"
+                action="/connect"
+            >
+
+                <input
+                    type="hidden"
+                    name="ssid"
+                    value="{ssid_value}"
+                >
+
+                <input
+                    type="hidden"
+                    name="security"
+                    value="{security_value}"
+                >
+
+                {password_field}
+
+                <button
+                    type="submit"
+                    class="connect"
+                >
+                    Connect
+                </button>
+
+            </form>
+        """
+
+        if is_known:
+
+            rows += f"""
+            <form
+                method="POST"
+                action="/forget"
+            >
+
+                <input
+                    type="hidden"
+                    name="ssid"
+                    value="{ssid_value}"
+                >
+
+                <button
+                    type="submit"
+                    class="forget"
+                >
+                    Forget
+                </button>
+
+            </form>
+            """
+
+        rows += """
+        </div>
+        """
+
+    if not rows and not scan_error:
+        rows = """
+        <div class="network">
+            No Wi-Fi networks found.
+        </div>
+        """
+
+    if scan_error:
+        rows = f"""
+        <div class="error">
+            Scan failed:
+            {html.escape(scan_error)}
+        </div>
+        """
+
+    disconnect_button = ""
+
+    if status["connected"]:
+
+        disconnect_button = """
+        <form
+            method="POST"
+            action="/disconnect"
+        >
+
+            <button
+                type="submit"
+                class="disconnect"
+            >
+                Disconnect
+            </button>
+
+        </form>
+        """
+
+    return f"""<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8">
+
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+>
+
+<title>Wi-Fi Setup</title>
+
+<style>
+
+body {{
+    font-family: sans-serif;
+    max-width: 700px;
+    margin: 30px auto;
+    padding: 0 15px;
+    background: #f5f5f5;
+}}
+
+h1 {{
+    margin-bottom: 5px;
+}}
+
+.status {{
+    background: white;
+    padding: 15px;
+    border-radius: 6px;
+    margin-bottom: 15px;
+}}
+
+.network {{
+    background: white;
+    padding: 14px;
+    margin: 10px 0;
+    border-radius: 6px;
+}}
+
+.network-info {{
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+    margin-bottom: 10px;
+}}
+
+.network form {{
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}}
+
+.network input[type=password] {{
+    flex: 1;
+    min-width: 100px;
+    padding: 8px;
+}}
+
+button {{
+    display: inline-block;
+    padding: 10px 18px;
+    border: 1px solid #888;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}}
+
+button.connect {{
+    font-weight: bold;
+}}
+
+button.forget {{
+    background: #eee;
+}}
+
+button.disconnect {{
+    margin-top: 10px;
+}}
+
+.message {{
+    padding: 12px;
+    background: #e8f3e8;
+    margin: 15px 0;
+    border-radius: 6px;
+}}
+
+.error {{
+    padding: 12px;
+    background: #f8dddd;
+    border-radius: 6px;
+}}
+
+.badge {{
+    font-size: 11px;
+    background: #ddd;
+    padding: 2px 5px;
+    border-radius: 4px;
+    margin-left: 5px;
+}}
+
+.refresh {{
+    display: inline-block;
+    margin: 10px 0;
+}}
+
+.small {{
+    font-size: 13px;
+}}
+
+</style>
+
+</head>
+
+<body>
+
+<h1>Wi-Fi Setup</h1>
+
+<p class="small">
+Client interface:
+<strong>{INTERFACE}</strong>
+</p>
+
+{message_html}
+
+<div class="status">
+
+    <strong>Status</strong>
+
+    <p>
+        Network:
+        <strong>{status_ssid}</strong>
+        <br>
+
+        IPv4:
+        <strong>{status_ip}</strong>
+    </p>
+
+    {disconnect_button}
+
+</div>
+
+<a
+    class="refresh"
+    href="/"
+>
+    Rescan networks
+</a>
+
+<h2>Available networks</h2>
+
+{rows}
+
+</body>
+
+</html>
+"""
+
+
+class Handler(BaseHTTPRequestHandler):
+
+    def send_page(self, message=""):
+
+        body = page(
+            message
+        ).encode(
+            "utf-8"
+        )
+
+        self.send_response(200)
+
+        self.send_header(
+            "Content-Type",
+            "text/html; charset=utf-8"
+        )
+
+        self.send_header(
+            "Content-Length",
+            str(len(body))
+        )
+
+        self.send_header(
+            "Cache-Control",
+            "no-store"
+        )
+
+        self.end_headers()
+
+        self.wfile.write(
+            body
+        )
+
+
+    def read_form(self):
+
+        try:
+            length = int(
+                self.headers.get(
+                    "Content-Length",
+                    "0"
+                )
+            )
+
+        except ValueError:
+            return None
+
+        if length > 4096:
+            return None
+
+        data = self.rfile.read(
+            length
+        ).decode(
+            "utf-8",
+            errors="replace"
+        )
+
+        return urllib.parse.parse_qs(
+            data
+        )
+
+
+    def do_GET(self):
+
+        path = urllib.parse.urlparse(
+            self.path
+        ).path
+
+        if path == "/":
+            self.send_page()
+            return
+
+        self.send_error(404)
+
+
+    def do_POST(self):
+
+        path = urllib.parse.urlparse(
+            self.path
+        ).path
+
+        fields = self.read_form()
+
+        if fields is None:
+            self.send_error(400)
+            return
+
+        if path == "/connect":
+
+            ssid = fields.get(
+                "ssid",
+                [""]
+            )[0]
+
+            security = fields.get(
+                "security",
+                [""]
+            )[0]
+
+            password = fields.get(
+                "password",
+                [""]
+            )[0]
+
+            ok, message = connect_network(
+                ssid,
+                security,
+                password,
+            )
+
+            self.send_page(
+                message
+            )
+            return
+
+        if path == "/disconnect":
+
+            ok, message = disconnect_network()
+
+            self.send_page(
+                message
+            )
+            return
+
+        if path == "/forget":
+
+            ssid = fields.get(
+                "ssid",
+                [""]
+            )[0]
+
+            ok, message = forget_network(
+                ssid
+            )
+
+            self.send_page(
+                message
+            )
+            return
+
+        self.send_error(404)
+
+
+    def log_message(
+        self,
+        fmt,
+        *args
+    ):
+
+        print(
+            "%s - %s"
+            % (
+                self.client_address[0],
+                fmt % args,
+            )
+        )
+
+
+def main():
+
+    print(
+        "Wi-Fi setup UI listening on "
+        f"http://{BIND}:{PORT}/"
+    )
+
+    server = HTTPServer(
+        (
+            BIND,
+            PORT,
+        ),
+        Handler,
+    )
+
+    server.serve_forever()
+
+
+if __name__ == "__main__":
+    main()

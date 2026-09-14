@@ -1,0 +1,18 @@
+#!/bin/sh
+
+SOURCE=/var/lib/caddy/caddy/pki/authorities/local/root.crt
+TARGET_DIR=/tmp/certs
+TARGET="$TARGET_DIR/zero-https-ca.pem"
+
+mkdir -p "$TARGET_DIR"
+
+echo "Waiting for Caddy root CA..."
+
+while [ ! -f "$SOURCE" ]; do
+    sleep 1
+done
+
+cp "$SOURCE" "$TARGET"
+chmod 644 "$TARGET"
+
+echo "Caddy root CA copied to $TARGET"

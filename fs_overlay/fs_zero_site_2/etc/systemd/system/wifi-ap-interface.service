@@ -1,0 +1,16 @@
+# /etc/systemd/system/wifi-ap-interface.service
+
+[Unit]
+Description=Create Wi-Fi AP virtual interface
+After=iwd.service
+Before=hostapd.service
+Before=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/iw dev wlan0 interface add ap0 type __ap
+ExecStop=/bin/iw dev ap0 del
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

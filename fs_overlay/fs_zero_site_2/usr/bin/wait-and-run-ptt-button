@@ -1,0 +1,9 @@
+#!/bin/sh
+
+SOCK=/tmp/udpptt.sock
+
+while [ ! -S "$SOCK" ]; do
+    sleep 0.2
+done
+
+exec /usr/bin/python3 /root/ptt_button.py

@@ -1,0 +1,13 @@
+# /etc/systemd/system/whisplay-site.service
+[Unit]
+Description=Whisplay display site
+After=multi-user.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /root/site.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
