@@ -1,0 +1,11 @@
+[Unit]
+Description=Generate taky-ng TLS certificates on first boot
+Before=taky-ng.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/taky-generator/generate-taky-ng-server-certs.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

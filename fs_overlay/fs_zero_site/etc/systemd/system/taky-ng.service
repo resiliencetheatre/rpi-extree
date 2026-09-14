@@ -1,8 +1,9 @@
 [Unit]
 Description=taky-ng CoT server
 Documentation=https://codeberg.org/hunterSG7/taky-ng
+Requires=generate-taky-ng-server-certs.service
 Wants=network.target wifi-ap-interface.service
-After=systemd-networkd.service wifi-ap-interface.service network.target
+After=generate-taky-ng-server-certs.service systemd-networkd.service wifi-ap-interface.service network.target
 ConditionPathExists=/etc/taky/taky.conf
 ConditionPathExists=/etc/taky/ssl/ca.crt
 ConditionPathExists=/etc/taky/ssl/server.crt
