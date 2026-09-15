@@ -1,0 +1,26 @@
+config BR2_PACKAGE_HSMPROXY
+	bool "hsmproxy"
+	depends on BR2_USE_MMU # pcsc-lite, opensc, p11-kit
+	depends on !BR2_STATIC_LIBS # dlopen, pcsc-lite, opensc, p11-kit
+	depends on BR2_TOOLCHAIN_HAS_THREADS
+	depends on BR2_TOOLCHAIN_GCC_AT_LEAST_4_9 # pcsc-lite, ccid
+	select BR2_PACKAGE_OPENSSL
+	select BR2_PACKAGE_PCSC_LITE
+	select BR2_PACKAGE_P11_KIT
+	select BR2_PACKAGE_OPENSC
+	select BR2_PACKAGE_CCID
+	help
+	  SmartCard-HSM authenticated, encrypted UDP proxy for video,
+	  audio and text channels. Uses OpenSSL and OpenSC PKCS#11 over
+	  PC/SC, with USB CCID smartcard reader support.
+
+	  Provision card identities and a peer configuration before
+	  starting hsmproxy manually with --config. The card PIN is
+	  supplied interactively or through --pin-fd.
+
+	  https://github.com/resiliencetheatre/hsmproxy
+
+comment "hsmproxy needs a toolchain w/ threads, dynamic library, gcc >= 4.9"
+	depends on BR2_USE_MMU
+	depends on !BR2_TOOLCHAIN_HAS_THREADS || BR2_STATIC_LIBS || \
+		!BR2_TOOLCHAIN_GCC_AT_LEAST_4_9

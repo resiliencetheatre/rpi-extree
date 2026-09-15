@@ -33,6 +33,7 @@ menu "Edgemap"
 endmenu
 
 menu "Network and encapsulation"
+	source "$BR2_EXTERNAL_rpi_PATH/package/hsmproxy/Config.in"
 	source "$BR2_EXTERNAL_rpi_PATH/package/udp2raw/Config.in"
 	source "$BR2_EXTERNAL_rpi_PATH/package/rtptun/Config.in"
 	source "$BR2_EXTERNAL_rpi_PATH/package/udpspeeder/Config.in"

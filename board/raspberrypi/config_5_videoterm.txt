@@ -11,4 +11,4 @@ enable_uart=1
 # For CAM/DISP0, append ,dsi0 to the panel overlay below.
 display_auto_detect=0
 dtoverlay=vc4-kms-v3d
-dtoverlay=vc4-kms-dsi-waveshare-panel,6_25_inch
+dtoverlay=vc4-kms-dsi-waveshare-panel,6_25_inch,rotation=90
