@@ -1,17 +1,22 @@
 [Unit]
 Description=UxPlay headless AirPlay receiver
 Wants=network-online.target
-After=network-online.target
+Requires=hostapd.service avahi-daemon.service
+After=network-online.target hostapd.service avahi-daemon.service
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/uxplay \
-    -n "AirPlay Capture" \
-    -nh \
-    -p 7100 \
-    -pin \
-    -vrtp "config-interval=1 ! udpsink host=192.168.50.20 port=5000" \
-    -artp "pt=96 ! udpsink host=192.168.50.20 port=5002"
+
+# Wait up to 30 seconds for ap0 to have its configured IPv4 address.
+ExecStartPre=/bin/sh -c 'n=0; until ip -4 addr show dev ap0 2>/dev/null | grep -q "inet 192.168.50.1/24"; do n=$((n+1)); [ "$n" -ge 30 ] && { echo "ap0 did not become ready" >&2; exit 1; }; sleep 1; done'
+
+ExecStart=/bin/uxplay \
+    -n "iPhone Recorder" \
+    -as "fakesink sync=false" \
+    -vs "fakesink sync=false" \
+    -p \
+    -mp4 /opt/recordings/iphone
+
 Restart=on-failure
 RestartSec=3
 
