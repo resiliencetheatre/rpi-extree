@@ -1,0 +1,26 @@
+[Unit]
+Description=Weston DSI kiosk hardware verification
+After=systemd-udev-trigger.service
+Conflicts=getty@tty7.service lvgl-com.service
+
+[Service]
+Type=simple
+# Root and the built-in libseat backend are deliberate for hardware bring-up.
+# No login session or separate seatd daemon is needed.
+Environment=LIBSEAT_BACKEND=builtin
+Environment=XDG_RUNTIME_DIR=/run/weston-kiosk
+RuntimeDirectory=weston-kiosk
+RuntimeDirectoryMode=0700
+TTYPath=/dev/tty7
+StandardInput=tty
+StandardOutput=journal
+StandardError=journal
+TTYReset=yes
+TTYVHangup=yes
+TTYVTDisallocate=yes
+ExecStart=/usr/bin/videoterm-weston
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

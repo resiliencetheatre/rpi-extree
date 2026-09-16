@@ -1,0 +1,19 @@
+#!/bin/sh
+set -eu
+
+# DRM card numbers vary with probe order. Select the connected DSI output,
+# rather than accidentally starting the kiosk on VC4 HDMI or simpledrm.
+for connector in /sys/class/drm/card*-DSI-*; do
+    [ -r "$connector/status" ] || continue
+    read -r status < "$connector/status"
+    [ "$status" = connected ] || continue
+    card=${connector##*/}
+    card=${card%%-DSI-*}
+    echo "Starting Weston on $card (${connector##*/})" >&2
+    exec /usr/bin/weston --backend=drm --renderer=gl \
+        --drm-device="$card" --socket=wayland-0 \
+        --config=/etc/xdg/weston/weston.ini
+done
+
+echo "No connected DSI connector found; retrying through systemd" >&2
+exit 1
