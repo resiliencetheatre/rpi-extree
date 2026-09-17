@@ -1,0 +1,17 @@
+[Unit]
+Description=LVGL communications UI on Weston
+Requires=weston-kiosk.service
+After=weston-kiosk.service
+PartOf=weston-kiosk.service
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/lvgl-com
+Environment=XDG_RUNTIME_DIR=/run/weston-kiosk
+Environment=WAYLAND_DISPLAY=wayland-0
+ExecStart=/usr/bin/lvgl-com
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
