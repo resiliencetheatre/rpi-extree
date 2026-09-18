@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-UXPLAY_VERSION = 9f3c2bbc658645533fa1057e76c29ec8c947fa0f
+UXPLAY_VERSION = 57ea83411d5f7e0b38c5841987439340543f025c
 UXPLAY_SITE = $(call github,FDH2,UxPlay,$(UXPLAY_VERSION))
 UXPLAY_LICENSE = GPL-3.0
 UXPLAY_LICENSE_FILES = LICENSE

@@ -5,6 +5,7 @@ import datetime
 import re
 import subprocess
 import time
+from pathlib import Path
 
 from clock import (
     BLACK,
@@ -121,6 +122,15 @@ def read_network():
     wlan_line, wlan_ip, latency = wlan_status()
     return wlan_line, wlan_ip, latency, ap_clients()
 
+def read_status():
+    status_file = Path("/tmp/status.txt")
+    if status_file.exists():
+        with open('/tmp/status.txt', 'r') as file:
+            status = file.read().rstrip()
+    else:
+        print("status file NOT found")
+        status=""
+    return status
 
 def main():
     lcd = WhisplayLCD()
@@ -147,38 +157,42 @@ def main():
 
             timestr = now.strftime("%H:%M:%S")
             datestr = now.strftime("%a %Y-%m-%d").upper()
-            draw_text(fb, center_text_x("ZERO SITE", 2), 3, "ZERO SITE", BLUE, scale=2)
-            draw_text(fb, center_text_x(timestr, 5), 24, timestr, GREEN, scale=5)
-            draw_text(fb, center_text_x(datestr, 2), 65, datestr, YELLOW, scale=2)
-            draw_rect(fb, 4, 84, 232, 1, BLUE)
+            draw_text(fb, center_text_x(timestr, 5), 15, timestr, GREEN, scale=5)
+            draw_text(fb, center_text_x(datestr, 2), 55, datestr, YELLOW, scale=2)
+            draw_rect(fb, 4, 75, 232, 1, BLUE)
 
             wlan_color = GREEN if not wlan_line.endswith("DOWN") else RED
-            draw_text(fb, 4, 92, wlan_line, wlan_color, scale=2)
-            draw_text(fb, 4, 112, wlan_ip, WHITE, scale=2)
+            draw_text(fb, 4, 82, wlan_line, wlan_color, scale=2)
+            draw_text(fb, 4, 102, wlan_ip, WHITE, scale=2)
             if latency:
                 latency_text = "(" + latency + ")"
                 draw_text(
                     fb,
                     LCD_W - 4 - len(latency_text) * 6,
-                    116,
+                    106,
                     latency_text,
                     GREEN if latency != "TIMEOUT" else RED,
                     scale=1,
                 )
 
-            draw_rect(fb, 4, 133, 232, 1, BLUE)
+            draw_rect(fb, 4, 123, 232, 1, BLUE)
             heading = "AP0 %d CLIENT%s" % (len(clients), "" if len(clients) == 1 else "S")
-            draw_text(fb, 4, 141, heading, BLUE, scale=2)
+            draw_text(fb, 4, 131, heading, BLUE, scale=2)
 
             if clients:
                 for index, (hostname, address) in enumerate(clients[:5]):
-                    y = 163 + index * 19
+                    y = 153 + index * 19
                     address_x = LCD_W - 4 - len(address) * 12
                     hostname_chars = max(1, (address_x - 4) // 12 - 1)
                     draw_text(fb, 4, y, hostname[:hostname_chars], WHITE, scale=2)
                     draw_text(fb, address_x, y, address, WHITE, scale=2)
             else:
-                draw_text(fb, 4, 163, "NO CLIENTS", WHITE, scale=2)
+                draw_text(fb, 4, 153, "NO CLIENTS", WHITE, scale=2)
+
+
+            draw_rect(fb, 4, 175, 232, 1, BLUE)
+            status_test=read_status()
+            draw_text(fb, center_text_x(status_test, 3), 200, status_test, RED, scale=3)
 
             lcd.flush(fb)
     except KeyboardInterrupt:
