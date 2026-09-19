@@ -1,0 +1,23 @@
+start_file=start4.elf
+fixup_file=fixup4.dat
+
+kernel=Image
+arm_64bit=1
+disable_overscan=1
+
+# Serial console on the 40-pin header, using ttyAMA0.
+# Pin 6: GND, pin 8: TX (GPIO14), pin 10: RX (GPIO15).
+dtoverlay=miniuart-bt
+enable_uart=1
+
+display_auto_detect=0
+dtoverlay=vc4-kms-v3d
+# Waveshare 6.25inch DSI LCD on the Pi 4 DSI connector (non-B panel).
+# dtoverlay=vc4-kms-dsi-waveshare-panel,6_25_inch,rotation=90
+
+# 4.3inch Capacitive Touch Display for Raspberry Pi, DSI Interface, 800×480
+dtoverlay=vc4-kms-dsi-7inch
+
+# Camera Module v1.3 (OV5647) on the Pi 4 CSI camera connector.
+camera_auto_detect=0
+dtoverlay=ov5647
