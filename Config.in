@@ -69,6 +69,7 @@ menu "User interface"
 	source "$BR2_EXTERNAL_rpi_PATH/package/lvgl-demo/Config.in"
 	source "$BR2_EXTERNAL_rpi_PATH/package/lvgl-app/Config.in"
 	source "$BR2_EXTERNAL_rpi_PATH/package/lvgl-com/Config.in"
+	source "$BR2_EXTERNAL_rpi_PATH/package/lvgl-video/Config.in"
 	source "$BR2_EXTERNAL_rpi_PATH/package/blinkstickctl/Config.in"
 endmenu
 
