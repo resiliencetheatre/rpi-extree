@@ -2,7 +2,7 @@
 
 Link is an open-source resilience demonstration project for communication with confidence.
 
-![Intro picture](images/title-image.png "Introduction")
+![Intro picture](../images/title-image.png "Introduction")
 
 Its main purpose is to serve as a training project for [critical thinking](https://resilience-theatre.com/wiki/doku.php?id=articles:cellular#mobiles) and [dogma avoidance](https://www.thesalesblog.com/blog/how-to-avoid-having-your-beliefs-become-dogma). The project is based on knowledge, experience, and lessons learned from mistakes.
 
