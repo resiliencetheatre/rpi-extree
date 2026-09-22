@@ -40,7 +40,7 @@ Its main purpose is to serve as a training project for [critical thinking](https
 
 Pictures of devices on which Link has been built and tested:
 
-![Devices](images/link-units.png "Implementations")
+![Devices](../images/link-units.png "Implementations")
 
 ## Bill of materials: Raspberry Pi
 
@@ -62,7 +62,7 @@ Pictures of devices on which Link has been built and tested:
 
 ## Operating modes
 
-![Intro picture](images/operation-modes.png "Operating modes")
+![Intro picture](../images/operation-modes.png "Operating modes")
 
 * Full-duplex voice with Codec2 and XOR-based secrecy
 * Push-To-Talk with a “word of the day” symmetric cipher using XChaCha20 and Opus
@@ -119,7 +119,7 @@ After the card has been written, reinsert it and mount the rootfs partition so t
 
 # Unit provisioning
 
-![Provisioning picture](images/link-provisoning.excalidraw.png "Provisioning")
+![Provisioning picture](../images/link-provisoning.excalidraw.png "Provisioning")
 
 Link units are provisioned as pairs because communication party selection is not yet implemented. Units always operate as point-to-point pairs.
 

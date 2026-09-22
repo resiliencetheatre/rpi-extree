@@ -4,7 +4,7 @@ Vault is a self-contained firmware for the Raspberry Pi 5 that turns it into a s
 It provides an encrypted MicroSD partition, unlocked at boot using a FIDO2 hardware token, and ships with **CryptPad**, **Syncthing**, and **Git** out of the box.
 Optional extras like **Dokuwiki** can be installed under /usr/htdocs.
 
-![Intro picture](images/vault-intro.png "intro")  
+![Intro picture](../images/vault-intro.png "intro")  
 
 Vault is built with **Buildroot** as a dedicated firmware image. Its primary goal is to give you reliable, private storage on your own network 
 segment—accessible only through a **MACsec-encrypted Layer 2 LAN interface**. This isolation ensures Vault cannot be reached from your regular LAN, eliminating lateral movement risks.
@@ -12,7 +12,7 @@ segment—accessible only through a **MACsec-encrypted Layer 2 LAN interface**. 
 
 # Reasoning
 
-![Reasoning picture](images/reasoning.png "Reasoning")
+![Reasoning picture](../images/reasoning.png "Reasoning")
 
 The motivation behind Vault is simple: control and independence.
 

@@ -2,7 +2,7 @@
 
 The Raspberry Pi Zero 2W **site** configuration builds a bootable MicroSD card using Buildroot.
 
-![Intro picture](images/site-d.png "Site Introduction")
+![Intro picture](../images/site-d.png "Site Introduction")
 
 The Site image is a demonstration of running several offline-capable services on a single Raspberry Pi Zero 2W. When equipped with Whisplay and UPS HATs, the unit can operate as a fully standalone node.
 
