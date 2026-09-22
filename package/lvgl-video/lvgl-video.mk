@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-LVGL_VIDEO_VERSION = 7a9f7257fd6fb7c1babc4401d4e23ca6524c65dc
+LVGL_VIDEO_VERSION = ca01c280eba653f25f311cc7b42d990e457531c2
 LVGL_VIDEO_SITE = https://github.com/resiliencetheatre/lvgl-video.git
 LVGL_VIDEO_SITE_METHOD = git
 LVGL_VIDEO_DEPENDENCIES = host-pkgconf gstreamer1 gst1-plugins-base gst1-plugins-good gst1-plugins-bad libcamera
