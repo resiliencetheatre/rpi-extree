@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-SITUATION_MAP_VERSION = 933701b200f3537ba3d92aeaa1b3619a0cb1993f
+SITUATION_MAP_VERSION = abc22dfe44045da76260eed166ed263d34d7230a
 SITUATION_MAP_SITE = https://github.com/resiliencetheatre/map.git
 SITUATION_MAP_SITE_METHOD = git
 SITUATION_MAP_LICENSE = GPL-3.0-only
