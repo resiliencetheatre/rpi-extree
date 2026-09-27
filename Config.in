@@ -79,6 +79,7 @@ menu "Edgemap Lite"
 endmenu
 
 menu "Collabration tools"
+	source "$BR2_EXTERNAL_rpi_PATH/package/dokuwiki/Config.in"
 	source "$BR2_EXTERNAL_rpi_PATH/package/syncthing/Config.in"
 	source "$BR2_EXTERNAL_rpi_PATH/package/cryptpad/Config.in"
 	source "$BR2_EXTERNAL_rpi_PATH/package/thelounge/Config.in"

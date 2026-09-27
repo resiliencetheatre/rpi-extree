@@ -1,0 +1,28 @@
+config BR2_PACKAGE_DOKUWIKI
+	bool "dokuwiki"
+	depends on BR2_PACKAGE_APACHE
+	depends on BR2_PACKAGE_PHP
+	select BR2_PACKAGE_PHP_SAPI_APACHE
+	select BR2_PACKAGE_PHP_EXT_SESSION
+	select BR2_PACKAGE_PHP_EXT_XML
+	select BR2_PACKAGE_PHP_EXT_MBSTRING
+	select BR2_PACKAGE_PHP_EXT_CTYPE
+	select BR2_PACKAGE_PHP_EXT_FILTER
+	select BR2_PACKAGE_PHP_EXT_FILEINFO
+	select BR2_PACKAGE_PHP_EXT_ICONV
+	select BR2_PACKAGE_PHP_EXT_OPENSSL
+	select BR2_PACKAGE_PHP_EXT_ZLIB
+	select BR2_PACKAGE_PHP_EXT_ZIP
+	select BR2_PACKAGE_PHP_EXT_GD
+	select BR2_PACKAGE_PHP_EXT_EXIF
+	select BR2_PACKAGE_PHP_EXT_DOM
+	select BR2_PACKAGE_PHP_EXT_SIMPLEXML
+	select BR2_PACKAGE_CA_CERTIFICATES
+	help
+	  File-based wiki with bundled plugins and templates. PHP
+	  support for sessions, XML, Unicode, images and archives.
+	  Include /etc/apache2/extra/dokuwiki.conf from the Apache
+	  configuration.
+	  The webserver defconfig provides HTTPS and PHP support.
+
+	  https://www.dokuwiki.org

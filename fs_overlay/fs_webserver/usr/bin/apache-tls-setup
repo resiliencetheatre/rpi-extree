@@ -1,0 +1,14 @@
+#!/bin/sh
+set -eu
+mkdir -p /run/php-sessions
+chown www-data:www-data /run/php-sessions
+chmod 0700 /run/php-sessions
+
+# Certificates are provisioned separately; never generate or replace them.
+certdir=/etc/apache2/tls
+for name in server.crt.pem server.key.pem client-ca.crt.pem; do
+    if [ ! -s "$certdir/$name" ]; then
+        echo "Apache mTLS requires a provisioned $certdir/$name" >&2
+        exit 1
+    fi
+done
