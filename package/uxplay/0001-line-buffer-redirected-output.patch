@@ -1,0 +1,18 @@
+Subject: [PATCH] Line-buffer stdout and stderr for redirected logs
+
+Configure line buffering at startup so output redirected to the UxPlay
+log file is flushed after each line. Keep the startup diagnostic.
+
+--- a/uxplay.cpp
++++ b/uxplay.cpp
+@@ -2958,6 +2958,10 @@
+ #endif
+     std::vector<char> server_hw_addr;
+     std::string config_file = "";
++    /* Output log when redirected >> /var/log/uxplay.log 2>&1 */
++    setvbuf(stdout, NULL, _IOLBF, BUFSIZ);
++    setvbuf(stderr, NULL, _IOLBF, BUFSIZ);
++    printf("Setting setvbuf\n");
+ 
+ #ifdef _WIN32
+     /* initialise Windows kernel qpc frequency for recv timestamping */

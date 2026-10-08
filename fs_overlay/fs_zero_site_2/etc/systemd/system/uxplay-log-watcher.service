@@ -1,0 +1,14 @@
+[Unit]
+Description=UxPlay log watcher
+Wants=network-online.target
+Requires=hostapd.service avahi-daemon.service
+After=network-online.target hostapd.service avahi-daemon.service uxplay.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/uxplay-recording-status.sh /var/log/uxplay.log
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

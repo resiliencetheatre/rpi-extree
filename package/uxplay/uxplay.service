@@ -10,12 +10,12 @@ Type=simple
 # Wait up to 30 seconds for ap0 to have its configured IPv4 address.
 ExecStartPre=/bin/sh -c 'n=0; until ip -4 addr show dev ap0 2>/dev/null | grep -q "inet 192.168.50.1/24"; do n=$((n+1)); [ "$n" -ge 30 ] && { echo "ap0 did not become ready" >&2; exit 1; }; sleep 1; done'
 
-ExecStart=/bin/uxplay \
+ExecStart=/bin/sh -c '/bin/uxplay \
     -n "iPhone Recorder" \
     -as "fakesink sync=false" \
     -vs "fakesink sync=false" \
     -p \
-    -mp4 /opt/recordings/iphone
+    -mp4 /opt/recordings/iphone >> /var/log/uxplay.log'
 
 Restart=on-failure
 RestartSec=3
