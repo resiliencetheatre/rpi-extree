@@ -1,0 +1,16 @@
+{
+  "server": "192.168.50.1/24",
+  "interface": "eth0",
+  "pool_start": "192.168.50.100",
+  "pool_end": "192.168.50.199",
+  "ssd_uuid": "00000000-0000-0000-0000-000000000000",
+  "codename": "trixie",
+  "architectures": ["amd64"],
+  "components": ["main", "contrib", "non-free", "non-free-firmware"],
+  "sources": false,
+  "generation": "trixie-example",
+  "debian_upstream": "https://deb.debian.org/debian",
+  "security_upstream": "https://security.debian.org/debian-security",
+  "keyring": "/usr/share/keyrings/debian-archive-keyring.gpg",
+  "minimum_free_gib": 100
+}

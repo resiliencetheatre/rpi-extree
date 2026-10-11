@@ -1,0 +1,10 @@
+start_file=start4.elf
+fixup_file=fixup4.dat
+kernel=Image
+arm_64bit=1
+enable_uart=1
+# Emit firmware diagnostics on the GPIO serial console (115200 8N1).
+uart_2ndstage=1
+disable_overscan=1
+dtoverlay=disable-wifi
+dtoverlay=disable-bt

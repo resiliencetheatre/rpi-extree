@@ -123,7 +123,7 @@ command -v taky taky_dps takyctl
 They should resolve inside the virtual environment, for example:
 
 ```text
-/home/tech/laboratory/taky-ng/.venv/bin/taky
+/path/to/workspace/taky-ng/.venv/bin/taky
 ```
 
 Inspect their command-line options:

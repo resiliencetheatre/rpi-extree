@@ -1,0 +1,22 @@
+#!/bin/sh
+# Run the image's bundled diagnostic from RAM; production services stay separate.
+set -eu
+[ "$#" -eq 1 ] && [ "$1" = --isolated-lan ] || {
+    echo 'Usage: offline-netboot-test --isolated-lan' >&2
+    exit 2
+}
+[ "$(id -u)" -eq 0 ] || { echo 'Run as root on the Pi' >&2; exit 1; }
+source=/usr/share/offline-pxe/netboot-test
+[ -s "$source/files.sha256" ] || { echo 'Netboot test payload missing from image' >&2; exit 1; }
+exec 8>/run/offline-netboot-test.lock
+flock -n 8 || { echo 'A bundled netboot test is already running' >&2; exit 1; }
+(cd "$source" && sha256sum -c files.sha256 >/dev/null)
+work=$(mktemp -d /run/offline-netboot-test.XXXXXX)
+cleanup() { rm -rf "$work"; }
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+# dnsmasq drops privileges; its TFTP files must remain traversable.
+chmod 755 "$work"
+cp -a "$source/." "$work/"
+sh "$work/run-netboot-test.sh" --isolated-lan

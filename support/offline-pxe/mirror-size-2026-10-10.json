@@ -1,0 +1,38 @@
+{
+  "scope": "trixie,trixie-updates,trixie-security; amd64/all; all four components; advertised amd64/all udebs; no sources",
+  "package_bytes": 147307326386,
+  "package_GB": 147.307326386,
+  "package_GiB": 137.19063846953213,
+  "unique_package_files": 73030,
+  "downloaded_index_bytes": 14935532,
+  "releases": [
+    {
+      "archive": "debian",
+      "suite": "trixie",
+      "release_date": "Sat, 12 Sep 2026 07:55:41 UTC",
+      "release_sha256": "0584fba32e13e0ab8285fb16c27adea1ec03a73669c18702821094fd6ca86675",
+      "records": 104631,
+      "referenced_bytes_before_dedup": 203558412200,
+      "new_unique_files": 70341
+    },
+    {
+      "archive": "debian",
+      "suite": "trixie-updates",
+      "release_date": "Sat, 10 Oct 2026 08:15:01 UTC",
+      "release_sha256": "b4b60b91004f1fe52328b9f42070b188b761d6d8d032aaada92b2b4658ad5f67",
+      "records": 24,
+      "referenced_bytes_before_dedup": 137526692,
+      "new_unique_files": 18
+    },
+    {
+      "archive": "debian-security",
+      "suite": "trixie-security",
+      "release_date": "Sat, 10 Oct 2026 08:48:55 UTC",
+      "release_sha256": "1e93d3dc14ac62d3492791bc4ca66df0001a453aef7426de48f76ea92a623782",
+      "records": 3594,
+      "referenced_bytes_before_dedup": 19776615508,
+      "new_unique_files": 2671
+    }
+  ],
+  "excludes": "installer images, other metadata, filesystem overhead, refresh staging"
+}

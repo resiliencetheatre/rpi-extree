@@ -1,0 +1,174 @@
+#!/bin/sh
+# Explicit setup of a third partition on this appliance's running microSD.
+# This narrowly scoped system-card operation never formats boot/root partitions.
+set -eu
+fail() { echo "offline-mirror-card: $*" >&2; exit 1; }
+usage() {
+    echo 'Usage: offline-mirror-card inspect /dev/mmcblkN' >&2
+    echo '       offline-mirror-card create /dev/mmcblkN --create-third-partition' >&2
+    echo '       offline-mirror-card format /dev/mmcblkN --format-new-third-partition' >&2
+    echo '       offline-mirror-card configure /dev/mmcblkN --use-third-partition' >&2
+    exit 2
+}
+[ "$#" -ge 2 ] && [ "$#" -le 3 ] || usage
+action=$1
+disk=$(readlink -f "$2")
+name=${disk#/dev/}
+case "$name" in mmcblk*) number=${name#mmcblk};; *) fail 'Specify an explicit whole microSD device';; esac
+case "$number" in ''|*[!0-9]*) fail 'Expected /dev/mmcblk followed by a device number';; esac
+[ "$disk" = "/dev/$name" ] && [ -b "$disk" ] || fail 'Not a microSD block device'
+[ "$(id -u)" -eq 0 ] || fail 'Run as root on the Pi'
+[ -f /etc/offline-pxe/runtime.conf ] && [ -f /etc/systemd/system/srv-offline.mount ] || fail 'This is not the offline appliance image'
+for tool in sfdisk lsblk findmnt blockdev blkid wipefs flock mkfs.ext4; do
+    command -v "$tool" >/dev/null || fail "Missing required tool: $tool"
+done
+case "$action:${3:-}" in
+    inspect:) ;;
+    create:--create-third-partition) ;;
+    format:--format-new-third-partition) ;;
+    configure:--use-third-partition) ;;
+    *) usage;;
+esac
+# Require the exact running appliance card, rather than accepting arbitrary disks.
+root_id=$(findmnt -rn -M / -o MAJ:MIN)
+[ "$root_id" = "$(cat "/sys/class/block/${name}p2/dev")" ] || fail 'Partition 2 of this card is not the running rootfs'
+[ "$(blockdev --getss "$disk")" = 512 ] || fail 'Only 512-byte logical sectors are supported'
+lsblk -o NAME,MAJ:MIN,SIZE,MODEL,SERIAL,FSTYPE,UUID,MOUNTPOINTS "$disk"
+echo "Card CID: $(cat "/sys/class/block/$name/device/cid")"
+mkdir -p /run/offline-pxe
+exec 9>/run/offline-pxe/activation.lock
+flock -n 9 || fail 'An activation, diagnostic or card setup operation is running'
+[ ! -e /run/offline-pxe/maintenance ] || fail 'An existing maintenance operation requires attention'
+for unit in offline-dnsmasq.service offline-nginx.service; do
+    systemctl is-active --quiet "$unit" && fail "$unit is serving; stop installation sessions first"
+done
+work=$(mktemp -d /run/offline-card.XXXXXX)
+maintenance=no
+timer_active=no
+mounted=no
+cleanup() {
+    if [ "$mounted" = yes ]; then
+        umount "$work/data" || { echo 'Temporary data mount remains; maintenance flag retained' >&2; return; }
+    fi
+    if [ "$maintenance" = yes ]; then
+        rm -f /run/offline-pxe/maintenance
+        if [ "$timer_active" = yes ]; then systemctl start offline-recover.timer; fi
+    fi
+    rm -rf "$work"
+}
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+sfdisk --dump "$disk" > "$work/before"
+grep -qx 'label: dos' "$work/before" || fail 'Only the appliance DOS/MBR layout is supported'
+grep -qx 'unit: sectors' "$work/before" || fail 'Unexpected partition units'
+# Parse only sfdisk's canonical dump. Preserve all first/second-partition fields.
+field() {
+    awk -v dev="$1" -v key="$2" '$1 == dev {gsub(/[,=]/," "); for(i=1;i<NF;i++) if($i==key) print $(i+1)}' "$work/before"
+}
+count=$(awk '$2 == ":" {n++} END {print n+0}' "$work/before")
+[ "$count" -eq 2 ] || [ "$count" -eq 3 ] || fail 'Expected exactly two or three primary partitions'
+p1="${disk}p1"; p2="${disk}p2"; p3="${disk}p3"
+[ "$(field "$p1" type)" = c ] || fail 'Partition 1 is not the expected FAT32 LBA boot partition'
+[ "$(field "$p2" type)" = 83 ] || fail 'Partition 2 is not the expected Linux root partition'
+for n in 1 2; do
+    node="${name}p$n"
+    [ "$(field "/dev/$node" start)" = "$(cat "/sys/class/block/$node/start")" ] || fail 'Partition table/kernel mismatch; reboot first'
+    [ "$(field "/dev/$node" size)" = "$(cat "/sys/class/block/$node/size")" ] || fail 'Partition table/kernel mismatch; reboot first'
+done
+start1=$(field "$p1" start); size1=$(field "$p1" size)
+start2=$(field "$p2" start); size2=$(field "$p2" size)
+[ "$((start1 + size1))" -le "$start2" ] || fail 'Boot/root partitions overlap or are out of order'
+# Reject active swap, device-mapper, RAID and all extra mounted partitions.
+[ "$(awk 'END {print NR}' /proc/swaps)" -eq 1 ] || fail 'Disable swap before card setup'
+for node in "$name" "${name}p1" "${name}p2" "${name}p3"; do
+    [ ! -d "/sys/class/block/$node" ] || {
+        for holder in "/sys/class/block/$node/holders/"*; do
+            [ ! -e "$holder" ] || fail "Active holder on $node"
+        done
+    }
+done
+if [ "$count" -eq 3 ]; then
+    [ "$(field "$p3" type)" = 83 ] || fail 'Partition 3 is not a Linux data partition'
+    [ "$(field "$p3" start)" -ge "$((start2 + size2))" ] || fail 'Data partition overlaps rootfs'
+    [ -b "$p3" ] || fail 'Partition 3 exists on disk but not in the kernel; reboot first'
+    [ "$(field "$p3" start)" = "$(cat "/sys/class/block/${name}p3/start")" ] || fail 'Reboot to load the new partition table'
+    [ "$(field "$p3" size)" = "$(cat "/sys/class/block/${name}p3/size")" ] || fail 'Reboot to load the new partition table'
+    id3=$(cat "/sys/class/block/${name}p3/dev")
+    findmnt -rn -o MAJ:MIN | grep -qx "$id3" && fail 'Partition 3 is mounted; unmount it before setup'
+else
+    [ ! -e "/sys/class/block/${name}p3" ] || fail 'Stale partition 3 in kernel; reboot and inspect the card'
+fi
+sfdisk --verify "$disk"
+sectors=$(blockdev --getsz "$disk")
+[ "$sectors" -le 4294967295 ] || fail 'Card exceeds the supported MBR capacity'
+start=$(( ((start2 + size2 + 2047) / 2048) * 2048 ))
+size=$((sectors - start))
+if [ "$action" = inspect ]; then
+    cat "$work/before"
+    if [ "$count" -eq 2 ]; then
+        echo "Proposed partition 3: start=$start sectors, size=$size sectors ($((size / 2097152)) GiB)"
+    fi
+    echo 'Inspection only; no partition or filesystem changes made.'
+    exit 0
+fi
+systemctl is-active --quiet offline-recover.timer && timer_active=yes
+: > /run/offline-pxe/maintenance
+maintenance=yes
+systemctl stop offline-recover.timer offline-recover.service
+case "$action" in
+create)
+    [ "$count" -eq 2 ] || fail 'Partition 3 already exists; refusing to replace or resize it'
+    [ "$size" -ge 2097152 ] || fail 'Less than 1 GiB of tail space available'
+    backup="/var/lib/offline-pxe/card-backups/$(date -u +%Y%m%dT%H%M%SZ)-$$"
+    mkdir -p "$backup"
+    cp "$work/before" "$backup/partition-table.sfdisk"
+    dd if="$disk" of="$backup/mbr.bin" bs=512 count=1
+    sync
+    echo "Writing ONLY partition 3 in the unused tail. Backup: $backup"
+    printf 'start=%s, size=%s, type=83\n' "$start" "$size" |
+        sfdisk --append --lock=yes --no-reread --no-tell-kernel --wipe=never --wipe-partitions=never "$disk"
+    sfdisk --dump "$disk" > "$backup/after.sfdisk"
+    for part in "$p1" "$p2"; do
+        before=$(awk -v p="$part" '$1==p' "$work/before")
+        after=$(awk -v p="$part" '$1==p' "$backup/after.sfdisk")
+        [ "$before" = "$after" ] || fail 'Partition 1/2 changed unexpectedly; preserve backups and stop'
+    done
+    sync
+    echo 'Partition created. Reboot now; do not format until after reboot.'
+    ;;
+format)
+    [ "$count" -eq 3 ] || fail 'Create partition 3 and reboot first'
+    signatures=$(wipefs --no-act --noheadings --output TYPE "$p3") || fail 'Cannot inspect partition 3 signatures'
+    [ -z "$signatures" ] || fail 'Partition 3 already contains a signature; refusing to erase it'
+    echo "Formatting only $p3 as ext4. Boot and rootfs remain unchanged."
+    mkfs.ext4 -L offline-mirror -m 0 "$p3"
+    sync
+    echo "New UUID: $(blkid -s UUID -o value "$p3")"
+    echo "Next: offline-mirror-card configure $disk --use-third-partition"
+    ;;
+configure)
+    [ "$count" -eq 3 ] || fail 'Partition 3 is missing'
+    [ "$(blkid -s TYPE -o value "$p3")" = ext4 ] || fail 'Partition 3 must contain ext4'
+    uuid=$(blkid -s UUID -o value "$p3")
+    case "$uuid" in ''|*[!0-9a-fA-F-]*) fail 'Invalid filesystem UUID';; esac
+    mkdir "$work/data"
+    mount -t ext4 -o rw,nosuid,nodev,noexec "$p3" "$work/data"
+    mounted=yes
+    mkdir -p "$work/data/generations" "$work/data/.staging"
+    sync
+    umount "$work/data"
+    mounted=no
+    # Update the on-device settings and derived runtime files, not a build manifest.
+    sed "s/^SSD_UUID=.*/SSD_UUID='$uuid'/" /etc/offline-pxe/runtime.conf > "$work/runtime.conf"
+    sed "s@^What=.*@What=/dev/disk/by-uuid/$uuid@" /etc/systemd/system/srv-offline.mount > "$work/srv-offline.mount"
+    sed "s/\"ssd_uuid\": \"[^\"]*\"/\"ssd_uuid\": \"$uuid\"/" /etc/offline-pxe/settings.json > "$work/settings.json"
+    install -m 644 "$work/runtime.conf" /etc/offline-pxe/runtime.conf
+    install -m 644 "$work/settings.json" /etc/offline-pxe/settings.json
+    install -m 644 "$work/srv-offline.mount" /etc/systemd/system/srv-offline.mount
+    systemctl daemon-reload
+    systemctl enable srv-offline.mount
+    echo "Configured /srv/offline with UUID=$uuid; automatic boot mounting enabled (read-only)."
+    echo 'Copy this UUID into the desk/build settings too. Mirror content is still required.'
+    ;;
+esac

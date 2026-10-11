@@ -3,3 +3,19 @@ authorized_keys
 AGENTS.md
 lvgl-com
 hsm-mtls
+
+# Private installation inputs and generated credential-bearing PXE bundles.
+private/
+**/preseed-dell.cfg
+**/preseed-ax2.cfg
+**/preseed-nvme.cfg
+**/preseed-sata.cfg
+**/nvme.cfg
+**/sata.cfg
+**/unattended-profile.tar.gz
+**/nvme-late.sh
+**/sata-late.sh
+__pycache__/
+*.py[cod]
+**/iwd/*.psk
+**/iwd/*.8021x

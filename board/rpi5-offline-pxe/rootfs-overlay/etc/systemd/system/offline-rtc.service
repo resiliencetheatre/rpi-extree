@@ -1,0 +1,14 @@
+[Unit]
+Description=Restore offline clock from enrolled Pi 5 battery backed RTC
+Before=offline-recover.service
+After=systemd-udev-trigger.service
+ConditionPathExists=/var/lib/offline-pxe/rtc-enrolled
+ConditionPathExists=!/run/offline-clock-ready
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/offline-rtc --restore
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

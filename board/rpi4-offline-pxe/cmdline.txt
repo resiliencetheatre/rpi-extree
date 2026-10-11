@@ -1,0 +1,1 @@
+root=/dev/mmcblk0p2 rootwait console=tty1 console=ttyAMA0,115200n8 earlycon=pl011,mmio32,0xfe201000 loglevel=8 ignore_loglevel printk.time=1 systemd.show_status=yes systemd.log_target=console systemd.log_level=info net.ifnames=0

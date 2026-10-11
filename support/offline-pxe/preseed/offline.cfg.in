@@ -1,0 +1,30 @@
+#_preseed_V1
+# Based on the official trixie example; intentionally no disk or credentials.
+d-i mirror/country string manual
+d-i mirror/http/hostname string @ADDRESS@
+d-i mirror/http/directory string /debian
+d-i mirror/http/proxy string
+d-i mirror/suite string @CODENAME@
+d-i mirror/udeb/suite string @CODENAME@
+d-i clock-setup/ntp boolean false
+d-i clock-setup/utc boolean true
+d-i popularity-contest/participate boolean false
+popularity-contest popularity-contest/participate boolean false
+d-i apt-setup/use_mirror boolean false
+d-i apt-setup/enable-source-repositories boolean false
+d-i apt-setup/services-select multiselect
+d-i apt-setup/cdrom/set-first boolean false
+d-i apt-setup/cdrom/set-next boolean false
+d-i apt-setup/cdrom/set-failed boolean false
+d-i apt-setup/local0/repository string http://@ADDRESS@/debian @CODENAME@ @COMPONENTS@
+d-i apt-setup/local0/options string check-valid-until=no by-hash=no signed-by=/usr/share/keyrings/debian-archive-keyring.gpg
+d-i apt-setup/local0/source boolean false
+d-i apt-setup/local1/repository string http://@ADDRESS@/debian @CODENAME@-updates @COMPONENTS@
+d-i apt-setup/local1/options string check-valid-until=no by-hash=no signed-by=/usr/share/keyrings/debian-archive-keyring.gpg
+d-i apt-setup/local1/source boolean false
+d-i apt-setup/local2/repository string http://@ADDRESS@/debian-security @CODENAME@-security @COMPONENTS@
+d-i apt-setup/local2/options string check-valid-until=no by-hash=no signed-by=/usr/share/keyrings/debian-archive-keyring.gpg
+d-i apt-setup/local2/source boolean false
+d-i preseed/early_command string wget -O /tmp/offline-early.sh http://@ADDRESS@/preseed/early.sh && sh /tmp/offline-early.sh
+d-i preseed/late_command string wget -O /tmp/offline-late.sh http://@ADDRESS@/preseed/late.sh && sh /tmp/offline-late.sh
+# No partition method, target disk, write confirmations, hostname or passwords.

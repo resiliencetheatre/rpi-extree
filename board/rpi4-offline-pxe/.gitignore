@@ -1,0 +1,2 @@
+# Authenticated Debian test payload; regenerate using NETBOOT-TEST.md.
+/rootfs-overlay/usr/share/offline-pxe/netboot-test/

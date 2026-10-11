@@ -1,0 +1,6 @@
+[Match]
+Name=wlan*
+
+[Link]
+# iwd performs association, DHCP, routing and DNS for the wireless uplink.
+Unmanaged=yes
