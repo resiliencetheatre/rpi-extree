@@ -2,6 +2,9 @@
 set -eu
 fail() { echo "offline-pxe: $*" >&2; exit 1; }
 . /etc/offline-pxe/runtime.conf
+if [ -e /var/lib/offline-pxe/update-transaction.json ] && [ "${OFFLINE_UPDATE_RECOVERING:-0}" != 1 ]; then
+    fail 'Interrupted mirror update: run offline-mirror-update --recover'
+fi
 [ ! -e /run/offline-pxe/maintenance ] || fail 'Maintenance in progress'
 [ "$(findmnt -rn -M /srv/offline -o UUID)" = "$SSD_UUID" ] || fail 'SSD not mounted with configured UUID'
 [ "$(findmnt -rn -M /srv/offline -o FSTYPE)" = ext4 ] || fail 'SSD is not ext4'
@@ -18,6 +21,7 @@ case "$generation" in /srv/offline/generations/*) ;; *) fail 'current escapes ge
 grep -q '"outcome": "verified"' "$generation/manifest.json" || fail 'Generation not verified'
 [ -s "$generation/tftp/debian-installer/amd64/initrd.gz" ] || fail 'Missing installer initrd'
 mkdir -p /run/offline-pxe/status
+chmod 755 /run/offline-pxe /run/offline-pxe/status
 {
     echo '<!doctype html><title>Offline Debian snapshot</title><h1>Offline Debian snapshot</h1><pre>'
     cat "$generation/manifest.json"

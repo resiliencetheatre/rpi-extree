@@ -106,22 +106,19 @@ nano /etc/iwd/main.conf
 Port 53 must remain owned by dnsmasq, with no resolved stub listener. There is no
 network-online wait or Wi-Fi dependency on the offline installer services.
 
-## Mirror refresh scope
+## Manual mirror refresh
 
-This connectivity/tooling change does not install a Pi-side upstream mirror
-updater or an update timer. The existing manual acquisition and full verification
-tools run on a connected Debian workstation; see DESK-MIRROR.md. For a refresh,
-use a new generation name and preserve the last verified generation. Never run
-an in-place download into the active generation during installation.
+Pi 5 now includes a manually invoked updater; see [PI5-MANUAL-REFRESH.md](PI5-MANUAL-REFRESH.md)
+for rebuilding, private-profile import, space checks, resume and explicit activation.
+No downloads start merely because Wi-Fi connects, and no update timer is installed.
 
-Direct upstream refresh on the Pi requires a separately validated downloader,
-signature/index/package verification and staging/promotion workflow. The current
-host pipeline depends on Debian debmirror, Perl HTTPS modules, Python, gpgv,
-dpkg-deb and initramfs tools, which are not part of this Buildroot runtime. Adding
-Wi-Fi alone does not make those host scripts executable on the Pi.
+```
+offline-mirror-update --check
+offline-mirror-update --no-active-installers
+```
 
-No complete image build or real Wi-Fi association is claimed by configuration
-checks. Verify WPA association, DHCP, host DNS/HTTPS, retained Wi-Fi credentials,
-and continued isolated PXE service on the rebuilt Pi.
+Refresh pauses PXE/HTTP during a maintenance window and leaves the old generation
+active until you run the separately printed activation command. Pi 4 and initial
+mirror population continue to use the workstation tools.
 
 Reference: [iwd upstream configuration](https://kernel.googlesource.com/pub/scm/network/wireless/iwd/+/master/src/iwd.config.rst).

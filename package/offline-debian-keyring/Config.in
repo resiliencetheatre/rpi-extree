@@ -1,0 +1,4 @@
+config BR2_PACKAGE_OFFLINE_DEBIAN_KEYRING
+	bool "Debian archive public keyring for offline updater"
+	help
+	  Pinned Debian archive verification keys; contains no private keys.

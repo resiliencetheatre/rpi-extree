@@ -11,6 +11,8 @@ import re
 import subprocess
 import tarfile
 import tempfile
+import hashlib
+from archive_inspect import deb_files, initramfs_names
 from datetime import datetime, timezone
 from pathlib import Path
 from common import confined, digest, settings, write, netboot_uefi_links
@@ -23,7 +25,11 @@ def now():
 
 def paragraphs(lines):
     record={}; key=None
+    total=0
     for line in lines:
+        total += len(line)
+        if len(line) > 1024**2 or total > 1024**3:
+            raise ValueError('Metadata exceeds inspection limits')
         line=line.rstrip('\n')
         if not line:
             if record: yield record
@@ -32,18 +38,66 @@ def paragraphs(lines):
             if key is None: raise ValueError('Invalid continuation in index')
             record[key]+='\n'+line[1:]
         else:
-            key,value=line.split(':',1); record[key]=value.strip()
+            key,value=line.split(':',1)
+            if key in record:
+                raise ValueError('Duplicate metadata field')
+            record[key]=value.strip()
     if record: yield record
+
+
+def clearsigned_text(raw):
+    """Extract only the cleartext of one already-verified OpenPGP message.
+
+    gpgv builds differ in whether --output emits clearsigned plaintext. Keep
+    signature verification mandatory, but do not depend on that side effect.
+    Reject ambiguous envelopes and undo OpenPGP dash escaping, not arbitrary
+    armor-like strings or text outside the authenticated body.
+    """
+    if len(raw) > 4 * 1024**2:
+        raise ValueError('InRelease exceeds metadata limit')
+    text = raw.decode('utf-8').replace('\r\n', '\n')
+    if '\r' in text:
+        raise ValueError('Invalid InRelease line endings')
+    lines = text.split('\n')
+    if lines.pop(0) != '-----BEGIN PGP SIGNED MESSAGE-----':
+        raise ValueError('Expected one clearsigned InRelease')
+    while lines and lines[0]:
+        if not re.fullmatch(r'Hash: [A-Za-z0-9, -]+', lines.pop(0)):
+            raise ValueError('Unexpected clearsign header')
+    if not lines:
+        raise ValueError('Missing clearsign body')
+    lines.pop(0)
+    marker = '-----BEGIN PGP SIGNATURE-----'
+    if lines.count(marker) != 1:
+        raise ValueError('Ambiguous InRelease signature envelope')
+    end = lines.index(marker)
+    body, signature = lines[:end], lines[end+1:]
+    closing = '-----END PGP SIGNATURE-----'
+    if signature.count(closing) != 1 or any(signature[signature.index(closing)+1:]):
+        raise ValueError('Unexpected trailing InRelease content')
+    result = []
+    for line in body:
+        if line.startswith('- '):
+            line = line[2:]
+        elif line.startswith('-'):
+            raise ValueError('Unescaped dash in clearsigned body')
+        result.append(line.rstrip(' \t'))
+    return '\n'.join(result)+'\n'
 
 
 def release(root, suite, keyring):
     path=confined(root, 'dists/'+suite)
     with tempfile.TemporaryDirectory(prefix='offline-gpg-') as tmp:
-        output=Path(tmp)/'Release'
         cmd=['gpgv','--homedir',tmp,'--keyring',str(Path(keyring).resolve())]
         if (path/'InRelease').exists():
-            subprocess.run(cmd+['--output',str(output),str(path/'InRelease')],check=True)
-            data=output.read_text(); signed=path/'InRelease'
+            signed=path/'InRelease'
+            raw=signed.read_bytes()
+            # Verify the same immutable bytes we parse, avoiding a second read
+            # of a file which could be replaced between verification and parsing.
+            snapshot=Path(tmp)/'InRelease'
+            snapshot.write_bytes(raw)
+            subprocess.run(cmd+[str(snapshot)],check=True)
+            data=clearsigned_text(raw)
         else:
             subprocess.run(cmd+[str(path/'Release.gpg'),str(path/'Release')],check=True)
             data=(path/'Release').read_text(); signed=path/'Release'
@@ -148,18 +202,21 @@ def verify(root, s, publish=True):
         if versions.get(name,{}).get('version')!='1:0.198' and versions.get(name,{}).get('version')!='0.198':
             raise ValueError(f'{name}: unreviewed installer version: {versions.get(name)}')
     # Inspect the actual signed packages, not just a version string.
-    with tempfile.TemporaryDirectory(prefix='offline-di-') as tmp:
-        for info in versions.values():
-            subprocess.run(['dpkg-deb','-x',str(info['file']),tmp],check=True)
-        local=Path(tmp)/'usr/lib/apt-setup/generators/60local'
-        if 'apt-setup/$repo_name/options' not in local.read_text():
-            raise ValueError('Installer lacks per-source APT options')
-        mirror=Path(tmp)/'usr/lib/apt-setup/generators/50mirror'
-        if digest(mirror) != '75c441b672f42d91225dc81f729b20cf73d5c5916393e037fda40c85337d8d60':
-            raise ValueError('Review changed apt-setup 50mirror before applying offline policy')
-        debootstrap=Path(tmp)/'usr/share/debootstrap/functions'
-        if not debootstrap.is_file() or re.search(r'Valid-Until|Check-Valid-Until',debootstrap.read_text()):
-            raise ValueError('Review changed debootstrap metadata expiry handling')
+    wanted = {'usr/lib/apt-setup/generators/60local',
+              'usr/lib/apt-setup/generators/50mirror', 'usr/share/debootstrap/functions'}
+    policy = {}
+    for info in versions.values():
+        for name, data in deb_files(info['file'], wanted).items():
+            if name in policy:
+                raise ValueError('Duplicate installer policy file')
+            policy[name] = data
+    if b'apt-setup/$repo_name/options' not in policy.get('usr/lib/apt-setup/generators/60local', b''):
+        raise ValueError('Installer lacks per-source APT options')
+    if hashlib.sha256(policy.get('usr/lib/apt-setup/generators/50mirror', b'')).hexdigest() != '75c441b672f42d91225dc81f729b20cf73d5c5916393e037fda40c85337d8d60':
+        raise ValueError('Review changed apt-setup 50mirror before applying offline policy')
+    functions = policy.get('usr/share/debootstrap/functions', b'')
+    if not functions or re.search(rb'Valid-Until|Check-Valid-Until', functions):
+        raise ValueError('Review changed debootstrap metadata expiry handling')
     dist,sums=installer_release
     checksum_name='main/installer-amd64/current/images/SHA256SUMS'
     checksum=confined(dist,checksum_name)
@@ -177,7 +234,10 @@ def verify(root, s, publish=True):
     if (root/'tftp').exists():
         raise ValueError('Remove or move the previous staging tftp directory before re-verifying')
     with tarfile.open(tar) as tf:
-        tf.extractall(root/'tftp',filter='data')
+        members=tf.getmembers()
+        if len(members)>200000 or sum(max(0,m.size) for m in members)>1024**3:
+            raise ValueError('Netboot archive exceeds extraction limits')
+        tf.extractall(root/'tftp',members=members,filter='data')
     netboot_uefi_links(root/'tftp')
     needed=['pxelinux.0','debian-installer/amd64/pxelinux.0','debian-installer/amd64/boot-screens/ldlinux.c32','debian-installer/amd64/linux','debian-installer/amd64/initrd.gz','debian-installer/amd64/bootnetx64.efi','debian-installer/amd64/grubx64.efi','debian-installer/amd64/grub/grub.cfg','debian-installer/amd64/boot-screens/menu.cfg']
     for name in needed:
@@ -185,8 +245,7 @@ def verify(root, s, publish=True):
         if not p.is_file() or not p.stat().st_size: raise ValueError(f'Missing Debian boot artifact: {name}')
     initrd=root/'tftp/debian-installer/amd64/initrd.gz'
     # lsinitramfs lists concatenated/compressed initramfs safely without unpacking.
-    listing=subprocess.check_output(['lsinitramfs',str(initrd)],text=True)
-    firmware=[line for line in listing.splitlines() if '/firmware/' in line]
+    firmware=[name for name in initramfs_names(initrd) if '/firmware/' in name]
     render_generation(s,root)
     # Never expose symlinks outside a published generation.
     for p in root.rglob('*'):

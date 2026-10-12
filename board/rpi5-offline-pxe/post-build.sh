@@ -30,3 +30,23 @@ done
 for suffix in bin clm_blob txt; do
     test -s "$TARGET_DIR/lib/firmware/brcm/brcmfmac43455-sdio.raspberrypi,5-model-b.$suffix"
 done
+# Manual updater only: no update timer/service is installed or enabled.
+support="$BR2_EXTERNAL/support/offline-pxe"
+updater="$TARGET_DIR/usr/lib/offline-pxe"
+mkdir -p "$updater/preseed"
+for script in common.py render.py archive_inspect.py verify-mirror.py prepare-unattended.py mirror_acquire.py mirror_update.py; do
+    install -m 644 "$support/$script" "$updater/$script"
+done
+for template in "$support"/preseed/*; do
+    install -m 644 "$template" "$updater/preseed/"
+done
+cat > "$TARGET_DIR/usr/bin/offline-mirror-update" <<'SCRIPT'
+#!/bin/sh
+export PYTHONDONTWRITEBYTECODE=1
+exec /usr/bin/python3 -u /usr/lib/offline-pxe/mirror_update.py "$@"
+SCRIPT
+chmod 755 "$TARGET_DIR/usr/bin/offline-mirror-update"
+for tool in python3 gpgv; do
+    test -x "$TARGET_DIR/usr/bin/$tool"
+done
+test -s "$TARGET_DIR/usr/share/keyrings/debian-archive-keyring.gpg"

@@ -268,3 +268,9 @@ selection, see [INSTALLER-POLICY-FIX.md](INSTALLER-POLICY-FIX.md). Apply the
 server-side repair before restarting installation. New generated profiles include
 the fix; rebuilding firmware alone does not modify an existing data generation.
 
+
+## Pi 5 manual upstream refresh
+
+See [PI5-MANUAL-REFRESH.md](PI5-MANUAL-REFRESH.md) for the Pi 5-only Wi-Fi
+refresh command, private-profile preservation and separate activation. No refresh
+is scheduled. Initial acquisition and Pi 4 retain the workstation workflow.

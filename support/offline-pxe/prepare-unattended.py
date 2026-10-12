@@ -85,6 +85,38 @@ def adapt(s, text, profile_name):
     return result, disk, hostname, late
 
 
+def render_profiles(s, profiles, root, default='menu'):
+    if default not in ('menu', 'guided', 'nvme', 'sata'):
+        raise ValueError('Invalid profile default')
+    generation(s, root)
+    early = (root/'www/preseed/early.sh').read_text()
+    grub = root/'tftp/debian-installer/amd64/grub/grub.cfg'
+    grub_text = grub.read_text().replace('set timeout=10', 'set timeout=-1' if default == 'menu' else 'set timeout=10')
+    if default in profiles:
+        grub_text = grub_text.replace('set default=0', 'set default='+default)
+    bios = root/'tftp/debian-installer/amd64/boot-screens/syslinux.cfg'
+    bios_text = bios.read_text().replace('PROMPT 1', 'PROMPT 0').replace('TIMEOUT 100', 'TIMEOUT 0' if default == 'menu' else 'TIMEOUT 100')
+    bios_text = bios_text.replace('SAY Enter offline (guided) or interactive; disk changes always require confirmation.',
+        'PATH debian-installer/amd64/boot-screens/\nUI menu.c32\nMENU TITLE Offline Debian installation')
+    if default in profiles:
+        bios_text = bios_text.replace('DEFAULT offline', 'DEFAULT '+default)
+    for name, (profile, disk, hostname, late) in profiles.items():
+        write(root, f'www/preseed/{name}.cfg', profile)
+        write(root, f'www/preseed/{name}-early.sh', early, 0o755)
+        late_script = (root/'www/preseed/late.sh').read_text()
+        if late:
+            late_script += '\n# Private final setup, after local APT configuration.\n' + late + '\n'
+        write(root, f'www/preseed/{name}-late.sh', late_script, 0o755)
+        args = (f'auto=true priority=critical interface=auto netcfg/get_nameservers={s["address"]} '
+                f'netcfg/no_default_route=true netcfg/get_hostname={hostname} netcfg/hostname={hostname} '
+                f'netcfg/get_domain= preseed/url=http://{s["address"]}/preseed/{name}.cfg')
+        label = 'NVMe' if name == 'nvme' else 'SATA'
+        grub_text += f"\nmenuentry '{label} unattended - ERASE {disk}' --id {name} {{\n linux /debian-installer/amd64/linux {args} ---\n initrd /debian-installer/amd64/initrd.gz\n}}\n"
+        bios_text += f'\nLABEL {name}\n MENU LABEL {label} unattended - ERASE {disk}\n KERNEL debian-installer/amd64/linux\n APPEND initrd=debian-installer/amd64/initrd.gz {args} ---\n'
+    grub.write_text(grub_text)
+    bios.write_text(bios_text)
+
+
 def build(s, inputs, output, default='menu'):
     profiles = {name: adapt(s, path.read_text(), name) for name, path in inputs.items()}
     output = output.resolve()
@@ -98,33 +130,7 @@ def build(s, inputs, output, default='menu'):
     base = Path(__file__).parent
     with tempfile.TemporaryDirectory(prefix='offline-unattended-') as d:
         root = Path(d)
-        generation(s, root)
-        early = (root/'www/preseed/early.sh').read_text()
-        grub = root/'tftp/debian-installer/amd64/grub/grub.cfg'
-        grub_text = grub.read_text().replace('set timeout=10', 'set timeout=-1' if default == 'menu' else 'set timeout=10')
-        if default in profiles:
-            grub_text = grub_text.replace('set default=0', 'set default='+default)
-        bios = root/'tftp/debian-installer/amd64/boot-screens/syslinux.cfg'
-        bios_text = bios.read_text().replace('PROMPT 1', 'PROMPT 0').replace('TIMEOUT 100', 'TIMEOUT 0' if default == 'menu' else 'TIMEOUT 100')
-        bios_text = bios_text.replace('SAY Enter offline (guided) or interactive; disk changes always require confirmation.',
-            'PATH debian-installer/amd64/boot-screens/\nUI menu.c32\nMENU TITLE Offline Debian installation')
-        if default in profiles:
-            bios_text = bios_text.replace('DEFAULT offline', 'DEFAULT '+default)
-        for name, (profile, disk, hostname, late) in profiles.items():
-            write(root, f'www/preseed/{name}.cfg', profile)
-            write(root, f'www/preseed/{name}-early.sh', early, 0o755)
-            late_script = (root/'www/preseed/late.sh').read_text()
-            if late:
-                late_script += '\n# Private final setup, after local APT configuration.\n' + late + '\n'
-            write(root, f'www/preseed/{name}-late.sh', late_script, 0o755)
-            args = (f'auto=true priority=critical interface=auto netcfg/get_nameservers={s["address"]} '
-                    f'netcfg/no_default_route=true netcfg/get_hostname={hostname} netcfg/hostname={hostname} '
-                    f'netcfg/get_domain= preseed/url=http://{s["address"]}/preseed/{name}.cfg')
-            label = 'NVMe' if name == 'nvme' else 'SATA'
-            grub_text += f"\nmenuentry '{label} unattended - ERASE {disk}' --id {name} {{\n linux /debian-installer/amd64/linux {args} ---\n initrd /debian-installer/amd64/initrd.gz\n}}\n"
-            bios_text += f'\nLABEL {name}\n MENU LABEL {label} unattended - ERASE {disk}\n KERNEL debian-installer/amd64/linux\n APPEND initrd=debian-installer/amd64/initrd.gz {args} ---\n'
-        grub.write_text(grub_text)
-        bios.write_text(bios_text)
+        render_profiles(s, profiles, root, default)
         files = sorted(x for x in root.rglob('*') if x.is_file() and x.name != 'settings.json')
         write(root, 'payload.sha256', ''.join(f'{hashlib.sha256(x.read_bytes()).hexdigest()}  {x.relative_to(root)}\n' for x in files))
         write(root, 'profile-generation', s['generation']+'\n')

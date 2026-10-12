@@ -10,6 +10,7 @@ case "$1" in ''|*[!A-Za-z0-9_-]*) echo 'Unsafe generation name' >&2; exit 2;; es
 mkdir -p /run/offline-pxe
 exec 9>/run/offline-pxe/activation.lock
 flock -n 9
+[ ! -e /var/lib/offline-pxe/update-transaction.json ] || { echo 'Recover interrupted mirror update first' >&2; exit 1; }
 : > /run/offline-pxe/maintenance
 systemctl stop offline-dnsmasq.service offline-nginx.service
 # On failure keep maintenance set and services stopped. No automatic rollback

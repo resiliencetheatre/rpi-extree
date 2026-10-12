@@ -1,4 +1,4 @@
-"""Shared host-side settings and path validation (no target Python dependency)."""
+"""Shared settings and path validation for desk and the Pi 5 manual updater."""
 import hashlib
 import ipaddress
 import json
