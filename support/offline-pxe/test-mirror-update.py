@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Synthetic repositories and mocked services only; never mounts a disk or uses Wi-Fi."""
 import gzip
+import contextlib
 import hashlib
 import io
 import json
@@ -107,6 +108,18 @@ class ReaderTests(unittest.TestCase):
         self.assertTrue(engine.preferred_index(raw+'.xz', sums))
         self.assertTrue(engine.preferred_index('main/binary-amd64/Release', {}))
 
+    def test_dep11_selection(self):
+        policy = {'components': ['main'], 'architectures': ['amd64'], 'sources': False}
+        for name in ('main/dep11/Components-amd64.yml.gz', 'main/dep11/icons-48x48.tar.gz',
+                     'main/dep11/icons-64x64@2.tar.gz'):
+            self.assertTrue(engine.selected(policy, name))
+            engine.relative(name)
+        self.assertFalse(engine.selected(policy, 'main/dep11/Components-arm64.yml.gz'))
+        self.assertFalse(engine.selected(policy, 'contrib/dep11/icons-48x48.tar.gz'))
+        raw = 'main/dep11/icons-48x48.tar'
+        self.assertFalse(engine.preferred_index(raw, {raw: (), raw+'.gz': ()}))
+        self.assertTrue(engine.preferred_index(raw+'.gz', {raw: (), raw+'.gz': ()}))
+
     def test_dates_and_paths(self):
         now = datetime.now(timezone.utc)
         valid = {'Date': format_datetime(now-timedelta(days=1)), 'Valid-Until': format_datetime(now+timedelta(days=1))}
@@ -178,6 +191,8 @@ class SignedRepositoryTests(unittest.TestCase):
                                    'Acquire-By-Hash: yes\nSHA256:\n'+''.join(sums))
                 subprocess.run(['gpg', '--homedir', str(self.home), '--batch', '--yes', '--output', str(dist/'InRelease'),
                                 '--clearsign', str(release)], check=True)
+                subprocess.run(['gpg', '--homedir', str(self.home), '--batch', '--yes',
+                                '--output', str(dist/'Release.gpg'), '--detach-sign', str(release)], check=True)
         owner = self
         class FixtureFetcher:
             def fetch(self, archive, name, dest, expected=None, limit=None):
@@ -217,6 +232,53 @@ class SignedRepositoryTests(unittest.TestCase):
         signed.write_text(signed.read_text().replace('Codename: trixie', 'Codename: invalid'))
         with self.assertRaises(subprocess.CalledProcessError):
             engine.plan(self.s, self.stage, self.fetcher, check_only=True)
+
+    def test_missing_or_mismatched_installer_release_rejected(self):
+        dist = self.upstream/'debian/dists/trixie'
+        (dist/'Release.gpg').unlink()
+        with self.assertRaises(FileNotFoundError):
+            engine.plan(self.s, self.stage, self.fetcher, check_only=True)
+        # Correctly signed, but inconsistent with the selected InRelease.
+        release = dist/'Release'
+        release.write_text(release.read_text().replace('Codename: trixie', 'Codename: other'))
+        subprocess.run(['gpg', '--homedir', str(self.home), '--batch', '--yes',
+                        '--output', str(dist/'Release.gpg'), '--detach-sign', str(release)], check=True)
+        with self.assertRaisesRegex(ValueError, 'Release and InRelease metadata differ'):
+            engine.plan(self.s, self.stage, self.fetcher, check_only=True)
+
+    def test_offline_repair_preserves_pool_current_and_authenticity(self):
+        base = self.root/'card'
+        target = base/'generations/new'
+        shutil.copytree(self.upstream, target)
+        old = base/'generations/old'
+        old.mkdir()
+        (base/'current').symlink_to('generations/old')
+        (target/'manifest.json').write_text(json.dumps({'generation': 'new', 'outcome': 'verified'}))
+        for archive, suite in [('debian', 'trixie'), ('debian', 'trixie-updates'), ('debian-security', 'trixie-security')]:
+            for name in ('Release', 'Release.gpg'):
+                (target/archive/'dists'/suite/name).unlink()
+        original = {str(p.relative_to(target)): p.read_bytes() for p in target.rglob('*') if p.is_file()}
+        (target/'ready.sha256').write_text(''.join(f'{hashlib.sha256(data).hexdigest()}  {name}\n'
+                                                 for name, data in original.items()))
+        with patch.object(update, 'BASE', base), patch.object(update, 'maintenance', return_value=contextlib.nullcontext()), \
+                patch.object(update.os, 'sync'):
+            update.repair_metadata(self.s, 'new')
+            update.repair_metadata(self.s, 'new')  # Repeat is safe, including after a partial repair.
+            with self.assertRaisesRegex(ValueError, 'known-good'):
+                update.repair_metadata(self.s, 'old')
+        for name, content in original.items():
+            self.assertEqual((target/name).read_bytes(), content)
+        self.assertEqual((base/'current').readlink(), Path('generations/old'))
+        self.assertEqual(sum('/Release' in line for line in (target/'ready.sha256').read_text().splitlines()), 6)
+        # Splitting cannot make an invalid upstream signature acceptable.
+        isolated = self.root/'bad'
+        dist = isolated/'dists/trixie'
+        dist.mkdir(parents=True)
+        raw = (target/'debian/dists/trixie/InRelease').read_text()
+        (dist/'InRelease').write_text(raw.replace('Codename: trixie', 'Codename: other'))
+        with self.assertRaises(subprocess.CalledProcessError):
+            engine.verifier.detached_from_inrelease(isolated, 'trixie', str(self.keyring))
+        self.assertFalse((dist/'Release').exists())
 
     def test_index_hash_and_rotation(self):
         files, releases = engine.plan(self.s, self.stage, self.fetcher, check_only=True)
@@ -318,6 +380,36 @@ class LifecycleTests(unittest.TestCase):
     def assert_old(self):
         self.assertEqual((self.base/'current').readlink(), Path('generations/old'))
         self.assertEqual((self.active/'sentinel').read_bytes(), b'preserve me')
+
+    def test_appstream_repair_is_staged_and_keeps_active(self):
+        target = self.base/'generations/new'
+        target.mkdir()
+        (target/'manifest.json').write_text('{"generation":"new","outcome":"verified"}')
+        (target/'settings.json').write_text(json.dumps(self.s))
+        (target/'ready.sha256').write_text('')
+        name = 'main/dep11/icons-48x48.tar.gz'
+        data = b'fixture icons'
+        expected = (len(data), hashlib.sha256(data).hexdigest())
+        def release(root, suite, keyring, **kwargs):
+            return root/'dists'/suite, {'Acquire-By-Hash':'yes'}, {name: expected}, None
+        def download(archive, remote, dest, expected):
+            self.assertIn('/by-hash/SHA256/', remote)
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            dest.write_bytes(data)
+        with patch.object(update.verifier, 'release', side_effect=release), \
+                patch.object(update, 'space'), patch.object(update, 'Fetcher') as factory:
+            factory.return_value.fetch.side_effect = ValueError('unavailable snapshot')
+            with self.assertRaises(ValueError):
+                update.repair_appstream(self.s, 'new')
+            self.assertFalse((target/'debian').exists())
+            factory.return_value.fetch.side_effect = download
+            update.repair_appstream(self.s, 'new')
+        dest = target/'debian/dists/trixie'/name
+        self.assertEqual(dest.read_bytes(), data)
+        self.assertEqual(dest.stat().st_mode & 0o777, 0o644)
+        self.assertIn(name, (target/'ready.sha256').read_text())
+        self.assert_old()
+        self.assertFalse(self.record.exists())
 
     def test_failure_restores_readonly_and_prior_services(self):
         with self.assertRaises(InterruptedError):

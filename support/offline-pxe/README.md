@@ -3,6 +3,10 @@
 The Pi 5 variant adds [console Wi-Fi with iwd, htop and nano](WIFI-UPLINK.md),
 while keeping Ethernet dedicated to the installation LAN.
 
+For everyday Pi 5 operation, start with [Mirror updates, generation switching and
+disk space](MIRROR-OPERATIONS.md). It explains the commands using the working
+512 GB card and includes rollback and optional old-generation cleanup.
+
 Workstation path setup (adjust once for your checkout):
 
 ```sh
@@ -15,10 +19,12 @@ For explicitly enabled NVMe and SATA profiles based on private preseeds,
 see [UNATTENDED-PROFILES.md](UNATTENDED-PROFILES.md). Each unattended selection
 automatically replaces its configured client disk; the menu waits by default.
 
-Status: implementation under validation. The defconfig resolves, but no image boot,
-full mirror, PXE boot, desktop installation, expired-metadata installation or Secure
-Boot test has yet been completed. A successful configuration check is not hardware
-acceptance. Use `rpi4_offline_pxe_defconfig`. The user performs the image build.
+Status: the user has booted Pi 4 and Pi 5, acquired and verified the mirror,
+and installed Debian over PXE. The user also reports a successful Pi-side mirror
+refresh and installation after the installer metadata repair. Secure Boot, both
+disk-profile variants and the remaining acceptance cases are not all established.
+Use `rpi5_offline_pxe_defconfig` for the current Pi 5 appliance; Pi 4 remains available.
+The user performs image builds.
 
 ## Trust and HTTPS
 
@@ -36,11 +42,10 @@ prerequisite, separate from the TLS CA bundle. Never bypass certificate or archi
 signature errors. Set an accurate UTC clock before using TLS or APT.
 
 The Pi serves the isolated LAN over HTTP and TFTP, so it needs no HTTPS server
-certificate or private key. It has no runtime mirror updater. Complete acquisition
-uses a connected Debian 13 workstation; the USB SSD is then transferred to the Pi.
-Installing curl enables upstream connectivity diagnostics, not full mirroring on
-Buildroot. Running the complete downloader on the Pi would require a separate
-runtime design, contrary to the default scope in AGENTS.md.
+certificate or private key. Pi 4 uses the workstation mirror workflow. Pi 5 additionally includes the
+explicitly requested manual Wi-Fi updater; see [MIRROR-OPERATIONS.md](MIRROR-OPERATIONS.md).
+Initial population can still be performed on a connected Debian workstation.
+Neither Wi-Fi association nor boot starts an automatic mirror download.
 
 References: [curl certificate validation](https://curl.se/docs/sslcerts.html),
 [debmirror options](https://manpages.debian.org/trixie/debmirror/debmirror.1.en.html),

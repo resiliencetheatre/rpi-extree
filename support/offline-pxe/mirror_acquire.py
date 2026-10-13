@@ -51,7 +51,7 @@ def name_ok(name):
 
 
 def relative(name):
-    if not re.fullmatch(r'[A-Za-z0-9_+./~%-]+', name) or '%' in name or name.startswith('/') or '..' in Path(name).parts:
+    if not re.fullmatch(r'[A-Za-z0-9_+./~%@-]+', name) or '%' in name or name.startswith('/') or '..' in Path(name).parts:
         raise ValueError('Unsafe archive filename')
     return name
 
@@ -168,6 +168,10 @@ def selected(s, name):
         return False
     if len(parts) < 2:
         return False
+    if parts[1] == 'dep11':
+        return (parts[-1].startswith('icons-') or
+                any(parts[-1].startswith('Components-'+arch+'.')
+                    for arch in s['architectures']))
     if parts[1] == 'i18n':
         return True
     if parts[1].startswith('binary-'):
@@ -190,7 +194,10 @@ def plan(s, root, fetcher, active=None, check_only=False):
         for suite in suites:
             signed = confined(root, f'{archive}/dists/{suite}/InRelease')
             fetcher.fetch(archive, f'dists/{suite}/InRelease', signed, limit=4*1024**2)
-            dist, fields, sums, _ = verifier.release(root/archive, suite, s['keyring'])
+            for filename, limit in [('Release', 4*1024**2), ('Release.gpg', 1024**2)]:
+                fetcher.fetch(archive, f'dists/{suite}/{filename}',
+                              confined(root, f'{archive}/dists/{suite}/{filename}'), limit=limit)
+            dist, fields, sums, _ = verifier.release(root/archive, suite, s['keyring'], require_detached=True)
             valid_release(fields, old.get(suite))
             releases.append({'archive': archive, 'suite': suite, 'sha256': digest(signed), 'date': fields['Date']})
             for name, expected in sums.items():

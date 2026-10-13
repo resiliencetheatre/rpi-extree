@@ -1,5 +1,9 @@
 # Manual mirror refresh over Pi 5 Wi-Fi
 
+For the everyday command sequence and a worked explanation of the 512 GB card,
+start with [MIRROR-OPERATIONS.md](MIRROR-OPERATIONS.md). This document contains
+setup and implementation details.
+
 The Pi 5 image includes `offline-mirror-update`. No update timer, cron job,
 boot-triggered download or automatic activation is installed. The existing recovery
 timer can recover interrupted **local maintenance**, but never downloads content.
@@ -147,7 +151,10 @@ adds 1 GiB overhead to package bytes; actual metadata/staging usage can be large
 and is checked during writes. A new generation requires a full copy; ext4 reflinks
 are not assumed. A 512 GB card accommodated the previously measured ~140 GiB mirror,
 but third/future generations may not fit while keeping the reserve. Nothing is
-pruned automatically. Retain the active and last known-good generation. Remove
+pruned automatically. Retain the previous generation until the replacement passes installation tests.
+On the 512 GB card, normally retain only the current tested generation before
+starting the next refresh; keeping two while building a third exceeds the default
+space budget. Remove
 only explicitly chosen, no-longer-needed inactive generations during separate
 storage maintenance, or use larger storage; do not lower coverage to make a run fit.
 
@@ -174,6 +181,39 @@ and external base `9c81460ae7875c871b4311bb1c7c838dd86c6b92`, with
 OFFLINE_DEBIAN_KEYRING selections survive olddefconfig; rootfs remains 512M.
 
 Kconfig/olddefconfig and host-side checks do not establish target acceptance:
-full image build, AArch64 execution, real Wi-Fi refresh, power-cut recovery and both
-laptop installations must still be tested on hardware. No physical disk write or
+the user has since confirmed Pi-side refresh and a successful PXE installation
+after metadata repair. Power-cut recovery and acceptance of both disk profiles
+still require explicit hardware tests. No physical disk write or
 full mirror download is part of implementation testing.
+
+## Repair generations acquired before installer Release support
+
+Older Pi-side downloads omitted `Release` and `Release.gpg`, which Debian
+Installer net-retriever requires even though APT supports InRelease. Updater
+verification now requires all three files and independently verifies that their
+metadata agree. Activation rejects missing pairs before stopping the old server.
+
+With the known-good generation active and no clients installing, the updated tool
+can repair an inactive, sealed generation without downloads or package copies:
+
+```
+offline-mirror-update --repair-metadata GENERATION --no-active-installers
+offline-activate GENERATION --no-active-installers
+```
+
+Repair extracts release text and the existing signature from that generation's
+InRelease, like debootstrap's `split_inline_sig`. It does not resign or change
+Debian's metadata. Both the original clearsigned envelope and the detached pair
+must verify against the image keyring, with matching parsed metadata. All three
+suites are validated in scratch before committing; the existing readiness seal
+must also pass. The command updates metadata entries in the readiness seal and
+profile rollback seal. Private profiles, pool files and `current` stay unchanged.
+The original seal is retained as `ready.sha256.before-metadata-repair`. This uses
+only a few MiB of scratch storage, not another mirror generation. Repeat repair
+is safe; the active generation cannot be repaired in place.
+
+`deploy-mirror-updater.sh`, accompanied by mirror_update.py, mirror_acquire.py,
+verify-mirror.py, activate-generation.sh and their files.sha256, installs a hotfix
+on an existing updater image under the shared lock. It preserves the previous
+code, changes no mirror contents and performs no activation. Future image builds
+include the corrected files through the normal Pi 5 post-build hook.

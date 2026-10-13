@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from common import settings, digest
 from mirror_acquire import (Fetcher, acquire, atomic_json, check_rotation, module,
-                            name_ok, plan, space, verifier, GIB)
+                            name_ok, plan, space, verifier, GIB, selected, preferred_index, confined)
 
 BASE = Path('/srv/offline')
 RUN = Path('/run/offline-pxe')
@@ -330,12 +330,128 @@ def refresh(s, generation, resume):
           f'offline-activate {generation} --no-active-installers')
 
 
+def extend_seal(seal, root, names):
+    lines = [line for line in seal.read_text().splitlines()
+             if line.split('  ', 1)[1] not in names]
+    lines += [f'{digest(root/name)}  {name}' for name in names]
+    pending = seal.with_name(seal.name+'.new')
+    pending.write_text('\n'.join(lines)+'\n')
+    pending.chmod(0o644)
+    os.replace(pending, seal)
+
+
+def repair_metadata(s, generation):
+    """Repair an inactive sealed generation without network or package changes."""
+    name_ok(generation)
+    target = BASE/'generations'/generation
+    if target.is_symlink() or target.resolve() != target or not target.is_dir():
+        raise ValueError('Supply an existing real generation directory')
+    if target == active_root():
+        raise ValueError('Activate the known-good generation before repairing this one')
+    command('sha256sum', '-c', 'ready.sha256', cwd=target, stdout=subprocess.DEVNULL)
+    manifest = json.loads((target/'manifest.json').read_text())
+    if manifest.get('outcome') != 'verified' or manifest.get('generation') != generation:
+        raise ValueError('Repair requires a sealed, verified generation')
+    suites = [('debian', 'trixie'), ('debian', 'trixie-updates'),
+              ('debian-security', 'trixie-security')]
+    names = [f'{archive}/dists/{suite}/{filename}' for archive, suite in suites
+             for filename in ('Release', 'Release.gpg')]
+    for name in names:
+        if (target/name).is_symlink():
+            raise ValueError('Unexpected metadata symlink')
+    with maintenance(s, 'repair-metadata '+generation):
+        # Validate all suites in scratch BEFORE changing any published file.
+        with tempfile.TemporaryDirectory(prefix='.metadata-repair-', dir=target) as tmp:
+            scratch = Path(tmp)
+            for archive, suite in suites:
+                dist = scratch/archive/'dists'/suite
+                dist.mkdir(parents=True)
+                shutil.copyfile(target/archive/'dists'/suite/'InRelease', dist/'InRelease')
+                verifier.detached_from_inrelease(scratch/archive, suite, s['keyring'])
+            # Save the original seal once; repeat repair safely after interruption.
+            backup = target/'ready.sha256.before-metadata-repair'
+            if not backup.exists():
+                shutil.copyfile(target/'ready.sha256', backup)
+                backup.chmod(0o600)
+            for name in names:
+                dest = target/name
+                shutil.copyfile(scratch/name, dest)
+                dest.chmod(0o644)
+            os.sync()
+            extend_seal(target/'ready.sha256', target, names)
+            profile_backup = target/'unattended-profile-backup/ready.sha256'
+            if profile_backup.is_file():
+                extend_seal(profile_backup, target, names)
+            command('sha256sum', '-c', 'ready.sha256', cwd=target, stdout=subprocess.DEVNULL)
+            for archive, suite in suites:
+                verifier.release(target/archive, suite, s['keyring'], require_detached=True)
+            os.sync()
+    print('Repaired installer metadata for '+generation+'; current is unchanged. Activate explicitly:\n'
+          'offline-activate '+generation+' --no-active-installers')
+
+
+
+def repair_appstream(s, generation):
+    """Add signed DEP-11 metadata to an inactive generation; leave packages intact."""
+    name_ok(generation)
+    target = BASE/'generations'/generation
+    if target.is_symlink() or target.resolve() != target or not target.is_dir():
+        raise ValueError('Supply an existing real generation directory')
+    if target == active_root():
+        raise ValueError('Activate the known-good generation before repairing this one')
+    command('sha256sum', '-c', 'ready.sha256', cwd=target, stdout=subprocess.DEVNULL)
+    manifest = json.loads((target/'manifest.json').read_text())
+    if manifest.get('outcome') != 'verified' or manifest.get('generation') != generation:
+        raise ValueError('Repair requires a sealed, verified generation')
+    # Respect the generation's coverage, rather than changing its snapshot policy.
+    policy = settings(target/'settings.json')
+    entries = []
+    for archive, suite in [('debian', 'trixie'), ('debian', 'trixie-updates'),
+                           ('debian-security', 'trixie-security')]:
+        _, fields, sums, _ = verifier.release(target/archive, suite, s['keyring'], require_detached=True)
+        for name, expected in sums.items():
+            if '/dep11/' not in name or not selected(policy, name) or not preferred_index(name, sums):
+                continue
+            remote = f'dists/{suite}/{name}'
+            if fields.get('Acquire-By-Hash') == 'yes' and name.endswith(('.xz', '.gz', '.bz2')):
+                remote = f'dists/{suite}/{str(Path(name).parent)}/by-hash/SHA256/{expected[1]}'
+            entries.append((archive, remote, f'{archive}/dists/{suite}/{name}', expected))
+    space(BASE, sum(e[3][0] for e in entries), int(s['minimum_free_gib'])*GIB)
+    with maintenance(s, 'repair-appstream '+generation):
+        with tempfile.TemporaryDirectory(prefix='.appstream-repair-', dir=BASE) as tmp:
+            scratch = Path(tmp)
+            fetcher = Fetcher({'debian': s['debian_upstream'], 'debian-security': s['security_upstream']}, BASE)
+            for archive, remote, name, expected in entries:
+                fetcher.fetch(archive, remote, confined(scratch, name), expected)
+            # Only publish once every file matches the existing signed snapshot.
+            for _, _, name, _ in entries:
+                dest = confined(target, name)
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                parent = dest.parent
+                while parent != target:
+                    parent.chmod(0o755)
+                    parent = parent.parent
+                shutil.copyfile(scratch/name, dest)
+                dest.chmod(0o644)
+            names = [e[2] for e in entries]
+            extend_seal(target/'ready.sha256', target, names)
+            backup = target/'unattended-profile-backup/ready.sha256'
+            if backup.is_file():
+                extend_seal(backup, target, names)
+            command('sha256sum', '-c', 'ready.sha256', cwd=target, stdout=subprocess.DEVNULL)
+            os.sync()
+    print('Repaired AppStream metadata; current unchanged. Activate explicitly:')
+    print('offline-activate '+generation+' --no-active-installers')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     group = parser.add_mutually_exclusive_group()
     group.add_argument('--check', action='store_true')
     group.add_argument('--status', action='store_true')
     group.add_argument('--resume', metavar='GENERATION')
+    group.add_argument('--repair-metadata', metavar='GENERATION', help='Repair missing installer Release files in an inactive verified generation, offline')
+    group.add_argument('--repair-appstream', metavar='GENERATION', help='Download missing signed DEP-11 metadata for an inactive generation')
     group.add_argument('--recover', action='store_true', help='Recover interrupted maintenance locally; no downloads')
     group.add_argument('--import-profiles', nargs=2, metavar=('NVME_CFG', 'SATA_CFG'))
     parser.add_argument('--default', choices=('menu', 'guided', 'nvme', 'sata'), default='menu')
@@ -375,7 +491,13 @@ def main():
             parser.error('Refresh pauses PXE/HTTP; pass --no-active-installers during a maintenance window')
         if RECORD.exists() or (RUN/'maintenance').exists():
             raise ValueError('Recover unfinished maintenance first with --recover')
+        if args.repair_metadata:
+            repair_metadata(s, args.repair_metadata)
+            return
         network(s)
+        if args.repair_appstream:
+            repair_appstream(s, args.repair_appstream)
+            return
         s['generation'] = name_ok(args.resume or datetime.now(timezone.utc).strftime('trixie-%Y%m%dT%H%M%SZ'))
         if args.check:
             # Only indexes during planning; no installer tarball or pool downloads.

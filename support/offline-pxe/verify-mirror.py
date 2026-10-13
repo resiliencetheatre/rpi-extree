@@ -85,7 +85,7 @@ def clearsigned_text(raw):
     return '\n'.join(result)+'\n'
 
 
-def release(root, suite, keyring):
+def release(root, suite, keyring, require_detached=False):
     path=confined(root, 'dists/'+suite)
     with tempfile.TemporaryDirectory(prefix='offline-gpg-') as tmp:
         cmd=['gpgv','--homedir',tmp,'--keyring',str(Path(keyring).resolve())]
@@ -102,6 +102,20 @@ def release(root, suite, keyring):
             subprocess.run(cmd+[str(path/'Release.gpg'),str(path/'Release')],check=True)
             data=(path/'Release').read_text(); signed=path/'Release'
         fields=next(paragraphs(data.splitlines(True)))
+        if signed.name == 'InRelease' and (require_detached or
+                (path/'Release').exists() or (path/'Release.gpg').exists()):
+            # net-retriever in Debian Installer requires this detached pair.
+            # Authenticate it independently and require identical metadata.
+            detached=(path/'Release').read_bytes()
+            signature=(path/'Release.gpg').read_bytes()
+            release_copy=Path(tmp)/'Release'
+            signature_copy=Path(tmp)/'Release.gpg'
+            release_copy.write_bytes(detached)
+            signature_copy.write_bytes(signature)
+            subprocess.run(cmd+[str(signature_copy),str(release_copy)],check=True)
+            detached_fields=list(paragraphs(detached.decode('utf-8').splitlines(True)))
+            if detached_fields != [fields]:
+                raise ValueError('Release and InRelease metadata differ; retry acquisition')
         if fields.get('Codename') != suite:
             raise ValueError(f'Wrong codename in {signed}: {fields.get("Codename")}')
         sums={}
@@ -112,6 +126,21 @@ def release(root, suite, keyring):
             confined(path,name)
             sums[name]=(int(size),sha)
     return path, fields, sums, signed
+
+
+def detached_from_inrelease(root, suite, keyring):
+    """Split the existing Debian clearsign envelope, as debootstrap does.
+
+    This is not a new signature or changed metadata. Both the original envelope
+    and the resulting detached signature must verify with Debian's archive keys.
+    Only use in an isolated scratch tree before committing a repair.
+    """
+    dist, _, _, _ = release(root, suite, keyring)
+    raw=(dist/'InRelease').read_bytes()
+    (dist/'Release').write_text(clearsigned_text(raw).removesuffix('\n'))
+    marker=b'-----BEGIN PGP SIGNATURE-----'
+    (dist/'Release.gpg').write_bytes(raw[raw.index(marker):])
+    release(root, suite, keyring, require_detached=True)
 
 
 def check(path, expected):
@@ -141,10 +170,10 @@ def verify(root, s, publish=True):
     for archive,suites in [('debian',[s['codename'],s['codename']+'-updates']),('debian-security',[s['codename']+'-security'])]:
         archive_root=root/archive
         for suite in suites:
-            dist, fields, sums, signed=release(archive_root,suite,s['keyring'])
+            dist, fields, sums, signed=release(archive_root,suite,s['keyring'],require_detached=True)
             releases.append({'archive':archive,'suite':suite,'sha256':digest(signed),'date':fields.get('Date'),'valid_until':fields.get('Valid-Until')})
             required_small.append(signed)
-            if signed.name=='Release': required_small.append(dist/'Release.gpg')
+            required_small.extend([dist/'Release', dist/'Release.gpg'])
             if suite==s['codename']: installer_release=(dist,sums)
             names=[]
             for component in s['components']:

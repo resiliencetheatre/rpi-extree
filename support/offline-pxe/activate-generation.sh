@@ -11,6 +11,15 @@ mkdir -p /run/offline-pxe
 exec 9>/run/offline-pxe/activation.lock
 flock -n 9
 [ ! -e /var/lib/offline-pxe/update-transaction.json ] || { echo 'Recover interrupted mirror update first' >&2; exit 1; }
+# Reject an incomplete generation before stopping a healthy server.
+for suite in debian/dists/trixie debian/dists/trixie-updates debian-security/dists/trixie-security; do
+    for file in Release Release.gpg; do
+        [ -s "/srv/offline/generations/$1/$suite/$file" ] || {
+            echo "Missing installer metadata: $suite/$file; repair this generation first" >&2
+            exit 1
+        }
+    done
+done
 : > /run/offline-pxe/maintenance
 systemctl stop offline-dnsmasq.service offline-nginx.service
 # On failure keep maintenance set and services stopped. No automatic rollback
