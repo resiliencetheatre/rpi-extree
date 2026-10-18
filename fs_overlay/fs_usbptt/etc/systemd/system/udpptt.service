@@ -9,7 +9,7 @@ Environment=HOME=/root
 ExecStart=/bin/ptt_client [SERVER_IP] --txid [UNIT_ID] --encrypt \
 --key [ENCRYPTION_KEY] --jitter-ms 200 --fec-loss-percent 10 \
 --preamble-id ABCDE --dpi-id [DPI_ID] --usbptt --mic-gain-db 30 \
---state-file /tmp/tty-state
+--state-file /tmp/ptt-state
 Restart=always
 RestartSec=5
 
