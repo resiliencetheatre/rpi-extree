@@ -1,0 +1,14 @@
+[Unit]
+Description=Restore ALSA mixer volumes
+Wants=sound.target
+After=sound.target
+Before=udptt.service
+ConditionPathExists=/var/lib/alsa/asound.state
+
+[Service]
+Type=oneshot
+ExecStart=/bin/alsactl -f /var/lib/alsa/asound.state restore
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

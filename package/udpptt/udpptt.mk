@@ -18,11 +18,12 @@ UDPPTT_BUILD_CMDS = \
 		CFLAGS="$(TARGET_CFLAGS)" \
 		LDFLAGS="$(TARGET_LDFLAGS)" \
 		PKG_CONFIG="$(PKG_CONFIG_HOST_BINARY)" \
-		ptt_client ptt_server ptt_helper
+		ptt_client ptt_server ptt_helper ptt_dpi_keygen
 
 UDPPTT_INSTALL_TARGET_CMDS = \
 	$(INSTALL) -D -m 0755 $(@D)/ptt_client $(TARGET_DIR)/usr/bin/ptt_client && \
 	$(INSTALL) -D -m 0755 $(@D)/ptt_server $(TARGET_DIR)/usr/bin/ptt_server && \
-	$(INSTALL) -D -m 0755 $(@D)/ptt_helper $(TARGET_DIR)/usr/bin/ptt_helper
+	$(INSTALL) -D -m 0755 $(@D)/ptt_helper $(TARGET_DIR)/usr/bin/ptt_helper && \
+	$(INSTALL) -D -m 0755 $(@D)/ptt_dpi_keygen $(TARGET_DIR)/usr/bin/ptt_dpi_keygen
 
 $(eval $(generic-package))

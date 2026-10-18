@@ -1,0 +1,14 @@
+[Unit]
+Description=BlinkStick PTT state indicator
+Wants=udpptt.service
+After=udpptt.service
+
+[Service]
+Type=simple
+WorkingDirectory=/root
+ExecStart=/root/blinkstick-state.sh /tmp/ptt-state
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

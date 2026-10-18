@@ -1,0 +1,4 @@
+# /etc/udev/rules.d/99-usb-unmask.rules
+ACTION=="remove", SUBSYSTEM=="block", ENV{DEVTYPE}=="partition", ENV{ID_BUS}=="usb", \
+  RUN+="/bin/systemctl unmask mnt-usb.mount mnt-usb.automount", \
+  RUN+="/bin/systemctl start usb-any.path"
