@@ -1,0 +1,6 @@
+[Unit]
+Description=Safely eject the USB (stop services, stop auto, unmount)
+# Starting this target will stop these units:
+Conflicts=usb-plug.target mnt-usb.mount macpipe.service udp2raw.service udptunnel-client.service usb-any.path
+Before=usb-plug.target mnt-usb.mount macpipe.service udp2raw.service udptunnel-client.service usb-any.path
+StopWhenUnneeded=yes

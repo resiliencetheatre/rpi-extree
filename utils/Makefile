@@ -32,7 +32,11 @@
 COD_DIR=.
 BUILDROOT_DIR = $(COD_DIR)/buildroot
 CONFIG_FILE ?= raspberrypi4_64_defconfig
+# Package accounts are added during filesystem image generation, not in
+# output/target. Preserve the device's account databases as a consistent set.
+# Deploy a generated filesystem image when adding new package accounts.
 RSYNC_EXCLUDE =   --exclude="/etc/hostname" --exclude="/etc/passwd" --exclude='etc/dropbear' \
+--exclude='/etc/group' --exclude='/etc/gshadow' \
 --exclude='/etc/shadow' --exclude='/tmp/*' --exclude='/dev/*' --exclude='*~' \
 --exclude='/etc/hosts' 
 

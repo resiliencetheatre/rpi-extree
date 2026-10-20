@@ -1,0 +1,15 @@
+[Unit]
+Description=audioreceiver
+After=network.target mnt-usb.mount
+RequiresMountsFor=/mnt/usb
+BindsTo=mnt-usb.mount
+Wants=mnt-usb.automount
+After=mnt-usb.automount
+
+[Service]
+Type=simple
+WorkingDirectory=/tmp
+ExecStart=/bin/audioreceiver -s alsasink
+
+[Install]
+WantedBy=usb-plug.target

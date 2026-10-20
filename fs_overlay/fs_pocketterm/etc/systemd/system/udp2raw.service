@@ -1,0 +1,17 @@
+[Unit]
+Description=udp2raw for wireguard
+After=network.target mnt-usb.mount
+RequiresMountsFor=/mnt/usb
+BindsTo=mnt-usb.mount
+Wants=mnt-usb.automount
+After=mnt-usb.automount
+Conflicts=wstunnel.service
+
+[Service]
+Type=simple
+WorkingDirectory=/tmp
+EnvironmentFile=/opt/wgcap/wgcap_service.conf
+ExecStart=udp2raw -c -l0.0.0.0:3333 -r${SERVER_IP}:5005 -k ${UDP2RAW_PSK} --raw-mode faketcp -a
+
+[Install]
+WantedBy=usb-plug.target

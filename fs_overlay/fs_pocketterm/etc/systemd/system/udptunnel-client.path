@@ -1,0 +1,11 @@
+[Unit]
+Description=Start client when /mnt/usb/client.ini appears
+BindsTo=mnt-usb.mount
+After=mnt-usb.mount
+
+[Path]
+PathExists=/mnt/usb/client.ini
+Unit=udptunnel-client.service
+
+[Install]
+WantedBy=usb-plug.target
