@@ -1,0 +1,16 @@
+config BR2_PACKAGE_LVGL_CONSOLE
+	bool "lvgl-console"
+	depends on BR2_INSTALL_LIBSTDCPP
+	depends on BR2_TOOLCHAIN_HAS_THREADS_NPTL
+	depends on BR2_USE_MMU
+	select BR2_PACKAGE_LIBPNG
+	help
+	  LVGL 9.6.0 framebuffer console with a tabbed interface, link
+	  logo, and placeholder Connect and Disconnect buttons.
+	  Uses evdev for touchscreen input.
+
+	  https://github.com/resiliencetheatre/lvgl-console
+
+comment "lvgl-console needs a toolchain w/ C++, NPTL"
+	depends on BR2_USE_MMU
+	depends on !BR2_INSTALL_LIBSTDCPP || !BR2_TOOLCHAIN_HAS_THREADS_NPTL
