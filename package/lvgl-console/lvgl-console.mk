@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-LVGL_CONSOLE_VERSION = 4008d60b5c4d906d4ef5720c409f2961d0334375
+LVGL_CONSOLE_VERSION = 5a93a4f477384120834537156967863a7019b29d
 LVGL_CONSOLE_SITE = https://github.com/resiliencetheatre/lvgl-console.git
 LVGL_CONSOLE_SITE_METHOD = git
 LVGL_CONSOLE_DEPENDENCIES = libpng
