@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+set -eu
+
+script_dir="$(cd -- "$(dirname -- "$0")" && pwd)"
+. "${WSTUNNEL_DOWNLOAD_SUPPORT}/helpers"
+
+# Keep the original arguments for Buildroot's standard Cargo post-processor.
+args=("$@")
+while getopts "n:o:m:" opt; do
+    case "${opt}" in
+        n) base_name="${OPTARG}" ;;
+        o) output="${OPTARG}" ;;
+        m) ;;
+        *) exit 1 ;;
+    esac
+done
+
+# A mirror may already provide the repaired, vendored archive.
+if tar tf "${output}" | grep '^[^/]*/VENDOR/' > /dev/null; then
+    exit 0
+fi
+
+post_process_unpack "${base_name}" "${output}"
+patch --batch --fuzz=0 -d "${base_name}" -p1 < "${script_dir}/cargo-lock.diff"
+post_process_repack "$(pwd)" "${base_name}" "${output}"
+rm -rf -- "${base_name}" "${base_name}.timestamp"
+
+exec "${WSTUNNEL_DOWNLOAD_SUPPORT}/cargo-post-process" "${args[@]}"

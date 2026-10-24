@@ -1,0 +1,20 @@
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -4655,7 +4655,7 @@
+ 
+ [[package]]
+ name = "wstunnel"
+-version = "11.0.0"
++version = "11.1.0"
+ dependencies = [
+  "ahash",
+  "anyhow",
+@@ -4716,7 +4716,7 @@
+ 
+ [[package]]
+ name = "wstunnel-cli"
+-version = "11.0.0"
++version = "11.1.0"
+ dependencies = [
+  "anyhow",
+  "clap",

@@ -1,2 +1,5 @@
 sha256	127d13712e57ea640e826559b00b771af7a7df0895b768280619d1fa279110d7  v10.7.0.tar.gz
 sha256	3536920d44f047d2d3aaab45a9d47e77ec8c818aff9b28ba507a2ff9f59e9180  v11.0.0.tar.gz
+# Locally computed after repairing Cargo.lock and Cargo vendoring.
+sha256  df34fa89b90b3f8911988e48fe4e2f87f9ba7c1fc67e48aa74e300c2f1187312  v11.1.0.tar.gz
+sha256  fbb93c6ebd04d1413b36fff9e3226028aeb0624c15e409e48f4b7e19573686c2  LICENSE
