@@ -1,0 +1,23 @@
+config BR2_PACKAGE_LVGL_CONSOLE_LOCAL
+	bool "lvgl-console-local"
+	depends on BR2_INSTALL_LIBSTDCPP
+	depends on BR2_TOOLCHAIN_HAS_THREADS_NPTL
+	depends on BR2_USE_MMU
+	depends on !BR2_PACKAGE_LVGL_CONSOLE
+	select BR2_PACKAGE_LIBPNG
+	help
+	  Build the LVGL framebuffer console from the local lvgl-console
+	  directory beside this external tree, for development without
+	  committing or downloading sources. Includes the console
+	  launcher.
+
+	  Disable lvgl-console first: both packages install the same
+	  files.
+	  Run make lvgl-console-local-rebuild after editing sources.
+
+comment "lvgl-console-local needs a toolchain w/ C++, NPTL"
+	depends on BR2_USE_MMU
+	depends on !BR2_INSTALL_LIBSTDCPP || !BR2_TOOLCHAIN_HAS_THREADS_NPTL
+
+comment "lvgl-console-local needs lvgl-console disabled"
+	depends on BR2_PACKAGE_LVGL_CONSOLE
