@@ -6,6 +6,7 @@ After=network-online.target sound.target
 [Service]
 Type=simple
 User=root
+Environment=UDPPTT_DPI_ID=pocketterm UDPPTT_PREAMBLE_ID=POCKT
 EnvironmentFile=/etc/default/udpptt
 RuntimeDirectory=udpptt
 RuntimeDirectoryMode=0755
@@ -15,14 +16,14 @@ ExecStart=/usr/bin/ptt_client ${UDPPTT_SERVER} \
     --alsa-device ${UDPPTT_ALSA_DEVICE} \
     --ptt-socket /tmp/udpptt.sock \
     --altgr-ptt-delay-ms 700 \
-    --txid pocketterm \
+    --txid ${UDPPTT_TXID} \
     --encrypt --key ${UDPPTT_KEY} \
     --jitter-ms 200 \
     --fec-loss-percent 10 \
-    --preamble-id POCKT \
+    --preamble-id ${UDPPTT_PREAMBLE_ID} \
     --state-file /run/udpptt/state \
     --rx-state-timeout-ms 1000 \
-    --dpi-id pocketterm \
+    --dpi-id ${UDPPTT_DPI_ID} \
     --dpi-secret /root/.config/udpptt/dpi.secret
 Restart=on-failure
 RestartSec=5s
