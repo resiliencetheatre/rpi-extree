@@ -1,0 +1,25 @@
+#!/bin/sh
+set -eu
+
+if [ -z "${UDPPTT_SERVER:-}" ]; then
+    echo "Set UDPPTT_SERVER in /etc/default/udpptt before starting the service." >&2
+    exit 1
+fi
+
+umask 077
+key_dir=/root/.config/udpptt
+mkdir -p "$key_dir"
+secret=$key_dir/dpi.secret
+public=$key_dir/dpi.public
+
+if [ -f "$secret" ] && [ -f "$public" ]; then
+    exit 0
+fi
+
+# Never replace an existing identity or generate a mismatched public key.
+if [ -e "$secret" ] || [ -L "$secret" ] || [ -e "$public" ] || [ -L "$public" ]; then
+    echo "Incomplete DPI key pair in $key_dir; restore the matching pair before starting udpptt." >&2
+    exit 1
+fi
+
+exec /usr/bin/ptt_dpi_keygen --secret "$secret" --public "$public"

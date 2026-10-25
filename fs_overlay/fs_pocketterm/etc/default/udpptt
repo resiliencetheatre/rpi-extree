@@ -1,0 +1,4 @@
+# Set the server address before starting udpptt.service.
+UDPPTT_SERVER=
+UDPPTT_ALSA_DEVICE=plughw:CARD=Audio,DEV=0
+UDPPTT_KEY=shared-room

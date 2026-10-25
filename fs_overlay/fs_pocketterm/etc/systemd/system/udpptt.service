@@ -1,0 +1,31 @@
+[Unit]
+Description=PocketTerm UDP push-to-talk client
+Wants=network-online.target
+After=network-online.target sound.target
+
+[Service]
+Type=simple
+User=root
+EnvironmentFile=/etc/default/udpptt
+RuntimeDirectory=udpptt
+RuntimeDirectoryMode=0755
+UMask=0077
+ExecStartPre=/bin/sh /usr/libexec/udpptt-prepare
+ExecStart=/usr/bin/ptt_client ${UDPPTT_SERVER} \
+    --alsa-device ${UDPPTT_ALSA_DEVICE} \
+    --ptt-socket /tmp/udpptt.sock \
+    --altgr-ptt-delay-ms 700 \
+    --txid pocketterm \
+    --encrypt --key ${UDPPTT_KEY} \
+    --jitter-ms 200 \
+    --fec-loss-percent 10 \
+    --preamble-id POCKT \
+    --state-file /run/udpptt/state \
+    --rx-state-timeout-ms 1000 \
+    --dpi-id pocketterm \
+    --dpi-secret /root/.config/udpptt/dpi.secret
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target

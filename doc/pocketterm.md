@@ -69,3 +69,26 @@ the framebuffer.
 
 The internal speaker uses HDMI audio, so display blanking may interrupt sound;
 audio playback while blanked has not been verified by this test.
+
+# udpptt
+
+```
+mkdir -p ~/.config/udpptt
+ptt_dpi_keygen --secret ~/.config/udpptt/dpi.secret \
+--public ~/.config/udpptt/dpi.public
+
+mkdir -p /run/udpptt
+
+ptt_client [SERVER_IP] \
+  --alsa-device 'plughw:CARD=Audio,DEV=0' \
+  --ptt-socket /tmp/udpptt.sock \
+  --altgr-ptt-delay-ms 700 \
+  --txid pocketterm \
+  --encrypt --key shared-room \
+  --jitter-ms 200 \
+  --fec-loss-percent 10 \
+  --preamble-id POCKT \
+  --state-file /run/udpptt/state \
+  --rx-state-timeout-ms 1000 \
+  --dpi-id pocketterm
+```
