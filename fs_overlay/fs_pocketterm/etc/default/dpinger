@@ -1,0 +1,3 @@
+# Enable dpinger@wireguard.service after setting an address or hostname.
+# This is a ping destination, not a WireGuard host:port endpoint string.
+DPINGER_WIREGUARD_ENDPOINT=

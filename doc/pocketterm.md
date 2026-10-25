@@ -2,6 +2,53 @@
 
 These are development notes, work in progress.
 
+## Connectivity status for LVGL
+
+The PocketTerm overlay's `dpinger.service` starts three independent monitors:
+
+| Instance | Destination | Latest report |
+| --- | --- | --- |
+| gateway | Lowest-metric IPv4 default gateway from `ip -4 route show default` | `/tmp/dpinger/gateway.status` |
+| internet | `1.1.1.1` | `/tmp/dpinger/internet.status` |
+| vps | `UDPPTT_SERVER` in `/etc/default/udpptt` | `/tmp/dpinger/vps.status` |
+| wireguard (optional) | `DPINGER_WIREGUARD_ENDPOINT` in `/etc/default/dpinger` | `/tmp/dpinger/wireguard.status` |
+
+Enable the monitors after configuring the VPS address:
+
+```sh
+systemctl daemon-reload
+systemctl enable --now dpinger.service
+cat /tmp/dpinger/*.status
+journalctl -u 'dpinger@*.service' -f
+```
+
+Each file contains one line: `latency_avg latency_stddev loss_pct`. Latency is
+in microseconds (divide by 1000 for milliseconds); loss is 0–100 percent.
+Probes and reports run every second, with a three-second loss timeout and a
+ten-second averaging window. Each report replaces the previous file atomically.
+LVGL should reopen the path on each read, and treat missing files or reports
+older than five seconds as unavailable, not as successful connectivity. Initial
+reports need time to accumulate samples. ICMP loss alone does not establish that
+the PTT service is down: some destinations filter echo requests.
+
+Each monitor restarts independently after failure, and removes its report when
+stopped. Destinations are selected at startup: after changing uplinks/routes or
+configuration, run `systemctl restart dpinger.service` to select them again.
+This service replaces the old PocketTerm `dpinger.service` tunnel-recovery
+command; the separate legacy `dpinger-otp.service` is unchanged.
+
+For optional WireGuard monitoring, set `DPINGER_WIREGUARD_ENDPOINT` to a pingable
+IP address or hostname (without a port), then run:
+
+```sh
+systemctl enable --now dpinger@wireguard.service
+# Disable it again when unused:
+systemctl disable --now dpinger@wireguard.service
+```
+
+Pinging a public WireGuard endpoint tests reachability of that host, not tunnel
+health. Use a peer's tunnel address to test connectivity through the tunnel.
+
 
 Mask console 
 

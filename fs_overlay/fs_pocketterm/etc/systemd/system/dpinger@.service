@@ -1,0 +1,19 @@
+[Unit]
+Description=PocketTerm connectivity monitor (%i)
+Wants=network-online.target
+After=network-online.target
+PartOf=dpinger.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+EnvironmentFile=-/etc/default/udpptt
+EnvironmentFile=-/etc/default/dpinger
+UMask=0022
+ExecStart=/bin/sh /usr/libexec/dpinger-monitor %i
+ExecStopPost=/bin/rm -f /tmp/dpinger/%i.status /tmp/dpinger/%i.status.new
+Restart=always
+RestartSec=5s
+
+[Install]
+WantedBy=dpinger.service
