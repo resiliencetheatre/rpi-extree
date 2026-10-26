@@ -5,6 +5,8 @@ config BR2_PACKAGE_LVGL_CONSOLE_LOCAL
 	depends on BR2_USE_MMU
 	depends on !BR2_PACKAGE_LVGL_CONSOLE
 	select BR2_PACKAGE_LIBPNG
+	select BR2_PACKAGE_ALSA_LIB
+	select BR2_PACKAGE_ALSA_LIB_MIXER
 	help
 	  Build the LVGL framebuffer console from the local lvgl-console
 	  directory beside this external tree, for development without
