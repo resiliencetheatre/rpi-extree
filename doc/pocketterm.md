@@ -1,5 +1,7 @@
 # Waveshare PocketTerm 3.5
 
+![Waveshare PocketTerm 3.5](../images/pocketterm.png)
+
 These are development notes, work in progress.
 
 ## Connectivity status for LVGL
