@@ -1,0 +1,17 @@
+[Unit]
+Description=PocketTerm LVGL console
+Wants=utxtrelay-console-client.service dpinger.service
+After=utxtrelay-console-client.service dpinger.service systemd-user-sessions.service
+Conflicts=psplash.service
+
+[Service]
+Type=simple
+Environment=UTXTRELAY_SOCKET=/run/utxtrelay/console.sock
+ExecStart=/usr/bin/lvgl-console-launcher
+Restart=on-failure
+RestartSec=5s
+KillMode=mixed
+TimeoutStopSec=10s
+
+[Install]
+WantedBy=multi-user.target

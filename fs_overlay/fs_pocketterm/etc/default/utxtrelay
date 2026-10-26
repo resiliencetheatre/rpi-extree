@@ -1,0 +1,7 @@
+# Configure the reachable utxtrelay-server address before deployment.
+# 127.0.0.1 is a placeholder; no relay server is started by this overlay.
+UTXTRELAY_SERVER=127.0.0.1
+UTXTRELAY_PORT=5555
+# Use a unique nickname on each device; names/rooms cannot contain whitespace.
+UTXTRELAY_NAME=pocketterm
+UTXTRELAY_ROOM=console
