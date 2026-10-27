@@ -8,6 +8,7 @@ Type=simple
 User=root
 Environment=UDPPTT_DPI_ID=pocketterm UDPPTT_PREAMBLE_ID=POCKT
 EnvironmentFile=/etc/default/udpptt
+EnvironmentFile=-/run/udpptt/preamble.env
 RuntimeDirectory=udpptt
 RuntimeDirectoryMode=0755
 UMask=0077
@@ -20,11 +21,11 @@ ExecStart=/usr/bin/ptt_client ${UDPPTT_SERVER} \
     --encrypt --key ${UDPPTT_KEY} \
     --jitter-ms 200 \
     --fec-loss-percent 10 \
-    --preamble-id ${UDPPTT_PREAMBLE_ID} \
+    $UDPPTT_PREAMBLE_ARGS \
     --state-file /run/udpptt/state \
     --rx-state-timeout-ms 1000 \
     --dpi-id ${UDPPTT_DPI_ID} \
-    --dpi-secret /root/.config/udpptt/dpi.secret
+    --dpi-secret /root/.config/udpptt/dpi.secret $UDPPTT_DEVICE_ARGS
 Restart=on-failure
 RestartSec=5s
 

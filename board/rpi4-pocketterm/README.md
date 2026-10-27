@@ -79,3 +79,30 @@ Native validation is `make -C utxtrelay test` plus the LVGL CTest suite.
 `make -C utxtrelay test-network` additionally runs a real loopback UDP relay
 and two connectors and requires permission to bind sockets. Physical display,
 keyboard, service startup and networking should also be checked on the Pi.
+
+## Updating PocketTerm audio selection
+
+With the PocketTerm Buildroot configuration selected, use the workspace's top-level
+Makefile to build and deploy a complete update to an existing device:
+
+```sh
+make update_pocketterm TARGET_IP=192.0.2.10
+```
+
+This uses the existing rsync daemon setup described in the top-level Makefile and
+root SSH access. It rebuilds `lvgl-console-local`, runs the full Buildroot build
+(to apply the PocketTerm overlay), checks the audio files, deploys the rootfs,
+runs `systemctl daemon-reload`, and restarts `udpptt.service` and
+`lvgl-console.service`. Restarting interrupts any active PTT session.
+
+The deployment includes `/usr/libexec/udpptt-audio-select`,
+`/etc/default/udpptt.usb-hf`, `/etc/default/udpptt.usb-monofone`, and the service
+unit whose ExecStart consumes `$UDPPTT_DEVICE_ARGS`. Existing active configuration,
+credentials, and device profiles are preserved by the rsync deployment; missing
+profiles are installed. Configure the server and credentials in newly installed
+profiles before selecting them. For SD-card deployment, the full Buildroot image
+includes these files through `fs_pocketterm`.
+
+In Settings, Audio device and its USB HF / USB Monofone choices share one row
+under System settings. Selection immediately copies the profile and restarts PTT;
+Save is not required.

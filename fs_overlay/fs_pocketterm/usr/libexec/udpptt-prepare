@@ -7,6 +7,20 @@ if [ -z "${UDPPTT_SERVER:-}" ]; then
 fi
 
 umask 077
+# ExecStart reads this environment file again after ExecStartPre completes.
+# Old configurations without the toggle retain the enabled preamble.
+mkdir -p /run/udpptt
+case "${UDPPTT_PREAMBLE_ENABLED:-1}" in
+    0) printf 'UDPPTT_PREAMBLE_ARGS=\n' > /run/udpptt/preamble.env ;;
+    1)
+        case "${UDPPTT_PREAMBLE_ID:-POCKT}" in
+            [A-Z][A-Z][A-Z][A-Z][A-Z]) ;;
+            *) echo "Preamble ID must contain five uppercase letters" >&2; exit 1 ;;
+        esac
+        printf 'UDPPTT_PREAMBLE_ARGS=--preamble-id %s\n' "${UDPPTT_PREAMBLE_ID:-POCKT}" > /run/udpptt/preamble.env
+        ;;
+    *) echo "UDPPTT_PREAMBLE_ENABLED must be 0 or 1" >&2; exit 1 ;;
+esac
 key_dir=/root/.config/udpptt
 mkdir -p "$key_dir"
 secret=$key_dir/dpi.secret
