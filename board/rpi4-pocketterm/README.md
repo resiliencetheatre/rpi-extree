@@ -57,8 +57,9 @@ The overlay enables these units through `multi-user.target.wants` symlinks:
 - `utxtrelay-console-client.service`: creates `/run/utxtrelay`, signals readiness
   once its local socket listens, and retries remote relay setup independently.
 - `lvgl-console.service`: starts after connector readiness and uses
-  `/usr/bin/lvgl-console-launcher` to restore VT state on exit. The former
-  `lvgl-com.service` is an alias, preventing duplicate UI instances.
+  `/usr/bin/lvgl-console-launcher` to restore VT state on exit. Only this UI
+  service is installed; the post-build hook removes stale `lvgl-com.service`
+  units and enablement links from incremental builds.
 
 The UI can still start if the connector fails, and reconnects when it returns.
 Both services run as root; the socket is restricted to that user. The connector

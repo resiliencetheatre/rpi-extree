@@ -4,7 +4,7 @@ config BR2_PACKAGE_UTXTRELAY
 	select BR2_PACKAGE_LIBSODIUM
 	help
 	  UDP text relay server, terminal client, and Unix-domain socket
-	  connector for lvgl-console. Fetches a pinned Git revision
-	  from upstream and builds without ncurses.
+	  connector for lvgl-console. Builds the adjacent utxtrelay
+	  source directory without ncurses.
 
 	  https://github.com/resiliencetheatre/utxtrelay

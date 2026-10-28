@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-UTXTRELAY_VERSION = 731cad8025498469ef7c19d21f0f5424db071347
+UTXTRELAY_VERSION = 6e99ff5e8a0bbf30b911765550e32b36d2748d29
 UTXTRELAY_SITE = https://github.com/resiliencetheatre/utxtrelay.git
 UTXTRELAY_SITE_METHOD = git
 UTXTRELAY_DEPENDENCIES = libsodium
