@@ -1,4 +1,4 @@
-UDPTUNNEL_VERSION = fd9c31d1f5c89b206d2c8ecd8d4706a48916ae72
+UDPTUNNEL_VERSION = a8da61c1e8d23caf79af74898697c4ac7b75dad3
 UDPTUNNEL_SITE = $(call github,resiliencetheatre,udptunnel,$(UDPTUNNEL_VERSION))
 UDPTUNNEL_PREFIX = $(TARGET_DIR)/usr
 
@@ -7,7 +7,9 @@ define UDPTUNNEL_BUILD_CMDS
 endef
 
 define UDPTUNNEL_INSTALL_TARGET_CMDS
-        (cd $(@D); cp client server $(UDPTUNNEL_PREFIX)/bin)
+        $(INSTALL) -D -m 0755 $(@D)/utun-node $(UDPTUNNEL_PREFIX)/bin/utun-node
+        $(INSTALL) -D -m 0755 $(@D)/client $(UDPTUNNEL_PREFIX)/bin/client
+        $(INSTALL) -D -m 0755 $(@D)/server $(UDPTUNNEL_PREFIX)/bin/server
 endef
 
 define UDPTUNNEL_CLEAN_CMDS
