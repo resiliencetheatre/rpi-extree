@@ -1,0 +1,3 @@
+# Optional explicit device; by default discover gpio_keys by name.
+# RETERMINAL_PTT_DEVICE=/dev/input/event0
+RETERMINAL_PTT_SOCKET=/tmp/udpptt.sock

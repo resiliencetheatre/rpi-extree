@@ -1,0 +1,2 @@
+/dev/root / auto rw 0 1
+PARTUUID=72657465-01 /boot vfat rw,defaults 0 2

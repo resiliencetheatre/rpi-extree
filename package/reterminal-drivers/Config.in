@@ -1,0 +1,7 @@
+config BR2_PACKAGE_RETERMINAL_DRIVERS
+	bool "reTerminal display and touch driver"
+	depends on BR2_LINUX_KERNEL
+	depends on BR2_aarch64
+	help
+	  Seeed Studio's STM32/ILI9881 display, backlight and touch
+	  driver for the original CM4 reTerminal (not reTerminal DM).

@@ -1,0 +1,15 @@
+[Unit]
+Description=reTerminal KEY_F push-to-talk button
+Wants=udpptt.service
+After=udpptt.service
+
+[Service]
+Type=simple
+EnvironmentFile=-/etc/default/reterminal-ptt
+ExecStart=/usr/libexec/reterminal-ptt
+Restart=on-failure
+RestartSec=2s
+TimeoutStopSec=5s
+
+[Install]
+WantedBy=multi-user.target

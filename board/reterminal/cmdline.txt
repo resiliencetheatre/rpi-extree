@@ -1,0 +1,1 @@
+root=PARTUUID=72657465-02 rootfstype=ext4 rootwait console=ttyAMA0,115200n8 console=tty1 fbcon=rotate:1 fbcon=logo-count:1 fbcon=logo-pos:center systemd.show_status=false vt.global_cursor_default=0 loglevel=5

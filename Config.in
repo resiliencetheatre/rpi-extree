@@ -107,3 +107,5 @@ menu "test packages"
 endmenu
 
 source "$BR2_EXTERNAL_rpi_PATH/package/offline-debian-keyring/Config.in"
+
+source "$BR2_EXTERNAL_rpi_PATH/package/reterminal-drivers/Config.in"
