@@ -19,3 +19,12 @@ __pycache__/
 *.py[cod]
 **/iwd/*.psk
 **/iwd/*.8021x
+
+# External update signing/TLS inputs and generated release hosting artifacts.
+ab-*-private.pem
+*-private.pem
+*-key.pem
+*.p12
+*.pfx
+/update-host/
+/releases/

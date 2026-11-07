@@ -581,13 +581,14 @@ References: [Raspberry Pi autoboot/tryboot](https://www.raspberrypi.com/document
 [SWUpdate best practices](https://sbabic.github.io/swupdate/swupdate-best-practise.html),
 [Buildroot manual](https://buildroot.org/downloads/manual/manual.html).
 
-## Remote-update API: stage 1 validated, UI stages deferred
+## Remote-update API: stage 1 validated, LVGL implementation added
 
 The original local CLI remains the independent deployment baseline. The opt-in,
 root-only Unix-socket service supports signed remote release checks, accepted
 downloads and separately accepted installation through that same CLI. It is not
-enabled automatically and exposes no web listener. LVGL and browser integration
-remain separate future stages.
+enabled globally and exposes no web listener. Configured LVGL builds request the
+service through a Wants dependency. The Settings integration below awaits device
+validation; browser integration remains a separate future stage.
 
 See [API v1](API.md), the [service/client/publishing guide](api/README.md), and the
 [local HTTPS hosting guide](api/HTTPS-HOST.md). The operator ran all 17 baseline and
@@ -602,3 +603,125 @@ build could retain `_ssl=n/a` despite `BR2_PACKAGE_PYTHON3_SSL=y`; dev-10 correc
 that. The post-build hook now refuses an image without the `_ssl` shared extension.
 Normal local CLI updates remain available if the API service is stopped or the
 remote server is unavailable.
+
+## LVGL Settings integration
+
+The System update panel is implemented using the local API: Check for updates,
+release-specific download consent, separate install/restart consent, and local
+status/progress polling. SWUpdate per-step progress is observed read-only by the
+service. The standalone CLI remains the installation baseline. Build instructions
+and the spare-card acceptance checklist are in
+[the LVGL-stage guide](api/README.md#stage-2-implementation-lvgl-settings-client).
+No browser updater was added. The operator has now reported the LVGL update
+flow working, including the corrected confirmation layout. See the validation
+record below; power-cut and failure-path acceptance remains separate.
+
+
+## One-command development release
+
+From the workspace root, build, sign and publish the next release with:
+
+```sh
+rpi-extree/board/reterminal-ab/release.sh dev-14
+```
+
+The number is also the signed metadata sequence. Use a new number greater than
+that in the existing `update-host/www/latest.json`. The script uses the configured
+`output-reterminal-ab`, development signing/verification keys in the workspace,
+and the existing HTTPS host at `https://192.168.178.41:9443`. It refreshes the local
+LVGL package using `lvgl-console-local-dirclean` so UI source edits are included,
+builds the image, packages/signs `releases/dev-14/dev-14.swu`, creates its
+`SHA256SUMS`, verifies/signs the offer, publishes the complete bundle, then atomically
+replaces `latest.json`. It preserves the existing Buildroot configuration.
+
+Do not run alongside another build using the same output directory. The script
+serializes other invocations of itself, refuses existing release artifacts and
+checks the signing key pair and increasing sequence before building. On failure,
+the previous offer remains published; inspect any partial release artifacts before
+retrying, or use a fresh version. This does not imply power-loss durability of
+publication. Keep the existing HTTPS server running; its files update without a
+restart. On reTerminal use Settings → System update → Check for updates, followed
+by the separate download and installation confirmations.
+
+To supply release notes or change build parallelism:
+
+```sh
+RELEASE_NOTES='Fix update confirmation button clipping' RELEASE_JOBS=4 \
+  rpi-extree/board/reterminal-ab/release.sh dev-14
+```
+
+Run `release.sh --help` for path, key, URL and expiry overrides. The script never
+starts the server, changes UFW, installs on a device, flashes a card or updates
+EEPROM. Configuration/dependency changes requiring a defconfig reload or package
+clean beyond LVGL remain explicit preparation steps. Initial factory flashing is
+still the separate procedure above. The wrapper itself has not built or published
+a release during implementation.
+
+
+## LVGL update operation and validation record
+
+The Settings System update section uses borderless containers, preserves button
+styling and text, and keeps confirmation buttons below a scrollable description.
+**Cancel/Later is left; Download/Install and restart/Restart is right.** Download
+and installation each require their own explicit acceptance of the reviewed offer.
+Opening Settings polls local status only; Check for updates requests the remote
+signed offer. Download progress and optional SWUpdate per-image progress are shown;
+verification/readback phases without measured progress do not invent a percentage.
+
+After installation, a committed trial offers **Finish update**. Its confirmation
+provides **Restart** for an ordinary reboot and **Later** to continue using the
+device. Later leaves Finish update available. New installations remain blocked
+until a normal boot reports `trial: false`. The API accepts the restart only after
+fresh status confirms the committed version and slot match the running system.
+
+The operator reported successful UI operation after the layout correction and
+subsequently reported the lock-race correction working. The observed dev-15 status
+was slot B, committed, `trial: false`. A dev-16 attempt had failed at preflight
+(`stage: verifying_bundle`) with `device_unavailable`, before slot writes. API
+polling and worker preflight now serialize baseline status calls using the engine
+lock, preventing those calls from racing each other for the CLI's process lock.
+The UI can retry a failed job with a retained download when fresh device status
+permits it; the backend repeats verification and safety checks.
+
+If using an older API image affected by that race, stop its polling and install
+the already downloaded bundle through the independent CLI:
+
+```sh
+systemctl stop reterminal-update-api
+reterminal-update status
+reterminal-update install /data/update-api/download.swu
+```
+
+Use this only after reviewing the offered release and accepting installation.
+Do not delete `/run/reterminal-update.lock`; the file's presence is normal and
+unlinking it can defeat serialization. For diagnosis, collect baseline/API status
+and `journalctl -u reterminal-update-api -b --no-pager`. A baseline failure can
+also mean invalid partition/mount evidence; inspect its actual traceback rather
+than assuming every error is contention.
+
+Current host checks: 11 native LVGL tests passed; 17 baseline tests passed; API
+suite has 13 tests with one Unix-socket integration test skipped in the restricted
+workspace; five progress decoder tests passed. These are separate from operator
+hardware reports. Exact post-fix release IDs and timing were not supplied in the
+latest report. Adverse-network, rejection, rollback, watchdog coverage and
+power-cut tests remain deployment gates, not established by the happy path.
+
+
+## Credential handling and repository audit
+
+Keep release signing keys, TLS private keys and the initialized `update-host/`
+outside `rpi-extree`, as in the workspace layout above. Targets receive only
+release verification trust and the public HTTPS CA certificate. The release
+wrapper takes key paths; it never copies private keys into image payloads or the
+public document root. Ignore rules now cover common update-key names, PKCS#12
+containers and repository-local hosting/release directories. Ignore rules do not
+remove files already tracked by Git.
+
+The current changed/untracked updater files were scanned for private-key and
+common provider-token markers with no findings. This is a scoped check, not a
+claim that the whole existing repository is credential-free: an audit also found
+14 pre-existing private-key/PKCS#12 files under `fs_overlay/fs_edgemap/` and
+credential literals in other profiles. Those unrelated inputs remain unchanged
+pending a separate cleanup decision. Removing current files would not erase
+historical Git copies; any keys used operationally require rotation, with history
+cleanup coordinated separately. No secret values are reproduced in this guide.

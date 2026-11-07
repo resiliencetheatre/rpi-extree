@@ -244,6 +244,6 @@ changed expiry, URL or note requires a new sequence. TLS server keys and the SWU
 signing private key remain separate and outside the served document root.
 
 This completes the first real remote API happy-path test. Browser UI was not
-implemented; this server remains an artifact host only. LVGL integration is the
-next separate software step. Failure/rejection, rollback and power-cut gates in
+implemented; this server remains an artifact host only. LVGL integration is now implemented and the operator reports its happy path
+working; see the board validation record. Failure/rejection, rollback and power-cut gates in
 the board guide remain in force.

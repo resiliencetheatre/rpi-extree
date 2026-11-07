@@ -160,6 +160,56 @@ class Tests(unittest.TestCase):
         self.assertTrue(restarted.status()['download_ready'])
         self.assertEqual(self.device.calls, [self.engine.bundle()], 'Restart must never auto-install')
 
+    def test_device_preflight_serializes_with_status_poll(self):
+        entered = threading.Event()
+        release = threading.Event()
+        second_done = threading.Event()
+        calls = []
+        original = self.device.status
+        def slow_status():
+            calls.append(True)
+            if len(calls) == 1:
+                entered.set()
+                self.assertTrue(release.wait(2))
+            return original()
+        self.device.status = slow_status
+        first = threading.Thread(target=self.engine._normal)
+        second = threading.Thread(target=lambda: (self.engine.status(), second_done.set()))
+        first.start()
+        self.assertTrue(entered.wait(2))
+        second.start()
+        try:
+            self.assertFalse(second_done.wait(0.05))
+            self.assertEqual(len(calls), 1)
+        finally:
+            release.set()
+            first.join(2)
+            second.join(2)
+        self.assertTrue(second_done.is_set())
+        self.assertEqual(len(calls), 2)
+
+    def test_finish_requires_confirmed_trial_and_acceptance(self):
+        from unittest.mock import Mock
+        self.device.finish = Mock()
+        with self.assertRaises(APIError):
+            self.engine.dispatch('finish', {'accept': True})
+        self.device.value.update(trial=True, state=dict(phase='committed', target='a', version='lab-installed'))
+        with self.assertRaises(APIError):
+            self.engine.dispatch('finish', {'accept': False})
+        self.engine.job['phase'] = 'installing'
+        with self.assertRaises(APIError):
+            self.engine.dispatch('finish', {'accept': True})
+        self.engine.job['phase'] = 'idle'
+        self.device.value['state']['target'] = 'b'
+        with self.assertRaises(APIError):
+            self.engine.dispatch('finish', {'accept': True})
+        self.device.finish.assert_not_called()
+        self.device.value['state']['target'] = 'a'
+        self.assertTrue(self.engine.dispatch('finish', {'accept': True})['restart_requested'])
+        self.device.finish.assert_called_once()
+        with self.assertRaises(APIError):
+            LabDevice().finish()
+
     def test_bad_signature_profile_expiry_and_duplicate_json(self):
         for field, value, code in [('profile','wrong-profile','incompatible'),
                                     ('layout',2,'incompatible'),('expires',1,'expired')]:

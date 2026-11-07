@@ -50,12 +50,22 @@ class Device:
                 stdout=output, stderr=subprocess.STDOUT, start_new_session=True)
         require(result.returncode == 0, 'installation_failed', 'Baseline installation failed; inspect install.log and device state')
 
+    def finish(self):
+        # Serialize the reboot request against the independent baseline CLI.
+        with open('/run/reterminal-update.lock', 'a') as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            result = subprocess.run(['systemctl', '--no-block', 'reboot'], capture_output=True, timeout=10)
+            require(result.returncode == 0, 'reboot_failed', 'Normal restart request failed')
+
 
 class LabDevice:
     def status(self):
         return dict(slot='a', trial=False, state={}, version='lab-installed')
 
     def install(self, bundle, log):
+        raise APIError('lab_install_disabled', 'Lab backend never invokes SWUpdate or reboots')
+
+    def finish(self):
         raise APIError('lab_install_disabled', 'Lab backend never invokes SWUpdate or reboots')
 
 
@@ -101,9 +111,11 @@ class Engine:
         return identity, value
 
     def _device_status(self):
-        value = self.device.status()
-        self.cached_device = value
-        return value
+        # Polling and worker preflight must not contend on the baseline CLI lock.
+        with self.lock:
+            value = self.device.status()
+            self.cached_device = value
+            return value
 
     def _normal(self):
         value = self._device_status()
@@ -151,6 +163,17 @@ class Engine:
                 require(self.job['phase'] in ('checking', 'downloading'), 'not_cancellable', 'Only check/download jobs can be cancelled')
                 self.cancelled.set()
                 return dict(job_id=self.job['job_id'], cancellation_requested=True)
+            if method == 'finish':
+                keys(params, ('accept',))
+                require(params['accept'] is True, 'acceptance_required', 'Explicit restart acceptance required')
+                require(self.job['phase'] not in ACTIVE, 'busy', 'An update job is already running')
+                current = self._device_status()
+                state = current['state']
+                require(current['trial'] is True and state.get('phase') == 'committed' and
+                        state.get('target') == current['slot'] and state.get('version') == current['version'],
+                        'not_committed_trial', 'Only a confirmed trial can be finished')
+                self.device.finish()
+                return dict(restart_requested=True)
             require(method in ('check', 'download', 'install'), 'unknown_method', 'Unknown API method')
             require(self.job['phase'] not in ACTIVE, 'busy', 'An update job is already running')
             offer = None
@@ -211,6 +234,7 @@ class Engine:
                 finally:
                     temporary.unlink(missing_ok=True)
             else:
+                self._set(stage='verifying_bundle')
                 self._offer(self.job['offer_id'])
                 current = self._normal()
                 require(current['version'] != offer['version'], 'already_installed', 'Offered release is already running')
@@ -221,7 +245,16 @@ class Engine:
                         'hash_mismatch', 'Downloaded bundle changed')
                 verify_bundle(self.bundle(), offer['version'], self.config['public_key'])
                 self._offer(self.job['offer_id'])  # Expiry may have passed during verification.
-                self.device.install(self.bundle(), self.directory / 'install.log')
+                self._set(stage='installing_slots')
+                if isinstance(self.device, Device):
+                    from swupdate_progress import Monitor
+                    def progress(value):
+                        with self.lock:
+                            self.job['swupdate'] = value
+                    with Monitor(progress):
+                        self.device.install(self.bundle(), self.directory / 'install.log')
+                else:
+                    self.device.install(self.bundle(), self.directory / 'install.log')
                 self._set(phase='installed')
         except Exception as error:
             code = error.code if isinstance(error, APIError) else 'operation_failed'

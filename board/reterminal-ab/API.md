@@ -117,3 +117,41 @@ LVGL is next; browser authentication/gateway/network exposure remain a later sta
 On-target rejection/failure and power-cut tests are still pending; successful host
 negative tests are not substitutes. Detailed results and commands are in
 [the API guide](api/README.md#recorded-stage-1-results-2026-11-07).
+
+## Additive status fields for the LVGL stage
+
+During an install, `job.stage` distinguishes `verifying_bundle` from
+`installing_slots`. Optional `job.swupdate` is a read-only snapshot:
+
+```json
+{"status":"progress","image":"boot-b.vfat","handler":"raw","step":1,"steps":2,"percent":42,"info":""}
+```
+
+Percent is the current SWUpdate step's percentage, not an overall install or
+health-confirmation percentage. Clients must tolerate an absent stream. After
+SWUpdate success, baseline flush/readback and activation can still be in progress.
+The observer cannot authorize writes, commit, reboot or change the selector. It
+rejects unsupported progress ABI versions rather than guessing their layout.
+Existing requests and response envelopes remain API v1 compatible.
+
+The LVGL Settings client is now implemented with separate download/install
+confirmations and background RPC. The configured API can be started by the A/B
+LVGL unit's Wants dependency, without automatic remote checks. Device validation
+of these controls remains pending. Browser integration remains a separate stage.
+
+
+### Finish a committed trial (Settings)
+
+`finish` accepts exactly `{"accept":true}`. It requests an ordinary systemd reboot
+only after fresh baseline status confirms `trial:true`, `state.phase:committed`,
+and matching running slot/target and installed/state version. Active API jobs
+reject the request. The reboot request is serialized against the baseline CLI
+lock. It does not change selector or trial records, install a bundle, or request
+tryboot. Success returns `{"restart_requested":true}`; connection loss during
+shutdown is possible. The lab backend always refuses to reboot.
+
+Settings shows **Finish update** in this state. Its confirmation offers **Restart**
+and **Later**; Later closes the dialog and leaves the action available. New update
+installs remain blocked until a normal reboot clears the firmware trial flag.
+There is no automatic second reboot. Test this on hardware after installing the
+release containing both the API and UI changes.

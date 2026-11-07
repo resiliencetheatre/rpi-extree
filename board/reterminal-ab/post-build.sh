@@ -78,10 +78,14 @@ install -d "$target_dir/etc/systemd/system.conf.d"
 printf '[Manager]\nRuntimeWatchdogSec=15s\nRebootWatchdogSec=30s\n' > "$target_dir/etc/systemd/system.conf.d/ab-watchdog.conf"
 
 # Stage 1 local API: installed for explicit testing, never enabled automatically.
-for script in api_service.py api_client.py remote_release.py; do
+for script in api_service.py api_client.py remote_release.py swupdate_progress.py; do
     install -m 755 "$board_dir/$script" "$target_dir/usr/lib/reterminal-ab/$script"
 done
 ln -sf ../lib/reterminal-ab/api_client.py "$target_dir/usr/sbin/reterminal-update-client"
 install -m 644 "$board_dir/api/reterminal-update-api.service" "$target_dir/etc/systemd/system/"
 install -d "$target_dir/usr/share/reterminal-update-api"
 install -m 644 "$board_dir/api/config.example.json" "$target_dir/usr/share/reterminal-update-api/"
+
+# Start the local API alongside LVGL only when its operator config exists.
+# Do not order LVGL After=API: the API waits for trial health, which needs LVGL.
+printf '[Unit]\nWants=reterminal-update-api.service\n' > "$target_dir/etc/systemd/system/lvgl-console.service.d/update-api.conf"

@@ -2,7 +2,7 @@
 
 Read [the proposed API contract](../API.md) first. This stage implements remote
 release checking, explicit download acceptance and explicit installation acceptance.
-It changes neither LVGL nor the browser, and leaves the tested
+The stage 2 LVGL client is described below. The service leaves the tested
 `reterminal-update status/install` entry point unchanged. The API service is opt-in,
 root-only and Unix-socket-only; it never checks or downloads automatically.
 
@@ -19,8 +19,9 @@ root-only and Unix-socket-only; it never checks or downloads automatically.
 | `test_api.py` | Host tests using a simulated installer; never writes target partitions |
 | `config.example.json` | Sample target configuration |
 
-Progress bytes refer to downloads. Installation currently exposes its phase and a
-log, not a fabricated write percentage. The authoritative trial/commit/fallback
+Progress bytes refer to downloads. Installation exposes its stage, a log and
+optional read-only SWUpdate per-image/step progress; stages without measured
+progress do not fabricate a percentage. The authoritative trial/commit/fallback
 outcome is always `status.result.device.state`, obtained from the baseline CLI.
 No new code edits `/data/ab/state.json` or the selector directly.
 
@@ -287,8 +288,8 @@ Three operator lessons from this test:
   power connected and do not submit another install or restart the service.
 
 This validates the happy path, not on-device rejection, fallback, cancellation
-under adverse networking, or power-cut behavior. The next software stage is LVGL
-integration with this same API; the browser gateway remains a separate later stage.
+under adverse networking, or power-cut behavior. The LVGL integration below uses
+this same API and awaits hardware validation; the browser gateway remains a later stage.
 
 ## Review and acceptance before LVGL
 
@@ -306,7 +307,7 @@ integration with this same API; the browser gateway remains a separate later sta
 - Keep the original local CLI available throughout. Power-cut/fallback acceptance
   gates in the board README still apply independently of this API.
 
-After those results and API review, implement LVGL controls as a separate step.
+The LVGL controls below are implemented as a separate step, pending device testing.
 Browser gateway design, authentication and network exposure remain another step;
 this service intentionally opens no HTTP port.
 
@@ -316,3 +317,82 @@ A separate [HTTPS hosting guide](HTTPS-HOST.md) prepares `192.168.178.41:9443`,
 certificate trust, an operator-run UFW rule, and real release publication. This
 read-only artifact server is not the deferred browser updater. It uses separate
 TLS keys and keeps them outside the public document root.
+
+## Stage 2 implementation: LVGL Settings client
+
+The new LVGL System update panel uses this same Unix API. It has Check for updates
+and Update controls; Update first asks for download consent, then becomes Install
+update and asks for separate install/restart consent. It pins the reviewed offer
+ID and disables update actions during active jobs and trial boots. Background RPC
+and local status polling do not run on the LVGL event thread. Opening Settings
+never automatically checks the remote server.
+
+New A/B builds add a LVGL `Wants=reterminal-update-api.service` drop-in. The API
+still requires its operator-created config and performs no automatic remote work.
+It is not explicitly enabled globally. No `After=API` ordering is added to LVGL:
+that would cycle through health confirmation, which requires LVGL readiness.
+
+The API now adds `job.stage` (`verifying_bundle`, `installing_slots`) and optional
+`job.swupdate` (`status`, `image`, `handler`, `step`, `steps`, `percent`, `info`).
+This is a read-only observer of `/run/reterminal-ab/progress`, using the pinned
+SWUpdate 2026.05.1 packed little-endian progress ABI v2.0. Unknown ABI or a missing
+stream produces no percentage and never changes installation/activation policy.
+Success from the SWUpdate stream is not trial success: readback/activation and
+subsequent health/commit remain the baseline controller's responsibility.
+
+For a configured dev-11 device, build a new release (for example dev-12) with both
+API and UI changes. The operator performs these commands from the workspace root:
+
+```sh
+make -C buildroot O="$PWD/output-reterminal-ab" \
+  BR2_EXTERNAL="$PWD/rpi-extree" raspberrypi4_reterminal_ab_defconfig
+make -C buildroot O="$PWD/output-reterminal-ab" lvgl-console-local-dirclean
+AB_RELEASE_VERSION=dev-12 AB_VERIFY_KEY="$PWD/ab-development-public.pem" \
+  make -C buildroot O="$PWD/output-reterminal-ab" -j4
+mkdir -p releases/dev-12
+python3 rpi-extree/board/reterminal-ab/package.py \
+  --images output-reterminal-ab/images --version dev-12 \
+  --key "$PWD/ab-development-private.pem" --output releases/dev-12/dev-12.swu
+```
+
+Preserve local configuration customizations before reloading. Existing TLS and
+Data-growth dependencies must already be configured as above; a fresh output builds
+them directly. Deploy this first UI-enabled release using the existing tested CLI
+or API and confirm it plus an ordinary reboot. Then publish a subsequent release
+(e.g. dev-13/sequence 13) on the existing HTTPS host and exercise the Settings panel.
+Keep the local CLI available for diagnosis. Do not install lab fixture bundles.
+
+Run the new progress decoder tests without hardware:
+
+```sh
+python3 rpi-extree/board/reterminal-ab/api/test_swupdate_progress.py
+```
+
+For native LVGL tests, install json-c development support and follow the app's
+CMake/CTest instructions. Test no-offer, offer, consent cancel, stale offer,
+network failure, downloading, completed-download, verification, SWUpdate writing,
+readback/reboot, trial blocking and normal reboot on the spare card. No browser
+UI or network-facing update API was added. The operator has since reported the LVGL happy path working; see the
+[board validation record](../README.md#lvgl-update-operation-and-validation-record).
+Failure-path and power-cut validation remain separate requirements.
+
+
+### Finish update and preflight contention fix
+
+A committed trial now offers Finish update in Settings, with Restart and Later.
+Restart calls the additive `finish` API method and requests a normal reboot;
+Later dismisses the prompt without enabling another installation. See
+[the API contract](../API.md#finish-a-committed-trial-settings).
+
+API baseline status polling and worker preflight are serialized within the
+engine. Previously they could race for the CLI lock and reject an installation
+before writes with `device_unavailable`. Retained downloads can now be retried
+from Settings after a failed job when fresh baseline status allows installation.
+The independent CLI installation path remains unchanged.
+
+Build and publish subsequent versions with `../release.sh dev-N` (from this
+folder), or `rpi-extree/board/reterminal-ab/release.sh dev-N` from the workspace.
+Keep the HTTPS host running; no server restart is needed for new metadata.
+The operator reports the revised flow working. The 13-test API suite includes a
+regression proving worker status and UI polling cannot enter baseline status
+concurrently; one real-socket test remains skipped in the restricted workspace.
