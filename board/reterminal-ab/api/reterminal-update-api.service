@@ -1,0 +1,20 @@
+[Unit]
+Description=reTerminal local update API (opt-in prototype)
+Requires=reterminal-ab-prepare.service
+After=reterminal-ab-prepare.service reterminal-ab.service network.target
+ConditionPathExists=/etc/default/reterminal-updates.json
+
+[Service]
+Type=simple
+ExecStart=/usr/lib/reterminal-ab/api_service.py
+RuntimeDirectory=reterminal-update-api
+RuntimeDirectoryMode=0700
+UMask=0077
+# An accepted baseline installation must not be killed if this API is stopped.
+KillMode=process
+TimeoutStopSec=5
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

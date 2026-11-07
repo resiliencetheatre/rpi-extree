@@ -162,6 +162,9 @@ class ABTests(unittest.TestCase):
             target, build, images = folder / 'target', folder / 'build', folder / 'images'
             (target / 'etc').mkdir(parents=True)
             images.mkdir()
+            ssl = target / 'usr/lib/python3.14/lib-dynload/_ssl.cpython-test.so'
+            ssl.parent.mkdir(parents=True)
+            ssl.write_bytes(b'test fixture')
             for name in ('openssl', 'lsblk', 'swupdate', 'sfdisk', 'partx', 'blockdev', 'resize2fs'):
                 binary = target / 'usr/bin' / name
                 binary.parent.mkdir(parents=True, exist_ok=True)
@@ -185,6 +188,13 @@ class ABTests(unittest.TestCase):
                 self.assertEqual(fstab.read_text(), keep)
             installed = target / 'usr/lib/reterminal-ab/control.py'
             self.assertIn('check_transport', installed.read_text())
+            self.assertEqual(installed.read_bytes(), Path(__file__).with_name('control.py').read_bytes())
+            self.assertTrue((target / 'usr/lib/reterminal-ab/api_service.py').is_file())
+            self.assertFalse((target / 'etc/systemd/system/multi-user.target.wants/reterminal-update-api.service').exists())
+            ssl.unlink()
+            rejected = subprocess.run(['sh', str(script), str(target)], env=environment, capture_output=True, text=True)
+            self.assertNotEqual(rejected.returncode, 0)
+            self.assertIn('Missing Python _ssl extension', rejected.stderr)
 
     def test_data_mount_accepts_only_verified_persistence_binds(self):
         from types import SimpleNamespace

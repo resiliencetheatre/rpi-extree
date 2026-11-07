@@ -47,7 +47,8 @@ Tested firmware and build revisions:
 
 | Component | Revision |
 |---|---|
-| Buildroot | `683f63f3bd3d4cc88d8262a3fd8f135e290deb83` (`2026.08-1583-g683f63f3bd`) |
+| Buildroot, initial integration | `683f63f3bd3d4cc88d8262a3fd8f135e290deb83` (`2026.08-1583-g683f63f3bd`) |
+| Buildroot, subsequent clean-build test | `60a3423e958dc4266565c6bdfbb619dd95839314` (`2026.08-1646-g60a3423e95`) |
 | External-tree starting revision | `62804b8e40fc55f9cc74fd528ea2c2013bf2b634` plus workspace changes |
 | SWUpdate / host genimage | `2026.05.1` / `20` |
 | Kernel source | `0b41724521c9adf5399409d02aece6c1df0a4432` |
@@ -244,8 +245,8 @@ suitable rollback targets on an expanded card.
 
 ## Build and sign a routine release on the PC
 
-Use a new version for each release. The example below uses `dev-8` after the tested
-`dev-7` release. For a normal incremental release, do not reload the defconfig or
+Use a new version for each release. The example below uses `dev-12` after the tested
+`dev-11` release. For a normal incremental release, do not reload the defconfig or
 rebuild the baseline. Reuse `output-reterminal-ab` and the existing signing key.
 
 First change application sources, packages, kernel configuration or overlays.
@@ -262,7 +263,7 @@ changes can require `linux-reconfigure`. A new toolchain should use a fresh outp
 An overlay-only or version-only release normally needs just the full build below.
 
 ```sh
-AB_RELEASE_VERSION=dev-8 \
+AB_RELEASE_VERSION=dev-12 \
 AB_VERIFY_KEY="$PWD/ab-development-public.pem" \
   make -C buildroot O="$PWD/output-reterminal-ab" -j4
 ```
@@ -270,13 +271,13 @@ AB_VERIFY_KEY="$PWD/ab-development-public.pem" \
 Only after the build succeeds, sign its payloads using exactly the same version:
 
 ```sh
-mkdir -p releases/dev-8
+mkdir -p releases/dev-12
 python3 rpi-extree/board/reterminal-ab/package.py \
   --images output-reterminal-ab/images \
-  --version dev-8 \
+  --version dev-12 \
   --key "$PWD/ab-development-private.pem" \
-  --output releases/dev-8/dev-8.swu
-sha256sum releases/dev-8/dev-8.swu > releases/dev-8/SHA256SUMS
+  --output releases/dev-12/dev-12.swu
+sha256sum releases/dev-12/dev-12.swu > releases/dev-12/SHA256SUMS
 ```
 
 Do not edit `release-version` to relabel an old rootfs: the embedded
@@ -299,7 +300,7 @@ throughout the rollback window.
 From the PC, replace `<IP>` with the target address:
 
 ```sh
-scp releases/dev-8/dev-8.swu root@<IP>:/data/dev-8.swu
+scp releases/dev-12/dev-12.swu root@<IP>:/data/dev-12.swu
 ```
 
 A second USB drive is an alternative transfer method. Keep cloned boot media
@@ -325,7 +326,7 @@ reterminal-update status
 test -f /data/ab-test-sentinel || printf 'expanded-data-survives\n' > /data/ab-test-sentinel
 cat /data/ab-test-sentinel
 sync
-reterminal-update install /data/dev-8.swu
+reterminal-update install /data/dev-12.swu
 ```
 
 Before installing, require `trial: false` and no `pending`, `trial` or `committing`
@@ -534,6 +535,15 @@ Hardware observations reported during 2026-11-06/07:
 | Normal reboot after expansion | Passed; capacity retained, A normal boot, empty update state |
 | Expanded-card A -> dev-7 B trial and commit | Passed; release, sentinel and Data size verified |
 | Ordinary reboot after dev-7 commit | Operator reported all good |
+| Clean Buildroot update to dev-8, B -> A | Committed on A; subsequent dev-9 install required completion of the ordinary reboot |
+| API bootstrap dev-9, A -> B | Committed, normal B boot; API client present, but Python `_ssl` missing |
+| TLS correction dev-10, B -> A | Committed, normal A boot; Python reports OpenSSL 3.6.5 |
+| Host baseline/API test suites | Operator ran all 17 + 11 tests successfully, including real sockets |
+| Manual lab API workflow | Check, explicit download, then expected `lab_install_disabled`; no real installation |
+| Device -> desk HTTPS health | Passed with custom CA and IP verification at `192.168.178.41:9443` |
+| API dev-10 A -> dev-11 B | Signed offer, separate accepted download/install, trial and commit passed |
+| Ordinary reboot after API dev-11 commit | Passed: B, dev-11, `trial: false`, phase committed |
+| Persistence during API update | Sentinel `expanded-data-survives` retained; Data still 27.4G |
 
 Host/build checks: both defconfigs resolve; pinned firmware hash checking,
 extraction and image installation passed. Factory GPT/cmdline/firmware inspections
@@ -556,7 +566,7 @@ ctest --test-dir /tmp/lvgl-ab-build --output-on-failure
 
 These successes do not establish unattended rollout readiness. Still required:
 
-- Complete and record B -> A on the expanded layout, including an ordinary reboot.
+- Exercise the remote/API B -> A direction; successful local CLI B -> A is now recorded above.
 - On-target wrong-profile and tampered-bundle rejection without activation.
 - Data/settings/key survival during actual fallback, not just successful commits.
 - Unbootable candidate kernel, root-mount failure, hung trial and failed LVGL
@@ -570,3 +580,25 @@ These successes do not establish unattended rollout readiness. Still required:
 References: [Raspberry Pi autoboot/tryboot](https://www.raspberrypi.com/documentation/computers/config_txt.html#autoboot-txt),
 [SWUpdate best practices](https://sbabic.github.io/swupdate/swupdate-best-practise.html),
 [Buildroot manual](https://buildroot.org/downloads/manual/manual.html).
+
+## Remote-update API: stage 1 validated, UI stages deferred
+
+The original local CLI remains the independent deployment baseline. The opt-in,
+root-only Unix-socket service supports signed remote release checks, accepted
+downloads and separately accepted installation through that same CLI. It is not
+enabled automatically and exposes no web listener. LVGL and browser integration
+remain separate future stages.
+
+See [API v1](API.md), the [service/client/publishing guide](api/README.md), and the
+[local HTTPS hosting guide](api/HTTPS-HOST.md). The operator ran all 17 baseline and
+11 API tests on the PC, then completed a real HTTPS/API dev-10 -> dev-11 update,
+trial commit and ordinary reboot. The Data sentinel and expanded capacity survived.
+The restricted workspace's socket tests remain skipped there; actual host/device
+results are recorded separately rather than inferred from those skipped tests.
+
+When adding the API to an older build, reload the A/B defconfig and use
+`python3-dirclean` before the complete build. Dev-9 showed that an existing Python
+build could retain `_ssl=n/a` despite `BR2_PACKAGE_PYTHON3_SSL=y`; dev-10 corrected
+that. The post-build hook now refuses an image without the `_ssl` shared extension.
+Normal local CLI updates remain available if the API service is stopped or the
+remote server is unavailable.

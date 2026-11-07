@@ -7,6 +7,16 @@ target_dir="${1:?target directory}"
 for binary in usr/bin/openssl usr/bin/lsblk usr/bin/swupdate; do
     test -x "$target_dir/$binary" || { echo "Missing runtime executable: $binary" >&2; exit 1; }
 done
+# The API imports ssl; an old Python build may retain disabled extension state
+# even though the active Buildroot config now enables BR2_PACKAGE_PYTHON3_SSL.
+ssl_found=no
+for module in "$target_dir"/usr/lib/python*/lib-dynload/_ssl*.so; do
+    if [ -f "$module" ]; then ssl_found=yes; break; fi
+done
+if [ "$ssl_found" != yes ]; then
+    echo "Missing Python _ssl extension: enable BR2_PACKAGE_PYTHON3_SSL=y, run make python3-dirclean with the same O= directory, then rebuild." >&2
+    exit 1
+fi
 for binary in sfdisk partx blockdev resize2fs; do
     found=no
     for directory in bin sbin usr/bin usr/sbin; do
@@ -66,3 +76,12 @@ done
 
 install -d "$target_dir/etc/systemd/system.conf.d"
 printf '[Manager]\nRuntimeWatchdogSec=15s\nRebootWatchdogSec=30s\n' > "$target_dir/etc/systemd/system.conf.d/ab-watchdog.conf"
+
+# Stage 1 local API: installed for explicit testing, never enabled automatically.
+for script in api_service.py api_client.py remote_release.py; do
+    install -m 755 "$board_dir/$script" "$target_dir/usr/lib/reterminal-ab/$script"
+done
+ln -sf ../lib/reterminal-ab/api_client.py "$target_dir/usr/sbin/reterminal-update-client"
+install -m 644 "$board_dir/api/reterminal-update-api.service" "$target_dir/etc/systemd/system/"
+install -d "$target_dir/usr/share/reterminal-update-api"
+install -m 644 "$board_dir/api/config.example.json" "$target_dir/usr/share/reterminal-update-api/"
