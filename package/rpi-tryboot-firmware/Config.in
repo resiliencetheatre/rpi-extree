@@ -1,0 +1,9 @@
+config BR2_PACKAGE_RPI_TRYBOOT_FIRMWARE
+	bool "CM4 USB GPT tryboot firmware fix"
+	depends on BR2_aarch64
+	depends on BR2_PACKAGE_RPI_FIRMWARE_VARIANT_PI4
+	help
+	  Matched start4.elf/fixup4.dat pair fixing GPT detection for
+	  USB boot with autoboot.txt (raspberrypi/firmware#2047).
+	  Used only by the opt-in reTerminal A/B image.
+	  Does not update EEPROM.

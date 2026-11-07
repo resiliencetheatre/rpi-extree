@@ -1,0 +1,6 @@
+[Unit]
+Description=Reset failed reTerminal trials while preserving normal boot diagnostics
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/reterminal-update failure-reset

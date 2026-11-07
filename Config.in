@@ -109,3 +109,7 @@ endmenu
 source "$BR2_EXTERNAL_rpi_PATH/package/offline-debian-keyring/Config.in"
 
 source "$BR2_EXTERNAL_rpi_PATH/package/reterminal-drivers/Config.in"
+
+source "$BR2_EXTERNAL_rpi_PATH/package/vcgencmd/Config.in"
+
+source "$BR2_EXTERNAL_rpi_PATH/package/rpi-tryboot-firmware/Config.in"

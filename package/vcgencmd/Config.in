@@ -1,0 +1,9 @@
+config BR2_PACKAGE_VCGENCMD
+	bool "vcgencmd"
+	depends on BR2_arm || BR2_aarch64
+	help
+	  Raspberry Pi VideoCore diagnostic command-line utility, including
+	  bootloader_version, bootloader_config, temperature and throttling.
+	  Requires the Raspberry Pi firmware and BCM_VCIO kernel drivers.
+
+	  https://github.com/raspberrypi/utils/tree/master/vcgencmd

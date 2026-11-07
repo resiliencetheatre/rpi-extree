@@ -1,0 +1,15 @@
+[Unit]
+Description=reTerminal trial health and confirmation
+Requires=reterminal-ab-prepare.service
+After=reterminal-ab-prepare.service local-fs.target lvgl-console.service reterminal-ptt.service
+Wants=lvgl-console.service reterminal-ptt.service
+OnFailure=reterminal-ab-failure.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/reterminal-update boot
+TimeoutStartSec=100
+
+
+[Install]
+WantedBy=multi-user.target

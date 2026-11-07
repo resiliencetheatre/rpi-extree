@@ -1,0 +1,68 @@
+#!/bin/sh
+set -eu
+board_dir="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+target_dir="${1:?target directory}"
+: "${AB_RELEASE_VERSION:?set AB_RELEASE_VERSION}"
+: "${AB_VERIFY_KEY:?set AB_VERIFY_KEY to external RSA public PEM}"
+for binary in usr/bin/openssl usr/bin/lsblk usr/bin/swupdate; do
+    test -x "$target_dir/$binary" || { echo "Missing runtime executable: $binary" >&2; exit 1; }
+done
+for binary in sfdisk partx blockdev resize2fs; do
+    found=no
+    for directory in bin sbin usr/bin usr/sbin; do
+        if [ -x "$target_dir/$directory/$binary" ]; then found=yes; break; fi
+    done
+    if [ "$found" != yes ]; then
+        echo "Missing factory growth tool: $binary; reload the A/B defconfig, then run make util-linux-reconfigure e2fsprogs-reconfigure with the same O= directory." >&2
+        exit 1
+    fi
+done
+# Fail closed if Kconfig dropped a required security option in the pinned source.
+swconfig="$BUILD_DIR/swupdate-2026.05.1/.config"
+for option in SSL_IMPL_OPENSSL HASH_VERIFY SIGNED_IMAGES SIGALG_RAWRSA HW_COMPATIBILITY LIBCONFIG RAW; do
+    if ! grep -qx "CONFIG_$option=y" "$swconfig"; then
+        echo "Required SWUpdate option missing: CONFIG_$option" >&2
+        exit 1
+    fi
+done
+for option in SCRIPTS SHELLSCRIPTHANDLER WEBSERVER SURICATTA DOWNLOAD; do
+    if grep -qx "CONFIG_$option=y" "$swconfig"; then
+        echo "Unsupported SWUpdate feature enabled: CONFIG_$option" >&2
+        exit 1
+    fi
+done
+# Reject private material rather than copying it into the image.
+openssl rsa -pubin -in "$AB_VERIFY_KEY" -noout >/dev/null
+case "$AB_RELEASE_VERSION" in *[!a-zA-Z0-9._+-]*|'') exit 1;; esac
+# The inherited overlay mounts the old MBR boot PARTUUID. It does not exist in
+# this GPT layout. Selector/Data are resolved and mounted by the A/B controller.
+# Keep the baseline overlay unchanged and remove only its obsolete /boot entry.
+sed -i '\|^[[:space:]]*[^#[:space:]][^[:space:]]*[[:space:]][[:space:]]*/boot[[:space:]]|d' "$target_dir/etc/fstab"
+install -d "$target_dir/usr/lib/reterminal-ab" "$target_dir/etc/reterminal-ab" "$target_dir/data" "$target_dir/selector"
+install -m 644 "$board_dir/grow.py" "$target_dir/usr/lib/reterminal-ab/"
+install -m 644 "$board_dir/common.py" "$target_dir/usr/lib/reterminal-ab/"
+install -m 755 "$board_dir/control.py" "$target_dir/usr/lib/reterminal-ab/"
+install -m 644 "$AB_VERIFY_KEY" "$target_dir/etc/reterminal-ab/public.pem"
+printf '%s\n' "$AB_RELEASE_VERSION" > "$target_dir/etc/reterminal-ab/version"
+printf '%s\n' "$AB_RELEASE_VERSION" > "$BINARIES_DIR/release-version"
+printf 'reterminal-cm4-lvgl-v1 reterminal-cm4-lvgl-v1\n' > "$target_dir/etc/hwrevision"
+install -d "$target_dir/usr/sbin" "$target_dir/etc/systemd/system/multi-user.target.wants"
+ln -sf ../lib/reterminal-ab/control.py "$target_dir/usr/sbin/reterminal-update"
+for unit in swupdate.service swupdate.socket swupdate-usb@.service; do
+    ln -sf /dev/null "$target_dir/etc/systemd/system/$unit"
+done
+install -m 644 "$board_dir/prepare.service" "$target_dir/etc/systemd/system/reterminal-ab-prepare.service"
+ln -sf ../reterminal-ab-prepare.service "$target_dir/etc/systemd/system/multi-user.target.wants/reterminal-ab-prepare.service"
+install -m 644 "$board_dir/reterminal-ab.service" "$target_dir/etc/systemd/system/"
+install -m 644 "$board_dir/reterminal-ab-failure.service" "$target_dir/etc/systemd/system/"
+ln -sf ../reterminal-ab.service "$target_dir/etc/systemd/system/multi-user.target.wants/reterminal-ab.service"
+install -d "$target_dir/etc/systemd/system/lvgl-console.service.d"
+printf '[Service]\nEnvironment=LV_AB_READY=/run/lvgl-ab-ready\nExecStartPre=/bin/rm -f /run/lvgl-ab-ready\n' > "$target_dir/etc/systemd/system/lvgl-console.service.d/ab.conf"
+
+for service in lvgl-console udpptt sshd reterminal-ptt; do
+    install -d "$target_dir/etc/systemd/system/$service.service.d"
+    printf '[Unit]\nRequires=reterminal-ab-prepare.service\nAfter=reterminal-ab-prepare.service\n' > "$target_dir/etc/systemd/system/$service.service.d/persistence.conf"
+done
+
+install -d "$target_dir/etc/systemd/system.conf.d"
+printf '[Manager]\nRuntimeWatchdogSec=15s\nRebootWatchdogSec=30s\n' > "$target_dir/etc/systemd/system.conf.d/ab-watchdog.conf"

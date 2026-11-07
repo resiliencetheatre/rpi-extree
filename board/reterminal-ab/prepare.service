@@ -1,0 +1,14 @@
+[Unit]
+Description=Mount reTerminal persistent data before application services
+After=local-fs.target
+OnFailure=reterminal-ab-failure.service
+Before=lvgl-console.service udpptt.service sshd.service reterminal-ptt.service reterminal-ab.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/reterminal-update prepare
+RemainAfterExit=yes
+TimeoutStartSec=600
+
+[Install]
+WantedBy=multi-user.target

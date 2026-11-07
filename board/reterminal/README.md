@@ -132,3 +132,18 @@ python3 ../rpi-extree/board/reterminal/tests/test_ptt.py
 This uses native evdev records through a FIFO and a recording helper to check
 command edges, autorepeat, unrelated keys, queue overflow, socket replacement,
 and shutdown. Physical button/radio operation still needs a target test.
+
+## Firmware diagnostics
+
+Both reTerminal profiles include `/usr/bin/vcgencmd` for firmware diagnostics:
+
+```sh
+vcgencmd bootloader_version
+vcgencmd bootloader_config
+vcgencmd version
+```
+
+Run as root. For an existing output, enable `BR2_PACKAGE_VCGENCMD=y` in
+menuconfig or reload its reTerminal defconfig before rebuilding; save local
+configuration changes before reloading. The shared kernel fragment enables the
+required firmware mailbox driver. Hardware execution still requires validation.
