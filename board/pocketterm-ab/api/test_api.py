@@ -325,6 +325,11 @@ class Tests(unittest.TestCase):
             self.engine.dispatch('install',dict(offer_id=identity,accept=True))
             try:
                 self.assertTrue(entered.wait(3))
+                # UI polling must not invoke the controller while installation
+                # owns (or is about to acquire) its nonblocking process lock.
+                with patch.object(self.device, 'status', side_effect=AssertionError('status raced installer')):
+                    self.assertIsNone(self.engine.status()['device_error'])
+                    self.assertTrue(self.engine.installing_baseline)
                 with self.assertRaises(APIError) as caught:
                     self.engine.dispatch('check',{})
                 self.assertEqual(caught.exception.code,'busy')
@@ -334,6 +339,7 @@ class Tests(unittest.TestCase):
             finally:
                 release.set()
             self.assertEqual(self.wait()['job']['phase'],'installed')
+            self.assertFalse(self.engine.installing_baseline)
 
     def test_url_policy_redirect_and_request_validation(self):
         for url in ('http://192.0.2.1/latest.json','http://localhost/latest.json','file:///etc/passwd',

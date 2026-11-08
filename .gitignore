@@ -33,3 +33,6 @@ ab-*-private.pem
 /pocketterm-update-host/
 /pocketterm-releases/
 *.swu
+
+# Public factory download artifacts stay outside the external tree.
+/pocketterm-factory-images/

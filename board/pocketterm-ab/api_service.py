@@ -91,6 +91,7 @@ class Engine:
         self.cancelled = threading.Event()
         self.worker = None
         self.cached_device = None
+        self.installing_baseline = False
         # Only known temporary payloads owned by this service are discarded.
         (self.directory / 'download.part').unlink(missing_ok=True)
         self._save()
@@ -113,9 +114,25 @@ class Engine:
     def _device_status(self):
         # Polling and worker preflight must not contend on the baseline CLI lock.
         with self.lock:
+            # The delegated controller owns the process lock during installation.
+            # Keep polling responsive without racing it at process startup.
+            if self.installing_baseline:
+                require(self.cached_device is not None, 'device_unavailable', 'No pre-install status available')
+                return copy.deepcopy(self.cached_device)
             value = self.device.status()
             self.cached_device = value
             return value
+
+    def _install_baseline(self):
+        # Wait for any in-flight status call before delegating; subsequent polls
+        # use the cached preflight state until the installer has exited.
+        with self.lock:
+            self.installing_baseline = True
+        try:
+            self.device.install(self.bundle(), self.directory / 'install.log')
+        finally:
+            with self.lock:
+                self.installing_baseline = False
 
     def _normal(self):
         value = self._device_status()
@@ -252,9 +269,9 @@ class Engine:
                         with self.lock:
                             self.job['swupdate'] = value
                     with Monitor(progress):
-                        self.device.install(self.bundle(), self.directory / 'install.log')
+                        self._install_baseline()
                 else:
-                    self.device.install(self.bundle(), self.directory / 'install.log')
+                    self._install_baseline()
                 self._set(phase='installed')
         except Exception as error:
             code = error.code if isinstance(error, APIError) else 'operation_failed'

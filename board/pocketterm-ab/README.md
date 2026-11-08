@@ -1,11 +1,14 @@
 # PocketTerm Raspberry Pi 4 A/B updates
 
+For the complete local development, kernel refresh, public SWU and factory-image
+workflow, read [Development and release lifecycle](DEVELOPMENT.md) first.
+
 Opt-in profile: `raspberrypi4_pocketterm_ab_defconfig`. The existing
 `raspberrypi4_pocketterm_defconfig` stays single-slot and unchanged.
 Source port of `../reterminal-ab`: signed whole-system SWUpdate, native tryboot,
 health confirmation, persistent Data growth, local CLI, LVGL update panel and
-optional verified HTTPS offers. No build, signing, publication or hardware test
-was performed during the port. Use a spare microSD; native SD and USB reader boot
+optional verified HTTPS offers. The initial source port did not run builds or
+hardware tests; subsequent operator observations are recorded below. Use a spare microSD; native SD and USB reader boot
 are separate hardware validation combinations. EEPROM updates are separate.
 
 ## Workspace and revisions
@@ -22,7 +25,8 @@ SWUpdate `2026.05.1`, genimage `20`, base firmware
 `063bcab6c8a90efb0d19f69d88cbbc7ec79cab68`, matched tryboot start4/fixup4
 firmware `ab5c7f86283ceb58b7adb269cae1d16092a31bf6`.
 Record the actual EEPROM version, firmware, card, reader/controller, boot topology,
-display and input before hardware acceptance; none is established by this port.
+display and input before hardware acceptance. The initial source port alone did
+not establish them.
 
 ## Build commands (operator runs)
 
@@ -130,7 +134,23 @@ requires real power-cut validation.
 ## Validation and handoff
 
 Source tests: controller 17, API 13 (one socket skip), HTTPS host 5 (one socket
-skip), progress 5. No image inspection or physical tests have been performed.
+skip), progress 5. These are source checks, not physical acceptance.
+
+Subsequent operator observations in this session:
+
+- Pi 4 EEPROM 2021-04-29 booted B despite selector A and blocked factory growth.
+- EEPROM 2026-10-30, revision `13c4219f16dbe58c5b9946086b474baf572512bb`,
+  produced normal A and working LVGL startup.
+- Device status reported dev-5 committed on A with `trial: false`.
+- Public dev-6 metadata was accepted over HTTPS; later dev-8 public publication
+  completed, and the operator built the dev-8 public factory archive.
+- A dev-7→dev-8 install failed before writes at the controller lock. The API race
+  was fixed and the temporary API replacement started successfully; a successful
+  retry was not reported in this record.
+
+These observations do not establish power-cut/fallback coverage or a validated
+minimum EEPROM version. Media topology, complete image inspection and remaining
+physical results must be recorded explicitly.
 Before deployment test A→B and B→A, wrong-profile/tampered bundles, Data survival,
 ordinary reboot after commit, unbootable kernel, root-mount failure, hung trial,
 failed LVGL readiness, power cuts during both writes, before reboot and repeatedly
@@ -141,3 +161,83 @@ See [HTTPS/API setup](api/README.md) and [API contract](API.md).
 Suggested rpi-extree commit: `Add opt-in PocketTerm Pi 4 signed A/B update profile`.
 No other repository is changed. Legacy credentials elsewhere in the external tree
 are outside this port; no claim is made that the entire tree is secret-free.
+
+## Preconfigured public factory image
+
+Use the separate `raspberrypi4_pocketterm_public_defconfig` for downloadable
+factory images. It is the same PocketTerm A/B hardware/layout contract, with
+`public-overlay` added after the development overlay. It provisions:
+
+- `https://resilience-theatre.eu/pocketterm/latest.json` as the update source;
+- public HTTPS certificate validation using the system CA store (no lab CA);
+- `UDPPTT_SERVER=91.98.237.100` in `/etc/default/udpptt`;
+- the externally supplied RSA public verification key through the A/B hook.
+
+The remaining application defaults, including audio selection, PTT shared-room
+key and relay settings, remain the development defaults. Configure those for the
+intended deployment. The image embeds no private release signing or TLS key.
+A device accepts only releases signed by the key corresponding to its embedded
+public key. Use the same trust key as `release-public.sh`; do not generate a new
+key per factory image. Development and production trust should remain separate
+when deliberately setting up a production channel.
+
+From the workspace root, build a fresh version (example `dev-7`; choose your
+actual baseline version):
+
+```sh
+AB_VERIFY_KEY="$PWD/ab-development-public.pem" \
+  rpi-extree/board/pocketterm-ab/build-public-image.sh dev-7
+```
+
+This command starts a full build when run by the operator. It uses the separate
+`output-pocketterm-public`, initializes the public defconfig only for a nonexistent
+output directory, checks an existing configuration without resetting it, refreshes
+local LVGL and builds the complete image. It shares the release-wrapper lock;
+manual builds must also stay clear of the selected output. A fresh output builds
+its own toolchain and dependencies. Use `--help` for `PUBLIC_OUTPUT`,
+`PUBLIC_IMAGES`, absolute workspace/key paths and job count overrides.
+
+The download is:
+
+```text
+pocketterm-factory-images/dev-7/pocketterm-public-dev-7.img.xz
+pocketterm-factory-images/dev-7/SHA256SUMS
+```
+
+Configuration/revision/status records are archived locally alongside it for
+traceability. The wrapper validates generated defaults before compression, refuses
+to overwrite a version directory, and never uploads, flashes or changes EEPROM.
+On failure inspect the output and any partial archive before choosing a new
+version. Public factory builds do not change `latest.json` or require incrementing
+the public offer sequence; future SWU offers still need fresh increasing sequences.
+
+To offer the image for download after your own inspection and spare-card test,
+upload these two explicit files (substitute your built version):
+
+```sh
+rclone copyto --immutable \
+  pocketterm-factory-images/dev-7/pocketterm-public-dev-7.img.xz \
+  hetzner-web:public_html/pocketterm/pocketterm-public-dev-7.img.xz
+rclone copyto --immutable pocketterm-factory-images/dev-7/SHA256SUMS \
+  hetzner-web:public_html/pocketterm/pocketterm-public-dev-7.img.xz.SHA256SUMS
+```
+
+Distribute the versioned image URL and checksum. Flashing it replaces the whole
+card, including Data; use an image writer that accepts `.img.xz`, or decompress
+before writing the whole-card image. Require the validated 2026-10-30 Pi 4 EEPROM
+revision `13c4219f16dbe58c5b9946086b474baf572512bb` or separately validated firmware;
+EEPROM is outside this image and is not updated by flashing it.
+
+On first normal Boot A, Data grows and `/etc/default` is initialized on Data,
+including both public defaults. The local API starts alongside LVGL once its
+configuration exists. Network access, DNS and a valid clock are required for
+verified HTTPS. Open Settings → System update → Check for updates; a check never
+automatically downloads or installs. This bootstraps public updates without
+manually copying the lab CA or creating the API configuration.
+
+These are initial defaults. Reflashing factory media initializes them anew;
+installing an SWU on an existing device preserves its `/data/persist/etc/default`
+settings, including its chosen update URL and PTT server. Switching existing lab
+devices to the public source still requires editing their persistent configuration.
+Source checks do not replace building/inspecting this new public image and testing
+fresh-card boot, network/TLS, A→B/B→A updates, fallback and power cuts.

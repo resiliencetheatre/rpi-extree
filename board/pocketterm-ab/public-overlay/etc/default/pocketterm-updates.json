@@ -1,0 +1,6 @@
+{
+  "manifest_url": "https://resilience-theatre.eu/pocketterm/latest.json",
+  "public_key": "/etc/pocketterm-ab/public.pem",
+  "data_dir": "/data/update-api",
+  "allow_http_loopback": false
+}
