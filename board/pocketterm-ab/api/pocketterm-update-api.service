@@ -1,0 +1,20 @@
+[Unit]
+Description=PocketTerm local update API (opt-in prototype)
+Requires=pocketterm-ab-prepare.service
+After=pocketterm-ab-prepare.service pocketterm-ab.service network.target
+ConditionPathExists=/etc/default/pocketterm-updates.json
+
+[Service]
+Type=simple
+ExecStart=/usr/lib/pocketterm-ab/api_service.py
+RuntimeDirectory=pocketterm-update-api
+RuntimeDirectoryMode=0700
+UMask=0077
+# An accepted baseline installation must not be killed if this API is stopped.
+KillMode=process
+TimeoutStopSec=5
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

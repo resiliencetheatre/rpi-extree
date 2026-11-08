@@ -28,3 +28,8 @@ ab-*-private.pem
 *.pfx
 /update-host/
 /releases/
+
+# PocketTerm update host and release artifacts belong outside this tree.
+/pocketterm-update-host/
+/pocketterm-releases/
+*.swu

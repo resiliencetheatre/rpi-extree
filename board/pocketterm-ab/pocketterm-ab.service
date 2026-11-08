@@ -1,0 +1,15 @@
+[Unit]
+Description=PocketTerm trial health and confirmation
+Requires=pocketterm-ab-prepare.service
+After=pocketterm-ab-prepare.service local-fs.target lvgl-console.service
+Wants=lvgl-console.service
+OnFailure=pocketterm-ab-failure.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/pocketterm-update boot
+TimeoutStartSec=100
+
+
+[Install]
+WantedBy=multi-user.target

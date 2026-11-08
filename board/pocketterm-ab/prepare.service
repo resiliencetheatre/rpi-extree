@@ -1,0 +1,14 @@
+[Unit]
+Description=Mount PocketTerm persistent data before application services
+After=local-fs.target
+OnFailure=pocketterm-ab-failure.service
+Before=lvgl-console.service udpptt.service sshd.service pocketterm-ab.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/pocketterm-update prepare
+RemainAfterExit=yes
+TimeoutStartSec=600
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,6 @@
+[Unit]
+Description=Reset failed PocketTerm trials while preserving normal boot diagnostics
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/pocketterm-update failure-reset

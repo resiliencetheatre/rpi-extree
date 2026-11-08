@@ -1,0 +1,6 @@
+{
+  "manifest_url": "https://updates.example.com/pocketterm-rpi4-lvgl-v1/latest.json",
+  "public_key": "/etc/pocketterm-ab/public.pem",
+  "data_dir": "/data/update-api",
+  "allow_http_loopback": false
+}

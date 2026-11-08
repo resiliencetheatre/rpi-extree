@@ -1,0 +1,11 @@
+CONFIG_WATCHDOG=y
+CONFIG_BCM2835_WDT=y
+CONFIG_EFI_PARTITION=y
+CONFIG_VFAT_FS=y
+CONFIG_EXT4_FS=y
+
+# USB card reader must be available before mounting the root filesystem.
+CONFIG_SCSI=y
+CONFIG_BLK_DEV_SD=y
+CONFIG_USB_STORAGE=y
+CONFIG_USB_UAS=y
