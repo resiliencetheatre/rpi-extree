@@ -92,6 +92,147 @@ an already built factory verification key under `target/`; it cannot bootstrap a
 brand-new empty output by itself. The public factory wrapper can initialize and
 build its own fresh `PUBLIC_OUTPUT`.
 
+### Updating Buildroot and publishing dev-13 from a clean build
+
+Use this workflow when updating the Buildroot checkout, especially across
+release/toolchain/package changes. These commands update sources, compile a fresh
+system and finally publish publicly; run them deliberately. They do not flash or
+install on a device. dev-13 must be unused and sequence 13 must exceed the public
+channel/device history; otherwise substitute a newer version everywhere.
+
+First stop/wait for any builds and release wrappers. Do not change the Buildroot
+checkout underneath a running build. Inspect all repositories and preserve local
+changes before pulling; do not reset or discard them to make an update succeed.
+
+```sh
+cd /home/tech/laboratory/rpi4console
+
+git -C buildroot status --short
+git -C rpi-extree status --short
+git -C lvgl-console status --short
+mkdir -p build-config-backups/dev-13
+
+git -C buildroot rev-parse HEAD > build-config-backups/dev-13/buildroot-before.revision
+if [ -f output-pocketterm-ab/.config ]; then
+  cp output-pocketterm-ab/.config build-config-backups/dev-13/pocketterm-ab-before.config
+fi
+```
+
+Once Buildroot's working tree is clean (or your changes are deliberately preserved
+and compatible), update its configured upstream branch without creating an
+unexpected merge commit:
+
+```sh
+git -C buildroot pull --ff-only
+git -C buildroot rev-parse HEAD > build-config-backups/dev-13/buildroot-after.revision
+```
+
+If the pull fails, resolve the branch/local-change issue before continuing. Review
+Buildroot release/migration notes and external-tree/package/patch compatibility.
+A fresh output avoids stale artifacts; it does not make incompatible external
+sources compatible. Existing outputs now refer to the changed checkout, so do not
+resume builds in them casually; retaining an old output is not a source rollback.
+Keep the recorded old revision and matching external/app sources for recovery.
+
+Configure a nonexistent directory and explicitly retain the channel's signing
+trust. This shell block sets paths reused by the subsequent commands:
+
+```sh
+export RELEASE_OUTPUT="$PWD/output-pocketterm-ab-clean-dev13"
+export AB_VERIFY_KEY="$PWD/ab-development-public.pem"
+export AB_SIGN_KEY="$PWD/ab-development-private.pem"
+
+test ! -e "$RELEASE_OUTPUT" &&
+make -C buildroot O="$RELEASE_OUTPUT" \
+  BR2_EXTERNAL="$PWD/rpi-extree" raspberrypi4_pocketterm_ab_defconfig
+```
+
+If the directory already exists, inspect it and select another fresh name rather
+than deleting it blindly. Reapply intentional old configuration overrides using
+menuconfig/review, not by replacing the new configuration wholesale with the old
+`.config`. This command uses the saved A/B profile, not the public factory profile.
+
+Build the complete system locally first:
+
+```sh
+AB_RELEASE_VERSION=dev-13 \
+  make -C buildroot O="$RELEASE_OUTPUT" -j4
+```
+
+Check the exit status and inspect outputs before publishing:
+
+```sh
+cat "$RELEASE_OUTPUT/images/release-version"
+cat "$RELEASE_OUTPUT/images/release-profile"
+cp "$RELEASE_OUTPUT/.config" build-config-backups/dev-13/pocketterm-ab-built.config
+ls -lh "$RELEASE_OUTPUT/images/sdcard-ab.img"
+```
+
+Expected markers: dev-13 and pocketterm-rpi4-lvgl-v1. Inspect GPT, both cmdlines,
+image sizes and firmware/key configuration as described in the board guide.
+Where possible, validate a local bundle on spare hardware before public release.
+
+Then build/sign/verify/upload the public SWU:
+
+```sh
+rpi-extree/board/pocketterm-ab/release-public.sh dev-13
+```
+
+The exported RELEASE_OUTPUT is essential: without it the wrapper falls back to
+output-pocketterm-ab. It checks the existing built verification key, refreshes
+LVGL and reruns the full image build using the newly compiled toolchain/packages,
+then signs and publishes. It does not recompile every unchanged dependency a
+second time. A failed publication can leave partial release artifacts; inspect
+them rather than rerunning with an already existing version directory.
+
+For an additional clean public factory image from the same updated sources:
+
+```sh
+PUBLIC_OUTPUT="$PWD/output-pocketterm-public-clean-dev13" \
+  rpi-extree/board/pocketterm-ab/build-public-image.sh dev-13
+```
+
+This is another full build, using the public profile/defaults. Its archive is
+separate from the SWU release, so the same dev-13 label can represent the same
+frozen source release. It does not upload the image or change latest.json. Keep
+sources fixed between both builds and validate both artifacts. The public factory
+section below gives explicit image upload commands.
+
+### Disk space and retaining old outputs
+
+Deleting old build directories is optional, not a clean-build requirement. A fresh
+O= directory already gives a clean build. Keep at least the last known-good image,
+SWU/checksums, configurations, source revisions/local changes and signing trust
+before discarding an output. Prefer waiting for successful new-image testing,
+trial commit and ordinary reboot. Archive backups outside the directory you will
+remove. Deleting a directory cannot remove the copy running on the device, but
+can remove your only recovery artifact or diagnostics.
+
+Inspect sizes first:
+
+```sh
+du -sh output-pocketterm-ab output-pocketterm-public \
+  output-pocketterm-ab-clean-dev13 pocketterm-releases pocketterm-factory-images
+```
+
+Only after checking the exact old directory, confirming no build uses it, and
+archiving needed artifacts, you may remove it manually. For example, the following
+explicitly destroys the old development build output, not the fresh dev-13 output:
+
+```sh
+rm -rf -- /home/tech/laboratory/rpi4console/output-pocketterm-ab
+```
+
+Do not remove source repositories, private keys, rclone configuration, HTTPS host
+trust, release archives or the new output as part of build cleanup. Before deleting
+an output, check where its dl/ directory points: a private download cache inside it
+will also be removed, whereas a symlink's external target is not deleted by this
+command. Shared Buildroot download caches can normally be retained across clean
+builds to avoid downloading again; do not delete them merely to force recompilation.
+Use the new RELEASE_OUTPUT explicitly for future SWU releases, or deliberately
+establish a new configured default output; the wrappers do not remember your last
+custom output path after the shell environment is gone.
+
 ### Changing the kernel commit
 
 Update `BR2_LINUX_KERNEL_CUSTOM_TARBALL_LOCATION` to the intended Raspberry Pi
