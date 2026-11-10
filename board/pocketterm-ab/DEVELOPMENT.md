@@ -31,6 +31,61 @@ factory image or installing locally does not update that offer. For example,
 building dev-8 while the server's metadata still names dev-6 leaves Available at
 dev-6. Never change the embedded version marker to relabel an old image.
 
+## Editing configuration with menuconfig
+
+Run menuconfig against the existing output directory you intend to release from.
+For the clean A/B output introduced in the dev-13 workflow below:
+
+```sh
+cd /home/tech/laboratory/rpi4console
+export RELEASE_OUTPUT="$PWD/output-pocketterm-ab-clean-dev13"
+mkdir -p build-config-backups
+cp "$RELEASE_OUTPUT/.config" \
+  "build-config-backups/pocketterm-ab-before-menuconfig-$(date +%Y%m%d-%H%M%S).config"
+make -C buildroot O="$RELEASE_OUTPUT" menuconfig
+```
+
+Stop/wait for builds and release wrappers using that output before editing it.
+Save and exit to update its `.config`. Menuconfig does not build or publish a
+release. The `dev13` directory suffix records when the output was created; it
+does not constrain future release versions. Keep `RELEASE_OUTPUT` exported when
+running `release-public.sh` in the same shell, and export it again in a new shell.
+Otherwise the wrapper defaults to the older `output-pocketterm-ab` directory.
+If deliberately using another configured output, substitute its absolute path.
+
+To preserve the reviewed configuration in the A/B source profile as well:
+
+```sh
+make -C buildroot O="$RELEASE_OUTPUT" savedefconfig \
+  BR2_DEFCONFIG="$PWD/rpi-extree/configs/raspberrypi4_pocketterm_ab_defconfig"
+git -C rpi-extree diff -- configs/raspberrypi4_pocketterm_ab_defconfig
+```
+
+`savedefconfig` writes the source profile; menuconfig alone changes only the
+selected output. Review the diff before retaining it, especially if the profile
+already has local edits. Do not rerun the `raspberrypi4_pocketterm_ab_defconfig`
+target merely to open configuration: that reloads the saved profile and can
+discard unsaved output-specific choices.
+
+Public factory images use an independent configuration:
+
+```sh
+export PUBLIC_OUTPUT="$PWD/output-pocketterm-public"
+cp "$PUBLIC_OUTPUT/.config" \
+  "build-config-backups/pocketterm-public-before-menuconfig-$(date +%Y%m%d-%H%M%S).config"
+make -C buildroot O="$PUBLIC_OUTPUT" menuconfig
+make -C buildroot O="$PUBLIC_OUTPUT" savedefconfig \
+  BR2_DEFCONFIG="$PWD/rpi-extree/configs/raspberrypi4_pocketterm_public_defconfig"
+git -C rpi-extree diff -- configs/raspberrypi4_pocketterm_public_defconfig
+```
+
+Use your actual `PUBLIC_OUTPUT` override if different. Apply intended common
+changes to both configurations separately, retaining the public factory defaults.
+The factory wrapper preserves an existing output configuration. Neither saving
+a defconfig nor editing one output updates the other output automatically.
+After configuration changes, follow the package refresh rules below before
+building; some changes require a fresh output.
+
 ## Configuration and refresh rules before any release
 
 Buildroot builds from `OUTPUT/.config`, not directly from the saved defconfig.
