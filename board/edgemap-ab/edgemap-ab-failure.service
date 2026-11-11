@@ -1,0 +1,6 @@
+[Unit]
+Description=Reset failed EdgeMap Lite trials while preserving normal boot diagnostics
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/edgemap-update failure-reset

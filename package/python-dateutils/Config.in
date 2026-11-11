@@ -1,6 +1,6 @@
 config BR2_PACKAGE_PYTHON_DATEUTILS
 	bool "python-dateutils"
-	select BR2_PACKAGE_PYTHON_ARGPARSE # runtime
+	# argparse is provided by Python 3; the old backport shadows its stdlib.
 	select BR2_PACKAGE_PYTHON_DATEUTIL # runtime
 	select BR2_PACKAGE_PYTHON_PYTZ # runtime
 	help

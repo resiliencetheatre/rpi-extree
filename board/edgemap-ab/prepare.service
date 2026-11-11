@@ -1,0 +1,14 @@
+[Unit]
+Description=Mount EdgeMap Lite persistent data before application services
+After=local-fs.target
+OnFailure=edgemap-ab-failure.service
+Before=situation-map.service sshd.service edgemap-ab.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/edgemap-update prepare
+RemainAfterExit=yes
+TimeoutStartSec=600
+
+[Install]
+WantedBy=multi-user.target

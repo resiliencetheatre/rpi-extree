@@ -1,0 +1,20 @@
+[Unit]
+Description=EdgeMap Lite local update API (opt-in prototype)
+Requires=edgemap-ab-prepare.service
+After=edgemap-ab-prepare.service edgemap-ab.service network.target
+ConditionPathExists=/etc/default/edgemap-updates.json
+
+[Service]
+Type=simple
+ExecStart=/usr/lib/edgemap-ab/api_service.py
+RuntimeDirectory=edgemap-update-api
+RuntimeDirectoryMode=0700
+UMask=0077
+# An accepted baseline installation must not be killed if this API is stopped.
+KillMode=process
+TimeoutStopSec=5
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

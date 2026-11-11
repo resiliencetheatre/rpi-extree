@@ -1,0 +1,15 @@
+[Unit]
+Description=EdgeMap Lite trial health and confirmation
+Requires=edgemap-ab-prepare.service
+After=edgemap-ab-prepare.service local-fs.target situation-map.service
+Wants=situation-map.service
+OnFailure=edgemap-ab-failure.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/edgemap-update boot
+TimeoutStartSec=100
+
+
+[Install]
+WantedBy=multi-user.target
