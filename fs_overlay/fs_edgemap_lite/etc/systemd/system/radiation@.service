@@ -1,0 +1,13 @@
+[Unit]
+Description=Radiation Sensor Reader for %I
+BindsTo=dev-%i.device
+After=dev-%i.device
+Requires=dev-%i.device
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /opt/radiation/gmc.py /dev/%I
+Restart=on-failure
+RestartSec=1
+ExecStartPost=/opt/radiation/notify-ui.sh connected %I
+ExecStopPost=/opt/radiation/notify-ui.sh disconnected %I

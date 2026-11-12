@@ -1,5 +1,8 @@
 # EdgeMap Lite Raspberry Pi 4 signed A/B updates
 
+For everyday configuration, rebuilds, publication and serial-console updates,
+use the [workflow cheat sheet](CHEATSHEET.md).
+
 Start with [EEPROM preparation](EEPROM.md). It was the first implementation
 artifact for this port. EEPROM recovery runs separately from the factory/SWU
 flow and needs explicit operator authorization.
