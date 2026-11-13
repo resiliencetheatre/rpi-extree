@@ -17,7 +17,7 @@ import threading
 import time
 import uuid
 from remote_release import (APIError, Fetcher, RESERVE, canonical, keys, loads,
-                            require, verify_bundle, verify_offer)
+                            require, verify_bundle, verify_offer, url_origin)
 
 ACTIVE = {'checking', 'downloading', 'installing'}
 
@@ -34,6 +34,22 @@ def atomic(path, value):
         os.fsync(fd)
     finally:
         os.close(fd)
+
+
+def provision_sources(config):
+    """Seed new persistent settings on existing images without replacing edits."""
+    path = Path(config.get('sources_file', '/etc/default/edgemap-update-sources.json'))
+    require(path.is_absolute(), 'invalid_config', 'Source configuration path must be absolute')
+    if path.exists():
+        return
+    template = Path('/usr/share/edgemap-update-api/sources.example.json')
+    sources = loads(template.read_bytes())
+    # Carry an already-configured private-CA local source forward from older
+    # images. Never copy private keys or replace the release verification key.
+    if config.get('ca_file') and config.get('manifest_url') != sources['remote']['manifest_url']:
+        sources['local'] = dict(manifest_url=config['manifest_url'], ca_file=config['ca_file'])
+    atomic(path, sources)
+    path.chmod(0o600)
 
 
 class Device:
@@ -71,19 +87,24 @@ class LabDevice:
 
 class Engine:
     def __init__(self, config, device, fetcher=None):
-        allowed = {'manifest_url', 'public_key', 'data_dir', 'allow_http_loopback', 'ca_file'}
+        allowed = {'manifest_url', 'public_key', 'data_dir', 'allow_http_loopback', 'ca_file', 'sources_file'}
         require(type(config) is dict and set(config) <= allowed and {'manifest_url', 'public_key'} <= set(config),
                 'invalid_config', 'Unsupported configuration fields')
         require(type(config.get('allow_http_loopback', False)) is bool, 'invalid_config', 'Invalid HTTP lab setting')
-        self.config = config
+        self.base_config = dict(config)
+        self.config = dict(config)
         self.device = device
-        self.fetcher = fetcher or Fetcher(config['manifest_url'], config.get('allow_http_loopback', False), config.get('ca_file'))
         self.directory = Path(config.get('data_dir', '/data/update-api'))
         self.directory.mkdir(mode=0o700, parents=True, exist_ok=True)
         require(not self.directory.is_symlink() and self.directory.is_dir(), 'invalid_config', 'Data directory must be private')
         self.directory.chmod(0o700)
         self.file = self.directory / 'service.json'
         self.saved = loads(self.file.read_bytes()) if self.file.exists() else {}
+        self.source = self.saved.get('source')
+        if self.source:
+            self.config, self.fetcher = self._source_config(self.source)
+        else:
+            self.fetcher = fetcher or Fetcher(config['manifest_url'], config.get('allow_http_loopback', False), config.get('ca_file'))
         self.job = self.saved.get('job', dict(phase='idle', operation=None))
         if self.job.get('phase') in ACTIVE:
             self.job = dict(self.job, phase='interrupted', error=dict(code='interrupted', message='Service restarted; inspect device state before retrying'))
@@ -95,6 +116,53 @@ class Engine:
         # Only known temporary payloads owned by this service are discarded.
         (self.directory / 'download.part').unlink(missing_ok=True)
         self._save()
+
+    def _source_config(self, source):
+        require(source in ('remote', 'local'), 'invalid_source', 'Select remote or local')
+        path = Path(self.base_config.get('sources_file', '/etc/default/edgemap-update-sources.json'))
+        require(path.is_absolute(), 'invalid_config', 'Source configuration path must be absolute')
+        try:
+            sources = loads(path.read_bytes())
+        except (OSError, ValueError) as error:
+            raise APIError('invalid_config', f'Cannot read source configuration: {path}') from error
+        require(type(sources) is dict and set(sources) <= {'remote', 'local'},
+                'invalid_config', 'Only remote and local source names are supported')
+        entry = sources.get(source)
+        require(type(entry) is dict and set(entry) <= {'manifest_url', 'ca_file'} and
+                type(entry.get('manifest_url')) is str and bool(entry['manifest_url']),
+                'source_unconfigured', f'Configure {source} in {path}')
+        url_origin(entry['manifest_url'])  # Named production sources always require HTTPS.
+        if entry.get('ca_file') is not None:
+            require(type(entry['ca_file']) is str and Path(entry['ca_file']).is_absolute(),
+                    'invalid_config', 'Source CA path must be absolute')
+        config = dict(self.base_config)
+        config.pop('ca_file', None)
+        config.update(entry, allow_http_loopback=False)
+        # Source files cannot change the verifier key or persistent state directory.
+        try:
+            fetcher = Fetcher(config['manifest_url'], ca_file=config.get('ca_file'))
+        except (OSError, ValueError) as error:
+            raise APIError('invalid_config', f'Cannot initialize {source} HTTPS trust: {error}') from error
+        return config, fetcher
+
+    def select_source(self, source):
+        require(self.job['phase'] not in ACTIVE, 'busy', 'An update job is already running')
+        self._normal()
+        config, fetcher = self._source_config(source)
+        if self.source != source or config != self.config:
+            saved = dict(self.saved, source=source)
+            saved.pop('offer', None)
+            saved.pop('downloaded', None)
+            job = dict(phase='idle', operation=None)
+            saved['job'] = job
+            atomic(self.file, saved)  # Keep global highest sequence/offer identity.
+            self.saved, self.job = saved, job
+            self.source, self.config, self.fetcher = source, config, fetcher
+            self.bundle().unlink(missing_ok=True)
+            (self.directory / 'download.part').unlink(missing_ok=True)
+        else:
+            self.fetcher = fetcher  # Reload CA contents even if their path is unchanged.
+        return dict(source=source, manifest_url=config['manifest_url'])
 
     def _save(self):
         self.saved['job'] = self.job
@@ -163,7 +231,8 @@ class Engine:
                 if state.get('version') == offer['version'] and state.get('phase') in ('pending', 'trial', 'committing', 'committed', 'fallback', 'failed'):
                     job['device_outcome'] = state['phase']
             ready = bool(offer and self.saved.get('downloaded') == offer['offer_id'] and self.bundle().is_file())
-            return dict(device=device, device_error=device_error, job=job, offer=offer,
+            return dict(source=self.source, manifest_url=self.config['manifest_url'],
+                        device=device, device_error=device_error, job=job, offer=offer,
                         offer_error=offer_error, download_ready=ready)
 
     def bundle(self):
@@ -175,6 +244,10 @@ class Engine:
             keys(params, ())
             return self.status()
         with self.lock:
+            if method == 'select-source':
+                keys(params, ('source',))
+                require(type(params['source']) is str, 'invalid_source', 'Source must be a name')
+                return self.select_source(params['source'])
             if method == 'cancel':
                 keys(params, ())
                 require(self.job['phase'] in ('checking', 'downloading'), 'not_cancellable', 'Only check/download jobs can be cancelled')
@@ -326,7 +399,9 @@ def main():
     args.socket.parent.chmod(0o700)
     with (args.socket.parent / 'service.lock').open('w') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        engine = Engine(loads(args.config.read_bytes()), device)
+        config = loads(args.config.read_bytes())
+        provision_sources(config)
+        engine = Engine(config, device)
         if args.socket.exists():
             require(stat.S_ISSOCK(args.socket.lstat().st_mode), 'invalid_config', 'Socket path contains a non-socket file')
             args.socket.unlink()

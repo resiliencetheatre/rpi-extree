@@ -93,6 +93,89 @@ class Tests(unittest.TestCase):
         self.space = patch('api_service.shutil.disk_usage', return_value=type('Space', (), {'free':32*1024**3})())
         self.space.start()
 
+    def test_source_provisioning_imports_existing_local_config_once(self):
+        from api_service import provision_sources
+        target = self.root/'new-sources.json'
+        template = json.dumps(dict(remote=dict(manifest_url='https://remote.example/latest.json'),
+                                   local=dict(manifest_url=None, ca_file='/data/ca.pem'))).encode()
+        original_read = Path.read_bytes
+        def read(path):
+            return template if str(path) == '/usr/share/edgemap-update-api/sources.example.json' else original_read(path)
+        config = dict(sources_file=str(target), manifest_url='https://local.example:9443/latest.json',
+                      ca_file='/data/existing-ca.pem')
+        with patch.object(Path, 'read_bytes', read):
+            provision_sources(config)
+            value = loads(original_read(target))
+            self.assertEqual(value['local']['manifest_url'], config['manifest_url'])
+            self.assertEqual(value['local']['ca_file'], config['ca_file'])
+            self.assertEqual(target.stat().st_mode & 0o777, 0o600)
+            before = original_read(target)
+            provision_sources(dict(config, manifest_url='https://another.example/latest.json'))
+            self.assertEqual(original_read(target), before)
+
+    def source_file(self, entries=None):
+        path = self.root / 'sources.json'
+        path.write_text(json.dumps(entries or {
+            'remote': {'manifest_url': 'https://remote.example/latest.json'},
+            'local': {'manifest_url': 'https://local.example:9443/latest.json'}}))
+        self.engine.base_config['sources_file'] = str(path)
+        return path
+
+    def test_named_source_switch_preserves_trust_and_global_replay_state(self):
+        path = self.source_file()
+        self.engine.saved['highest'] = dict(sequence=7, offer_id='previous-id')
+        self.engine.saved['downloaded'] = 'previous-id'
+        self.engine.saved['offer'] = {'old': 'offer'}
+        self.engine.bundle().write_bytes(b'old bundle')
+        result = self.engine.dispatch('select-source', dict(source='local'))
+        self.assertEqual(result['source'], 'local')
+        self.assertEqual(self.engine.config['public_key'], self.config['public_key'])
+        self.assertEqual(self.engine.directory, Path(self.config['data_dir']))
+        self.assertEqual(self.engine.saved['highest']['sequence'], 7)
+        self.assertNotIn('offer', self.engine.saved)
+        self.assertFalse(self.engine.bundle().exists())
+        restarted = Engine(dict(self.config, sources_file=str(path)), FakeDevice())
+        self.assertEqual(restarted.source, 'local')
+        self.assertEqual(restarted.config['manifest_url'], 'https://local.example:9443/latest.json')
+        self.assertEqual(restarted.saved['highest']['offer_id'], 'previous-id')
+        self.engine.dispatch('select-source', dict(source='remote'))
+        self.assertNotIn('ca_file', self.engine.config)
+        restored_remote = Engine(dict(self.config, sources_file=str(path), ca_file='/missing/stale-local-ca.pem'), FakeDevice())
+        self.assertEqual(restored_remote.source, 'remote')
+        self.assertNotIn('ca_file', restored_remote.config)
+
+    def test_source_switch_rejects_active_jobs_trials_http_and_key_overrides(self):
+        path = self.source_file()
+        self.engine.job['phase'] = 'installing'
+        with self.assertRaises(APIError):
+            self.engine.dispatch('select-source', dict(source='local'))
+        self.engine.job['phase'] = 'idle'
+        self.device.value['trial'] = True
+        with self.assertRaises(APIError):
+            self.engine.dispatch('select-source', dict(source='local'))
+        self.device.value['trial'] = False
+        for entry in ({'manifest_url': 'http://192.0.2.1/latest.json'},
+                      {'manifest_url': 'https://example.com/latest.json', 'public_key': '/other/key'},
+                      {'manifest_url': None},
+                      {'manifest_url': 'https://example.com/latest.json', 'ca_file': 'relative.pem'}):
+            path.write_text(json.dumps(dict(local=entry)))
+            with self.assertRaises(APIError):
+                self.engine.dispatch('select-source', dict(source='local'))
+            self.assertIsNone(self.engine.source)
+
+    def test_new_channel_cannot_reuse_sequence_for_different_offer(self):
+        self.source_file()
+        self.engine.saved['highest'] = dict(sequence=1, offer_id='different-offer')
+        self.engine.dispatch('select-source', dict(source='local'))
+        original = loads((self.root/'www/latest.json').read_bytes())
+        envelope = self.resign(bundle=dict(original['signed']['bundle'],
+                               url='https://local.example:9443/lab-1.swu'))
+        self.engine.fetcher.metadata = lambda *args: envelope
+        self.engine.job = dict(phase='checking', operation='check')
+        self.engine._work('check', None)
+        self.assertEqual(self.engine.job['error']['code'], 'replay_rejected')
+        self.assertEqual(self.engine.saved['highest']['offer_id'], 'different-offer')
+
     def tearDown(self):
         if self.engine.worker:
             self.engine.cancelled.set()

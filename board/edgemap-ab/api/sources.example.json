@@ -1,0 +1,9 @@
+{
+  "remote": {
+    "manifest_url": "https://resilience-theatre.eu/rpi4edgemap/latest.json"
+  },
+  "local": {
+    "manifest_url": null,
+    "ca_file": "/data/update-local-ca.pem"
+  }
+}

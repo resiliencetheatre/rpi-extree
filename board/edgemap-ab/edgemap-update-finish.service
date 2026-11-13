@@ -1,0 +1,13 @@
+[Unit]
+Description=Finish an update accepted through update.sh after successful trial health
+Requires=edgemap-ab-prepare.service edgemap-update-api.service
+After=edgemap-ab-prepare.service edgemap-ab.service edgemap-update-api.service
+ConditionPathExists=/data/ab/wrapper-reboot.json
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/edgemap-ab/update_wrapper.py --finish-pending
+TimeoutStartSec=120
+
+[Install]
+WantedBy=multi-user.target

@@ -71,7 +71,7 @@ ln -sf ../edgemap-ab.service "$target_dir/etc/systemd/system/multi-user.target.w
 # Mount persistent settings before any overlay application service.
 for unit in "$target_dir"/etc/systemd/system/*.service; do
     service=$(basename "$unit" .service)
-    case "$service" in edgemap-ab*|edgemap-update-api|partition|bootstrap) continue;; esac
+    case "$service" in edgemap-ab*|edgemap-update-api|edgemap-update-finish|partition|bootstrap) continue;; esac
     install -d "$target_dir/etc/systemd/system/$service.service.d"
     printf '[Unit]\nRequires=edgemap-ab-prepare.service\nAfter=edgemap-ab-prepare.service\n' > "$target_dir/etc/systemd/system/$service.service.d/persistence.conf"
 done
@@ -92,13 +92,14 @@ install -d "$target_dir/etc/systemd/system.conf.d"
 printf '[Manager]\nRuntimeWatchdogSec=15s\nRebootWatchdogSec=30s\n' > "$target_dir/etc/systemd/system.conf.d/ab-watchdog.conf"
 
 # Local root-only API; no automatic download or installation.
-for script in api_service.py api_client.py remote_release.py swupdate_progress.py; do
+for script in api_service.py api_client.py remote_release.py swupdate_progress.py update_wrapper.py; do
     install -m 755 "$board_dir/$script" "$target_dir/usr/lib/edgemap-ab/$script"
 done
 ln -sf ../lib/edgemap-ab/api_client.py "$target_dir/usr/sbin/edgemap-update-client"
 install -m 644 "$board_dir/api/edgemap-update-api.service" "$target_dir/etc/systemd/system/"
 install -d "$target_dir/usr/share/edgemap-update-api"
 install -m 644 "$board_dir/api/config.example.json" "$target_dir/usr/share/edgemap-update-api/"
+install -m 644 "$board_dir/api/sources.example.json" "$target_dir/usr/share/edgemap-update-api/"
 
 # The root-only API starts locally; network checks require an explicit CLI request.
 install -m 644 "$board_dir/api/config.example.json" "$target_dir/etc/default/edgemap-updates.json"
@@ -112,3 +113,9 @@ for service in situation-gps situation-map-tak situation-map-meshtastic; do
     install -d "$target_dir/etc/systemd/system/$service.service.d"
     printf '[Unit]\nRequires=edgemap-ab-prepare.service\nAfter=edgemap-ab-prepare.service\n' > "$target_dir/etc/systemd/system/$service.service.d/persistence.conf"
 done
+
+# Interactive single-command updater; source settings persist under /etc/default.
+ln -sf ../lib/edgemap-ab/update_wrapper.py "$target_dir/usr/sbin/update.sh"
+install -m 600 "$board_dir/api/sources.example.json" "$target_dir/etc/default/edgemap-update-sources.json"
+install -m 644 "$board_dir/edgemap-update-finish.service" "$target_dir/etc/systemd/system/"
+ln -sf ../edgemap-update-finish.service "$target_dir/etc/systemd/system/multi-user.target.wants/edgemap-update-finish.service"

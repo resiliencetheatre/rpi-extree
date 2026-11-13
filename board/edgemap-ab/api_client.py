@@ -35,12 +35,16 @@ def main():
         command = commands.add_parser(name)
         command.add_argument('--offer', required=True)
         command.add_argument('--accept', action='store_true', help='Explicitly accept this exact release')
+    source = commands.add_parser('select-source')
+    source.add_argument('source', choices=['remote', 'local'])
     finish = commands.add_parser('finish')
     finish.add_argument('--accept', action='store_true')
     wait = commands.add_parser('wait')
     wait.add_argument('--timeout', type=float, default=1800)
     args = parser.parse_args()
     params = dict(offer_id=args.offer, accept=args.accept) if args.method in ('download', 'install') else (dict(accept=args.accept) if args.method == 'finish' else {})
+    if args.method == 'select-source':
+        params = dict(source=args.source)
     deadline = time.monotonic() + getattr(args, 'timeout', 0)
     try:
         while True:

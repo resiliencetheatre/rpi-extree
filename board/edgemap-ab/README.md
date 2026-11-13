@@ -243,7 +243,7 @@ publication, the operator runs (replace the remote with the actual configured on
 
 ```sh
 RELEASE_OUTPUT="$AB_OUTPUT" RELEASE_REMOTE='YOUR_REMOTE:path/to/rpi4edgemap' \
-  rpi-extree/board/edgemap-ab/release-public.sh dev-3
+  rpi-extree/board/edgemap-ab/release.sh --public dev-3
 ```
 
 The wrapper builds/signs/verifies, uploads immutable bundle and checksum, verifies
@@ -300,3 +300,41 @@ The A/B hook and health contract now follow that selection. Resume the existing
 minimal build with the corrected hook; no configuration reload is required.
 Use `http://DEVICE:8080/` to open Situation. Profile identity is
 `edgemap-lite-situation-rpi4-v1` to reject earlier application-contract bundles.
+
+## Unified local/public publication
+
+Use `release.sh --public dev-N`, `release.sh --local dev-N`, or both flags to
+build one bundle for both destinations. `release-public.sh` delegates to the
+public mode for compatibility. A local Python HTTPS host and separate CA are
+provided in `api/https_host.py`; see the [cheat sheet](CHEATSHEET.md#6-build-sign-and-publish-a-release-public-local-or-both)
+for initialization, serving, device trust configuration and `--publish-only`.
+Metadata is archived per channel under `edgemap-releases/dev-N/public` and
+`local`, binding each URL to the same bundle. Both use the shared verified
+publication engine. No servers are started and no credentials are initialized
+by the release wrapper.
+
+## Target single-command updater
+
+New images install `/usr/sbin/update.sh`. Use `update.sh --remote` or
+`update.sh --local`, review current/new versions and answer `y` to download,
+install and trial-reboot. A persistent authorization allows the finish service
+to request the final ordinary reboot only after the expected version/slot passes
+health and is committed. `update.sh --status` reports status and progress.
+
+Named source settings live in `/etc/default/edgemap-update-sources.json` on Data.
+The remote default is the public channel; provision the local HTTPS URL and CA.
+Both retain the same key and global replay protections. The API adds the root-only
+`select-source` method (`{"source":"local"}` or `{"source":"remote"}`), rejected
+while busy or in a trial. Selection is persistent and invalidates only the cached
+offer/download, not replay history. The old CLI and API remain usable; automatic
+final reboot is opt-in through the wrapper's exact-release authorization marker
+`/data/ab/wrapper-reboot.json`. See the [cheat sheet](CHEATSHEET.md) for bootstrap,
+source configuration, progress and both reboot stages. Physical testing of this
+new wrapper and auto-finish unit remains pending; prior CLI success is not evidence
+that this new flow has run on the board.
+
+Wrapper source checks: 27 controller/factory/health/wrapper tests and 33
+API/publication/source-selection tests (two socket integration skips). The
+systemd verification tool was blocked by sandbox `SO_PASSCRED` restrictions;
+actual startup ordering and the two-reboot wrapper flow still require spare-media
+hardware tests. No build or publication was run for this wrapper change.
