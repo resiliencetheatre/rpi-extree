@@ -9,20 +9,67 @@ changes never start a build, publication or device update.
 ```bash
 cd /home/tech/laboratory/rpi4base
 export WORKSPACE="$PWD"
-export AB_OUTPUT="$WORKSPACE/output-edgemap-ab-6.18.62-lite-overlay"
+export BR2_EXTERNAL="$WORKSPACE/rpi-extree"
+export AB_OUTPUT="$WORKSPACE/output-edgemap-ab-fresh-02"
 export AB_PROFILE="$WORKSPACE/rpi-extree/configs/raspberrypi4_edgemap_lite_ab_defconfig"
 export AB_VERIFY_KEY="$WORKSPACE/ab-development-public.pem"
 export AB_SIGN_KEY="$WORKSPACE/ab-development-private.pem"
 export RELEASE_OUTPUT="$AB_OUTPUT"
 export RELEASE_PUBLIC_URL="https://resilience-theatre.eu/rpi4edgemap"
 export RELEASE_REMOTE="hetzner-web:public_html/rpi4edgemap"
+export RELEASE_HOST="$WORKSPACE/edgemap-update-host"
+export LOCAL_ADDRESS=192.168.178.41  # current desk IP; change for another host
+export RELEASE_LOCAL_URL="https://$LOCAL_ADDRESS:9443"
+export RELEASE_LOCAL_CA="$RELEASE_HOST/tls/ca.pem"
 export RELEASE_JOBS=32
+export RELEASE_NOTES="Describe changes in the next release"
 ```
 
+The dev-10 build used `output-edgemap-ab-fresh-02`; the directory name does not
+limit it to that release. Keep using it for incremental dev-11, dev-12, etc.
 Set `AB_OUTPUT` to the actual output you intend to use. Shell variables do not
 carry into a new terminal. Keep signing keys outside rpi-extree. Confirm the
 rclone destination maps to the stated URL. Stop other builds using this output;
 the wrapper lock does not coordinate manual make commands.
+
+### Everyday incremental cycle: dev-10 → dev-11
+
+After setting the exports above, make your small source/overlay edits. Keep the
+existing output for changes that do not require cleanup (see section 3). Start
+the existing local HTTPS server in another terminal:
+
+```bash
+cd /home/tech/laboratory/rpi4base
+python3 rpi-extree/board/edgemap-ab/api/https_host.py serve \
+  --directory "$PWD/edgemap-update-host"
+```
+
+In the release terminal:
+
+```bash
+export RELEASE_OUTPUT="$AB_OUTPUT"
+export RELEASE_NOTES="Describe the changes since dev-10"
+curl --cacert "$RELEASE_LOCAL_CA" "$RELEASE_LOCAL_URL/health.json"
+rpi-extree/board/edgemap-ab/release.sh --local dev-11
+```
+
+The release script refreshes Situation, builds the image, signs/verifies the SWU,
+and publishes it. **No separate manual make, defconfig reload, fresh output or
+clean is needed for ordinary incremental releases.** Use dev-11 only if unused;
+otherwise choose the next unused version above the accepted/published sequences.
+The same workflow applies to `--public` or both destination flags.
+
+On the Pi:
+
+```sh
+update.sh --local
+# Review current/new versions; answer y. Reconnect after both reboots:
+update.sh --status
+```
+
+Require the offered new version, phase `committed`, and `trial=False`. Keep the
+server running and Pi powered until finished. See sections 7–9 for details and
+the older manual workflow.
 
 ## 2. Change configuration and save it
 
@@ -33,6 +80,13 @@ make -C buildroot O="$AB_OUTPUT" menuconfig
 # Save and exit menuconfig, then save the reviewed source profile:
 make -C buildroot O="$AB_OUTPUT" savedefconfig BR2_DEFCONFIG="$AB_PROFILE"
 git -C rpi-extree diff -- configs/raspberrypi4_edgemap_lite_ab_defconfig
+```
+
+Use the same output for both commands and publication; check it if unsure:
+
+```bash
+printf 'menuconfig output: %s\nrelease output: %s\nprofile: %s\n' \
+  "$AB_OUTPUT" "$RELEASE_OUTPUT" "$AB_PROFILE"
 ```
 
 `menuconfig` saves the output's `.config`. `savedefconfig` saves its minimal
@@ -49,6 +103,12 @@ make -C buildroot O="$AB_OUTPUT" BR2_EXTERNAL="$WORKSPACE/rpi-extree" \
 
 Keep Situation map, Python 3 with SSL/SQLite, SWUpdate, public CA certificates,
 OpenSSL tools, util-linux binaries/partx, resize2fs and tryboot firmware enabled.
+After configuration changes that do not require cleanup, run the normal release
+command directly. The wrapper builds from `RELEASE_OUTPUT/.config`, not from the
+saved profile. `savedefconfig` preserves those settings for future fresh outputs;
+it does not apply them to a different existing output. Removing packages still
+requires the fresh-output cycle below.
+
 The legacy `edgemap` package is not required. The Lite overlay is
 `${BR2_EXTERNAL}/fs_overlay/fs_edgemap_lite`.
 
@@ -65,6 +125,7 @@ or the release wrapper, not by copying `output/target` to the Pi.
 | Disable/remove packages or many Python modules | Fresh output; Buildroot does not uninstall old files |
 | Change toolchain, compiler ABI or kernel-header series | Fresh output |
 | Edit a package's already-extracted local sources | `make -C buildroot O="$AB_OUTPUT" PACKAGE-rebuild` |
+| Change other package configuration/build options | Refresh affected packages with `PACKAGE-reconfigure` or `PACKAGE-dirclean` as appropriate; then full image build/release |
 | Change package source pin, patches or source-copy method | `make -C buildroot O="$AB_OUTPUT" PACKAGE-dirclean` |
 | Edit kernel config or fragments | `make -C buildroot O="$AB_OUTPUT" linux-reconfigure` |
 | Change kernel source revision or kernel patches | `make -C buildroot O="$AB_OUTPUT" linux-dirclean`; refresh enabled external module packages too |
@@ -90,7 +151,7 @@ Save the reviewed profile first (section 2). Select a new, unused directory;
 preserve old output/configuration for reference. Example:
 
 ```bash
-export AB_OUTPUT="$WORKSPACE/output-edgemap-ab-fresh-01"
+export AB_OUTPUT="$WORKSPACE/output-edgemap-ab-fresh-03"
 export RELEASE_OUTPUT="$AB_OUTPUT"
 # This must print 'unused' before configuring it.
 if test -e "$AB_OUTPUT"; then echo 'STOP: choose a new output'; else echo unused; fi
@@ -112,10 +173,10 @@ then publish (section 6).** The defconfig command above creates `.config` only;
 it does not create boot/root images. Calling `release-public.sh` immediately
 will stop with `Build and inspect the factory artifacts first`.
 
-For example, if your next unused release is dev-7, after configuration run:
+For example, if your next unused release is dev-11, after configuration run:
 
 ```bash
-AB_RELEASE_VERSION=dev-7 AB_VERIFY_KEY="$WORKSPACE/ab-development-public.pem" \
+AB_RELEASE_VERSION=dev-11 AB_VERIFY_KEY="$WORKSPACE/ab-development-public.pem" \
   make -C buildroot O="$AB_OUTPUT" -j32
 ```
 
@@ -123,7 +184,7 @@ After that command succeeds, inspect the images using section 5, then run:
 
 ```bash
 RELEASE_OUTPUT="$AB_OUTPUT" \
-  rpi-extree/board/edgemap-ab/release.sh --public dev-7
+  rpi-extree/board/edgemap-ab/release.sh --public dev-11
 ```
 
 Use the same chosen version in both commands. The wrapper rebuilds before
@@ -132,11 +193,11 @@ old output; retain it until you no longer need its configuration or artifacts.
 
 ## 5. Build images without publishing
 
-Choose your actual release version; the example `dev-6` is not a claim that this
+Choose your actual release version; the example `dev-11` is not a claim that this
 version is unused on your server.
 
 ```bash
-export AB_RELEASE_VERSION=dev-6
+export AB_RELEASE_VERSION=dev-11
 make -C buildroot O="$AB_OUTPUT" -j32
 ```
 
@@ -162,9 +223,9 @@ EEPROM is separate from both; see [EEPROM.md](EEPROM.md).
 Choose a destination explicitly:
 
 ```bash
-rpi-extree/board/edgemap-ab/release.sh --public dev-8
-rpi-extree/board/edgemap-ab/release.sh --local dev-8
-rpi-extree/board/edgemap-ab/release.sh --public --local dev-8
+rpi-extree/board/edgemap-ab/release.sh --public dev-11
+rpi-extree/board/edgemap-ab/release.sh --local dev-11
+rpi-extree/board/edgemap-ab/release.sh --public --local dev-11
 ```
 
 These are alternatives, not three commands to run in sequence. Choose the next
@@ -178,13 +239,14 @@ For an existing output with initial factory artifacts, the wrapper performs the
 full build itself. A separate manual build is optional. Fresh outputs must first
 complete section 5 because wrapper preflight requires existing factory artifacts.
 
-Choose a version/sequence above the current public offer, never reuse an already
+Choose a version/sequence above every selected channel's current offer and the
+sequence already accepted by the intended devices; never reuse an already
 published version. Set the output explicitly, even if a previous shell used it:
 
 ```bash
 export RELEASE_OUTPUT="$AB_OUTPUT"
 export RELEASE_NOTES="Describe the changes in this release"
-rpi-extree/board/edgemap-ab/release.sh --public dev-6
+rpi-extree/board/edgemap-ab/release.sh --public dev-11
 ```
 
 The wrapper checks output/trust/keys and publication state, takes its lock,
@@ -197,11 +259,11 @@ with a fresh increasing sequence.
 Artifacts/URLs for the example:
 
 ```text
-edgemap-releases/dev-6/dev-6.swu
-edgemap-releases/dev-6/SHA256SUMS
-edgemap-releases/dev-6/public/latest.json
-edgemap-releases/dev-6/local/latest.json  (when --local is selected)
-https://resilience-theatre.eu/rpi4edgemap/dev-6.swu
+edgemap-releases/dev-11/dev-11.swu
+edgemap-releases/dev-11/SHA256SUMS
+edgemap-releases/dev-11/public/latest.json
+edgemap-releases/dev-11/local/latest.json  (when --local is selected)
+https://resilience-theatre.eu/rpi4edgemap/dev-11.swu
 https://resilience-theatre.eu/rpi4edgemap/latest.json
 ```
 
@@ -223,7 +285,7 @@ Choose your actual LAN IPv4 address and an unused host directory:
 
 ```bash
 export RELEASE_HOST="$WORKSPACE/edgemap-update-host"
-export LOCAL_ADDRESS=192.168.1.50  # replace with this PC's actual LAN IPv4
+export LOCAL_ADDRESS=192.168.178.41  # replace if this PC's LAN IPv4 differs
 export RELEASE_LOCAL_URL="https://$LOCAL_ADDRESS:9443"
 export RELEASE_LOCAL_CA="$RELEASE_HOST/tls/ca.pem"
 python3 rpi-extree/board/edgemap-ab/api/https_host.py init \
@@ -235,6 +297,11 @@ Run it once, not per release. The server certificate lasts 30 days and the CA
 365 days; plan deliberate renewal before expiry, preserving trust appropriately.
 Changing the address requires a matching certificate, not bypassing TLS checks.
 No release signing keys or remote credentials belong in this host directory.
+
+**Restarting the server later:** do not run `init` again. A nonempty-directory
+error from `init` protects existing certificates and published releases. Start
+`serve` directly; it loads the saved address/port from `host.json` and reuses
+existing TLS trust. Merely exporting another address does not reconfigure it.
 
 Start the server in another terminal and keep it running while publishing and
 while devices check/download. Export/set the same host variables again there:
@@ -251,9 +318,9 @@ The chosen address/port must already be reachable from the Pi. Check manually:
 ```bash
 curl --cacert "$RELEASE_LOCAL_CA" "$RELEASE_LOCAL_URL/health.json"
 # Build/sign/publish to the local server only:
-rpi-extree/board/edgemap-ab/release.sh --local dev-8
+rpi-extree/board/edgemap-ab/release.sh --local dev-11
 # Or build once and publish to both (instead of the previous command):
-rpi-extree/board/edgemap-ab/release.sh --public --local dev-8
+rpi-extree/board/edgemap-ab/release.sh --public --local dev-11
 ```
 
 Local artifacts appear in `$RELEASE_HOST/www`, public artifacts in the rclone web
@@ -264,10 +331,10 @@ succeed while the second fails. Inspect both states after any error. Never rerun
 a normal build over an existing version directory or overwrite a published SWU.
 
 To add an already-built release to a channel that has not received it, avoid
-rebuilding with (example: dev-8 was public-only and is now needed locally):
+rebuilding with (example: dev-11 was public-only and is now needed locally):
 
 ```bash
-rpi-extree/board/edgemap-ab/release.sh --local --publish-only dev-8
+rpi-extree/board/edgemap-ab/release.sh --local --publish-only dev-11
 ```
 
 This re-verifies the existing bundle, signs channel-specific metadata and applies
@@ -377,6 +444,31 @@ is not a success report. The API and local CLI stay available for diagnosis.
 A previous committed trial from the old workflow must first be finished with
 `systemctl reboot`; the wrapper will explain this rather than start another update.
 
+A completed update can still show `job: interrupted` / `installing_slots` and
+`Service restarted; inspect device state before retrying`. This is retained
+transfer-job history after the API restarted during reboot. When the controller
+reports the intended version, `State: committed` and `trial=False`, the update is
+complete; do not reinstall or edit state files merely to clear that message.
+If `trial=True` remains, inspect the finish service and controller journal; only
+a matching committed trial may be finished with an ordinary reboot.
+
+### What the trial health check requires
+
+Before commit the controller checks firmware/root slot agreement, mounted Data
+and selector, the pending release/version/target, and selector state. Application
+readiness retries for up to 60 seconds and requires:
+
+- active `situation-map.service`;
+- `/opt/situation/python-front.py` and `/opt/situation/web/index.html`;
+- HTTP 200 from `http://127.0.0.1:8080/api/status`, returning exactly
+  `{"status":"ok","service":"Situation"}`.
+
+This is local readiness, not a browser rendering, map archive, GPS, TAK,
+Meshtastic or long-term stability test. A failed trial does not commit the selector;
+the failure service requests ordinary reboot to the previous default slot. Kernel
+hang/root-mount failure coverage still needs the hardware watchdog/fallback tests
+listed in README.md.
+
 If the API is unavailable:
 
 ```sh
@@ -406,6 +498,12 @@ OFFER_ID='PASTE_THE_FULL_OFFER_ID_HERE'
 edgemap-update-client download --offer "$OFFER_ID" --accept
 edgemap-update-client wait
 ```
+
+Inspect the immediate response to each command: it must say `"ok": true`.
+`wait` monitors a job; it does not start download/install. `available` with zero
+bytes means the offer is checked but no download is running. Shell variables,
+including `OFFER_ID`, are lost on logout/reboot: set it again from the current
+check result. `offer_changed` means the supplied ID does not match that result.
 
 Require `download_ready:true` and job phase `downloaded`. Download acceptance
 does not authorize installation. Explicitly install the same offer:
