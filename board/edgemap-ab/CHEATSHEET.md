@@ -6,24 +6,52 @@ changes never start a build, publication or device update.
 
 ## 1. Set the PC environment in every new terminal
 
+Source the environment helper with the local server IP and intended build
+output. Use **source**, not `./set-build-variables.sh`: a subprocess cannot export
+settings back into your terminal.
+
 ```bash
 cd /home/tech/laboratory/rpi4base
-export WORKSPACE="$PWD"
-export BR2_EXTERNAL="$WORKSPACE/rpi-extree"
-export AB_OUTPUT="$WORKSPACE/output-edgemap-ab-fresh-02"
-export AB_PROFILE="$WORKSPACE/rpi-extree/configs/raspberrypi4_edgemap_lite_ab_defconfig"
-export AB_VERIFY_KEY="$WORKSPACE/ab-development-public.pem"
-export AB_SIGN_KEY="$WORKSPACE/ab-development-private.pem"
-export RELEASE_OUTPUT="$AB_OUTPUT"
-export RELEASE_PUBLIC_URL="https://resilience-theatre.eu/rpi4edgemap"
-export RELEASE_REMOTE="hetzner-web:public_html/rpi4edgemap"
-export RELEASE_HOST="$WORKSPACE/edgemap-update-host"
-export LOCAL_ADDRESS=192.168.178.41  # current desk IP; change for another host
-export RELEASE_LOCAL_URL="https://$LOCAL_ADDRESS:9443"
-export RELEASE_LOCAL_CA="$RELEASE_HOST/tls/ca.pem"
-export RELEASE_JOBS=32
-export RELEASE_NOTES="Describe changes in the next release"
+source ./set-build-variables.sh 192.168.178.41 output-edgemap-ab-fresh-02
 ```
+
+The workspace-root name is a convenience symlink to the versioned helper. If that
+link is absent in a new checkout, use the canonical path instead:
+
+```bash
+source rpi-extree/board/edgemap-ab/set-build-variables.sh \
+  192.168.178.41 output-edgemap-ab-fresh-02
+```
+
+The first argument is the local HTTPS host's IPv4 address; the second is a build
+directory, absolute or relative to the workspace. The helper finds the workspace
+from its script path, exports the Buildroot/output/profile, signing-key paths,
+public/local publishing settings, job count and offer expiry. It prints the
+settings plus a short command reference for clean, menuconfig, savedefconfig,
+package/kernel refresh, initial builds and releases. It does not create an output,
+change `.config`, run make, start a server or publish anything.
+
+Defaults match this workspace: development keys beside Buildroot/rpi-extree,
+32 jobs, port 9443, seven-day offers, `edgemap-update-host`, `edgemap-releases`,
+public URL `https://resilience-theatre.eu/rpi4edgemap`, and the existing
+`hetzner-web:public_html/rpi4edgemap` remote. Adjust the IP/output for your actual
+session. An existing HTTPS certificate/host.json must already match the selected
+IP/port; sourcing variables does not reconfigure that server.
+
+Override optional settings **before sourcing**, for example:
+
+```bash
+export RELEASE_JOBS=16
+export RELEASE_NOTES="Describe changes in this release"
+source ./set-build-variables.sh 192.168.178.41 output-edgemap-ab-fresh-02
+# List all supported overrides without setting variables:
+source ./set-build-variables.sh --help
+```
+
+`AB_RELEASE_VERSION` is deliberately not guessed; supply it per manual build, or
+pass dev-N to the release script. Each new terminal (including a server terminal)
+needs its own exports; re-source the helper as needed. Private key contents are
+never printed, only their selected paths.
 
 The dev-10 build used `output-edgemap-ab-fresh-02`; the directory name does not
 limit it to that release. Keep using it for incremental dev-11, dev-12, etc.
@@ -146,6 +174,20 @@ then build the complete image so kernel, rootfs and modules agree. Keep the
 EdgeMap hardware config and A/B fragment when updating the kernel.
 
 ## 4. Fresh output when cleanup is needed
+
+Save the reviewed profile first (section 2). If you deliberately want to clean
+and rebuild the same output instead of retaining it, back up `.config` and run:
+
+```bash
+cp "$AB_OUTPUT/.config" "$AB_OUTPUT/.config.backup-$(date +%Y%m%d-%H%M%S)"
+make -C buildroot O="$AB_OUTPUT" clean
+```
+
+`clean` removes built artifacts including the toolchain; it does not publish or
+flash anything. It is not needed for ordinary incremental releases. After clean,
+perform the initial full image build again before the release wrapper. For
+package removals, overlay deletions/switches or toolchain changes, a fresh output
+remains the preferred auditable workflow below.
 
 Save the reviewed profile first (section 2). Select a new, unused directory;
 preserve old output/configuration for reference. Example:
