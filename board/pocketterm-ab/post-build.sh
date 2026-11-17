@@ -91,3 +91,10 @@ install -m 644 "$board_dir/api/config.example.json" "$target_dir/usr/share/pocke
 # Start the local API alongside LVGL only when its operator config exists.
 # Do not order LVGL After=API: the API waits for trial health, which needs LVGL.
 printf '[Unit]\nWants=pocketterm-update-api.service\n' > "$target_dir/etc/systemd/system/lvgl-console.service.d/update-api.conf"
+
+# Immutable source template seeds existing Data-backed settings only when absent.
+install -m 644 "$board_dir/api/sources.example.json" "$target_dir/usr/share/pocketterm-update-api/"
+install -m 755 "$board_dir/update_wrapper.py" "$target_dir/usr/lib/pocketterm-ab/"
+ln -sf ../lib/pocketterm-ab/update_wrapper.py "$target_dir/usr/sbin/update.sh"
+install -m 644 "$board_dir/pocketterm-update-finish.service" "$target_dir/etc/systemd/system/"
+ln -sf ../pocketterm-update-finish.service "$target_dir/etc/systemd/system/multi-user.target.wants/pocketterm-update-finish.service"

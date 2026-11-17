@@ -1,0 +1,13 @@
+[Unit]
+Description=Finish an update accepted through update.sh after successful trial health
+Requires=pocketterm-ab-prepare.service pocketterm-update-api.service
+After=pocketterm-ab-prepare.service pocketterm-ab.service pocketterm-update-api.service
+ConditionPathExists=/data/ab/wrapper-reboot.json
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/pocketterm-ab/update_wrapper.py --finish-pending
+TimeoutStartSec=120
+
+[Install]
+WantedBy=multi-user.target

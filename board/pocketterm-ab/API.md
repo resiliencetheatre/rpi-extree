@@ -157,3 +157,24 @@ and **Later**; Later closes the dialog and leaves the action available. New upda
 installs remain blocked until a normal reboot clears the firmware trial flag.
 There is no automatic second reboot. Test this on hardware after installing the
 release containing both the API and UI changes.
+
+## Named sources and authorized completion (2026-11-17)
+
+`select-source` accepts exactly `{"source":"local"}` or `{"source":"remote"}`.
+It requires an idle normal boot, reloads HTTPS/CA settings, persists the selection
+and drops cached offer/download when changed. Global sequence/offer history and
+the installed release key are shared across sources. Source changes cannot
+replace trust, profile/layout checks or staging. `status` adds `source` and
+`manifest_url`. URL changes alter offer identity and require a newer sequence.
+
+`update.sh` obtains explicit consent for download, install and both reboots.
+Only that workflow arms `/data/ab/wrapper-reboot.json`. Its finish unit validates
+exact committed version/profile/layout/previous/target and idle job, then calls
+`finish` with `accept:true` plus optional `expected` containing those five fields.
+The API checks expected identity; the independent controller revalidates under
+its process lock immediately before ordinary reboot. Manual/LVGL `finish` with
+only `accept:true` remains supported and does not require a wrapper record.
+Normal boot/fallback clears the record without another reboot. Interrupted API
+job history after reboot does not replace authoritative controller state.
+
+See CHEATSHEET.md for configuration seeding, source setup, bootstrap and recovery.

@@ -1,3 +1,7 @@
+> Current local/remote source setup and dual-publication commands are consolidated
+> in [CHEATSHEET.md](../CHEATSHEET.md). Local publication requires explicit
+> `--local` and `RELEASE_LOCAL_URL`; `RELEASE_REMOTE` is explicit for public mode.
+
 # PocketTerm HTTPS hosting and device API
 
 For the complete local development, kernel refresh, public SWU and factory-image
@@ -95,9 +99,9 @@ After the initial factory build and host initialization, build/sign/verify/publi
 an unused dev-N release with the one-command wrapper:
 
 ```sh
-RELEASE_BASE_URL=https://<PC_IPV4>:9443 \
+RELEASE_LOCAL_URL=https://<PC_IPV4>:9443 \
 AB_SIGN_KEY=/absolute/path/private.pem AB_VERIFY_KEY=/absolute/path/public.pem \
-  rpi-extree/board/pocketterm-ab/release.sh dev-2
+  rpi-extree/board/pocketterm-ab/release.sh --local dev-2
 ```
 
 Defaults: `output-pocketterm-ab`, `pocketterm-update-host`, `pocketterm-releases`.

@@ -247,6 +247,18 @@ def boot(slot, trial, state):
     os.sync()
     record(dict(state, phase='committed'))
 
+def finish(slot, trial, state, expected=None):
+    """Revalidate under the controller lock immediately before ordinary reboot."""
+    version = Path('/etc/pocketterm-ab/version').read_text().strip()
+    assert trial and state.get('phase') == 'committed', 'not a committed trial'
+    assert state.get('profile') == PROFILE and state.get('layout') == LAYOUT
+    assert state.get('target') == slot and state.get('version') == version
+    if expected is not None:
+        assert set(expected) == {'profile', 'layout', 'version', 'target', 'previous'}
+        assert all(state.get(key) == value for key, value in expected.items()), 'accepted trial changed'
+    run('systemctl', '--no-block', 'reboot')
+
+
 def main():
     assert os.geteuid() == 0
     if sys.argv[1:] == ['failure-reset']:
@@ -292,6 +304,8 @@ def main():
                     os.sync()
                 if not os.path.ismount(target):
                     run('mount', '--bind', str(saved), str(target))
+        elif command == 'finish' and len(sys.argv) in (2, 3):
+            finish(slot, trial, state, json.loads(sys.argv[2]) if len(sys.argv) == 3 else None)
         elif command == 'boot':
             boot(slot, trial, state)
         else:

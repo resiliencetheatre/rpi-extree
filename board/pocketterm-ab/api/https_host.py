@@ -70,7 +70,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         path = urllib.parse.unquote(urllib.parse.urlsplit(self.path).path)
         name = path.lstrip('/')
         allowed = (name in ('health.json','latest.json') or
-                   re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._+-]{0,63}\.swu', name))
+                   re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._+-]{0,63}\.(swu|SHA256SUMS)', name))
         if not allowed or path != '/' + name:
             self.send_error(404)
             return
@@ -131,6 +131,8 @@ def main():
     start = commands.add_parser('serve', help='Start a read-only HTTPS server on the configured LAN IP')
     start.add_argument('--directory', type=Path, required=True)
     args = parser.parse_args()
+    if not args.directory.is_absolute():
+        parser.error('Use an absolute host directory')
     if args.command == 'init':
         config = initialize(args.directory, args.address, args.port)
         print(f"Prepared https://{config['address']}:{config['port']}/health.json")

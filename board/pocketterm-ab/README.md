@@ -1,7 +1,8 @@
 # PocketTerm Raspberry Pi 4 A/B updates
 
-For the complete local development, kernel refresh, public SWU and factory-image
-workflow, read [Development and release lifecycle](DEVELOPMENT.md) first.
+For current build, dual-source publication and serial/SSH updates, start with
+[CHEATSHEET.md](CHEATSHEET.md). The historical build/factory notes are in
+[DEVELOPMENT.md](DEVELOPMENT.md); EEPROM preparation is in [EEPROM.md](EEPROM.md).
 
 Opt-in profile: `raspberrypi4_pocketterm_ab_defconfig`. The existing
 `raspberrypi4_pocketterm_defconfig` stays single-slot and unchanged.
@@ -241,3 +242,59 @@ settings, including its chosen update URL and PTT server. Switching existing lab
 devices to the public source still requires editing their persistent configuration.
 Source checks do not replace building/inspecting this new public image and testing
 fresh-card boot, network/TLS, A→B/B→A updates, fallback and power cuts.
+
+## Dual-source workflow port from rpi4base (2026-11-17)
+
+Ported the newer `board/edgemap-ab` operator mechanisms into this existing
+PocketTerm profile. Retained PocketTerm PARTUUIDs, capacities, layout 1, profile
+`pocketterm-rpi4-lvgl-v1`, 2300 MiB staging reserve, LVGL readiness and persistence.
+No Situation application policy or reference hosting credentials were imported.
+Baseline/public defconfigs and build outputs were preserved.
+
+- `release.sh --local dev-N`, `--public dev-N`, or both build one signed SWU and
+  publish separate signed URL-specific metadata. With no flags it builds only;
+  local publication now requires `--local`. `release-public.sh` delegates.
+- Local Python HTTPS and remote rclone use the same authenticated preflight,
+  immutable payload, HTTPS readback and metadata-last publication checks.
+  Set `RELEASE_REMOTE` explicitly. `--publish-only` can add an existing verified
+  bundle to an unused channel; partial publications need inspection first.
+- Source `set-build-variables.sh LOCAL_IPV4 BUILD_DIRECTORY` to select settings
+  without creating outputs or starting operations. Canonical script is here;
+  the workspace convenience link points to it.
+- Target `update.sh --local`, `--remote`, `--status` uses the controlled API,
+  pins explicit acceptance to the verified offer, and records exact trial
+  authorization for the second ordinary reboot. Low-level CLI/LVGL workflows
+  still need manual Finish/Restart. API/controller repeat completion guards.
+- Named source settings persist in `/etc/default/pocketterm-update-sources.json`.
+  The immutable template seeds only missing settings on existing devices and
+  imports compatible previous local URL/public-CA configuration. Operator edits,
+  release trust and global anti-replay history remain intact.
+
+Source snapshot: Buildroot `cdd3776b4ea728fdda5fcde708e25d0a092e6864`, external
+name `rpi`, rpi-extree starting `b650b95da2229d66dca7367b5902212a13855fd4`.
+Both repository worktrees were clean at discovery. Kernel source in both saved
+profiles and inspected `output-pocketterm-ab-clean-dev13/.config` is
+`ef71464298cd2dd89f6d190c08e812296240281e` (6.18.62); strict hashes and both
+existing global patch directories remain enabled. SWUpdate 2026.05.1 / genimage 20
+remain unchanged. The workspace itself is not a Git repository.
+
+This port runs source tests only. No new image, release, signing, publication,
+EEPROM write or hardware installation is claimed. Actual board/media/EEPROM
+records and spare-media two-reboot, source-switching, fallback/power-cut tests
+remain required. Reference rpi4base hardware observations are not PocketTerm
+validation. Suggested rpi-extree commit:
+`Port dual-source release tooling and guarded interactive updater to PocketTerm`.
+
+Validation of this workflow port: 32 controller/wrapper/environment/hook tests
+passed; 34 API/publication/source tests passed with two sandbox socket skips.
+Shell syntax and `git diff --check` passed. `systemd-analyze verify` passed using
+an isolated temporary root with fixture application/target dependencies; this
+checks ordering but does not establish actual device startup or binary readiness.
+No Buildroot make command was run. Post-build tests used a disposable target and
+fixture signing keys, with no release signing or publication.
+
+The source audit found existing private PEM/key material under the unrelated
+`fs_overlay/fs_edgemap` CA, application example, Apache and Taky directories.
+Those files were left unchanged; no new updater private material was added.
+Application checkout was clean at `8ed345f793a422a9fabf8cea8d6ea4f78f401009`.
+Reference rpi4base rpi-extree revision: `610df8d6f53bf411f63ced721c4003059af2105f`.

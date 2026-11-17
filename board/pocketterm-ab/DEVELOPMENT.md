@@ -1,3 +1,8 @@
+> Current dual-source commands are consolidated in [CHEATSHEET.md](CHEATSHEET.md).
+> `release.sh` now requires `--local` or `--public` to publish; without flags it
+> builds/signs only. `release-public.sh` delegates to public mode. Older examples
+> below describe the previous local wrapper and should use explicit `--local`.
+
 # PocketTerm development and release lifecycle
 
 All PC commands run from `/home/tech/laboratory/rpi4console`. Commands here are
@@ -15,7 +20,7 @@ above your real release history; never copy an old example number blindly.
 
 | Command | Builds | Publishes | Artifact |
 |---|---|---|---|
-| `release.sh dev-N` | Existing A/B output, LVGL refreshed | Local desk HTTPS document root | `pocketterm-releases/dev-N/dev-N.swu` |
+| `release.sh --local dev-N` | Existing A/B output, LVGL refreshed | Local HTTPS document root | `pocketterm-releases/dev-N/dev-N.swu` |
 | `release-public.sh dev-N` | Existing A/B output, LVGL refreshed | Public host using rclone | SWU, versioned checksum, signed `latest.json` |
 | `build-public-image.sh dev-N` | Separate public output, LVGL refreshed | Nothing | `pocketterm-factory-images/dev-N/pocketterm-public-dev-N.img.xz` |
 
@@ -371,8 +376,8 @@ clock and confirm Python SSL, Data growth, normal A and LVGL readiness.
 2. Choose a unique version; build/sign/publish to desk:
 
    ```sh
-   RELEASE_BASE_URL=https://192.168.178.41:9443 \
-     rpi-extree/board/pocketterm-ab/release.sh dev-11
+   RELEASE_LOCAL_URL=https://192.168.178.41:9443 \
+     rpi-extree/board/pocketterm-ab/release.sh --local dev-11
    ```
 
 3. Leave the local server running. On target, Check for updates, review the offer,

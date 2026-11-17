@@ -1,0 +1,651 @@
+# PocketTerm / LVGL A/B workflow cheat sheet
+
+PC commands run in `/home/tech/laboratory/rpi4console`. Device commands run as root
+on the Pi through SSH or serial. These are operator-run commands: documentation
+changes never start a build, publication or device update.
+
+## 1. Set the PC environment in every new terminal
+
+Source the environment helper with the local server IP and intended build
+output. Use **source**, not `./set-build-variables.sh`: a subprocess cannot export
+settings back into your terminal.
+
+```bash
+cd /home/tech/laboratory/rpi4console
+source ./set-build-variables.sh 192.0.2.10 output-pocketterm-ab-fresh-02
+```
+
+The workspace-root name is a convenience symlink to the versioned helper. If that
+link is absent in a new checkout, use the canonical path instead:
+
+```bash
+source rpi-extree/board/pocketterm-ab/set-build-variables.sh \
+  192.0.2.10 output-pocketterm-ab-fresh-02
+```
+
+The first argument is the local HTTPS host's IPv4 address; the second is a build
+directory, absolute or relative to the workspace. The helper finds the workspace
+from its script path, exports the Buildroot/output/profile, signing-key paths,
+public/local publishing settings, job count and offer expiry. It prints the
+settings plus a short command reference for clean, menuconfig, savedefconfig,
+package/kernel refresh, initial builds and releases. It does not create an output,
+change `.config`, run make, start a server or publish anything.
+
+Defaults match this workspace: development keys beside Buildroot/rpi-extree,
+32 jobs, port 9443, seven-day offers, `pocketterm-update-host`, `pocketterm-releases`,
+public URL `https://resilience-theatre.eu/pocketterm`. Set `RELEASE_REMOTE`
+explicitly to your existing rclone destination before public publication. Adjust the IP/output for your actual
+session. An existing HTTPS certificate/host.json must already match the selected
+IP/port; sourcing variables does not reconfigure that server.
+
+Override optional settings **before sourcing**, for example:
+
+```bash
+export RELEASE_JOBS=16
+export RELEASE_NOTES="Describe changes in this release"
+source ./set-build-variables.sh 192.0.2.10 output-pocketterm-ab-fresh-02
+# List all supported overrides without setting variables:
+source ./set-build-variables.sh --help
+```
+
+`AB_RELEASE_VERSION` is deliberately not guessed; supply it per manual build, or
+pass dev-N to the release script. Each new terminal (including a server terminal)
+needs its own exports; re-source the helper as needed. Private key contents are
+never printed, only their selected paths.
+
+The existing workspace output is `output-pocketterm-ab-clean-dev13`; its suffix
+does not limit release versions. The fresh directories here are examples, not
+records of completed PocketTerm builds.
+Set `AB_OUTPUT` to the actual output you intend to use. Shell variables do not
+carry into a new terminal. Keep signing keys outside rpi-extree. Confirm the
+rclone destination maps to the stated URL. Stop other builds using this output;
+the wrapper lock does not coordinate manual make commands.
+
+### Everyday incremental cycle: dev-10 → dev-11
+
+After setting the exports above, make your small source/overlay edits. Keep the
+existing output for changes that do not require cleanup (see section 3). Start
+the existing local HTTPS server in another terminal:
+
+```bash
+cd /home/tech/laboratory/rpi4console
+python3 rpi-extree/board/pocketterm-ab/api/https_host.py serve \
+  --directory "$PWD/pocketterm-update-host"
+```
+
+In the release terminal:
+
+```bash
+export RELEASE_OUTPUT="$AB_OUTPUT"
+export RELEASE_NOTES="Describe the changes since dev-10"
+curl --cacert "$RELEASE_LOCAL_CA" "$RELEASE_LOCAL_URL/health.json"
+rpi-extree/board/pocketterm-ab/release.sh --local dev-11
+```
+
+The release script refreshes local LVGL, builds the image, signs/verifies the SWU,
+and publishes it. **No separate manual make, defconfig reload, fresh output or
+clean is needed for ordinary incremental releases.** Use dev-11 only if unused;
+otherwise choose the next unused version above the accepted/published sequences.
+The same workflow applies to `--public` or both destination flags.
+
+On the Pi:
+
+```sh
+update.sh --local
+# Review current/new versions; answer y. Reconnect after both reboots:
+update.sh --status
+```
+
+Require the offered new version, phase `committed`, and `trial=False`. Keep the
+server running and Pi powered until finished. See sections 7–9 for details and
+the older manual workflow.
+
+## 2. Change configuration and save it
+
+```bash
+# Back up this output's current configuration.
+cp "$AB_OUTPUT/.config" "$AB_OUTPUT/.config.backup-$(date +%Y%m%d-%H%M%S)"
+make -C buildroot O="$AB_OUTPUT" menuconfig
+# Save and exit menuconfig, then save the reviewed source profile:
+make -C buildroot O="$AB_OUTPUT" savedefconfig BR2_DEFCONFIG="$AB_PROFILE"
+git -C rpi-extree diff -- configs/raspberrypi4_pocketterm_ab_defconfig
+```
+
+Use the same output for both commands and publication; check it if unsure:
+
+```bash
+printf 'menuconfig output: %s\nrelease output: %s\nprofile: %s\n' \
+  "$AB_OUTPUT" "$RELEASE_OUTPUT" "$AB_PROFILE"
+```
+
+`menuconfig` saves the output's `.config`. `savedefconfig` saves its minimal
+settings to the source profile. Neither builds an image. Do not reload a
+defconfig over intentional menuconfig changes. Editing the source defconfig does
+not update an existing output automatically. After deliberately editing the
+source profile, either configure a fresh output (below), or back up the existing
+`.config` and explicitly reload the profile, reviewing lost local overrides:
+
+```bash
+make -C buildroot O="$AB_OUTPUT" BR2_EXTERNAL="$WORKSPACE/rpi-extree" \
+  raspberrypi4_pocketterm_ab_defconfig
+```
+
+Keep lvgl-console-local, udpptt, Python 3 with SSL, SWUpdate, public CA certificates,
+OpenSSL tools, util-linux binaries/partx, resize2fs and tryboot firmware enabled.
+After configuration changes that do not require cleanup, run the normal release
+command directly. The wrapper builds from `RELEASE_OUTPUT/.config`, not from the
+saved profile. `savedefconfig` preserves those settings for future fresh outputs;
+it does not apply them to a different existing output. Removing packages still
+requires the fresh-output cycle below.
+
+The overlay is `${BR2_EXTERNAL}/fs_overlay/fs_pocketterm`. Preserve the separate
+public factory profile and its additional `public-overlay` defaults deliberately.
+
+## 3. Choose the refresh required by your change
+
+Run package refresh commands only after stopping other builds. Replace `PACKAGE`
+with its Buildroot package name. Every refresh is followed by a full image build
+or the release wrapper, not by copying `output/target` to the Pi.
+
+| Change | Action before full image build / release |
+|---|---|
+| Add or edit overlay files, updater scripts, systemd units | Full image build reruns overlay and hooks |
+| Delete/rename overlay files or switch overlay directories | Fresh output; old target files otherwise remain |
+| Disable/remove packages or many Python modules | Fresh output; Buildroot does not uninstall old files |
+| Change toolchain, compiler ABI or kernel-header series | Fresh output |
+| Edit a package's already-extracted local sources | `make -C buildroot O="$AB_OUTPUT" PACKAGE-rebuild` |
+| Change other package configuration/build options | Refresh affected packages with `PACKAGE-reconfigure` or `PACKAGE-dirclean` as appropriate; then full image build/release |
+| Change package source pin, patches or source-copy method | `make -C buildroot O="$AB_OUTPUT" PACKAGE-dirclean` |
+| Edit kernel config or fragments | `make -C buildroot O="$AB_OUTPUT" linux-reconfigure` |
+| Change kernel source revision or kernel patches | `make -C buildroot O="$AB_OUTPUT" linux-dirclean`; refresh enabled external module packages too |
+| Edit only saved defconfig | Apply deliberately to output or configure fresh output; saving alone does not apply it |
+
+LVGL sources are local in `WORKSPACE/lvgl-console`, packaged by
+`rpi-extree/package/lvgl-console-local/lvgl-console-local.mk`. The release wrapper
+already runs `lvgl-console-local-dirclean` to recopy them; it does not refresh
+unrelated packages.
+A local-source package may need `dirclean` to recopy its original sources rather
+than merely rebuild an existing extracted directory.
+
+Kernel source is pinned by `BR2_LINUX_KERNEL_CUSTOM_TARBALL_LOCATION` in the A/B
+profile. The current 6.18.62 pin is
+`ef71464298cd2dd89f6d190c08e812296240281e`. Keep the headers series appropriate;
+changing that series requires a new toolchain output. After a kernel source
+change, rebuild enabled external kernel modules from clean package directories,
+then build the complete image so kernel, rootfs and modules agree. Keep the
+PocketTerm hardware config and A/B fragment when updating the kernel.
+
+## 4. Fresh output when cleanup is needed
+
+Save the reviewed profile first (section 2). If you deliberately want to clean
+and rebuild the same output instead of retaining it, back up `.config` and run:
+
+```bash
+cp "$AB_OUTPUT/.config" "$AB_OUTPUT/.config.backup-$(date +%Y%m%d-%H%M%S)"
+make -C buildroot O="$AB_OUTPUT" clean
+```
+
+`clean` removes built artifacts including the toolchain; it does not publish or
+flash anything. It is not needed for ordinary incremental releases. After clean,
+perform the initial full image build again before the release wrapper. For
+package removals, overlay deletions/switches or toolchain changes, a fresh output
+remains the preferred auditable workflow below.
+
+Save the reviewed profile first (section 2). Select a new, unused directory;
+preserve old output/configuration for reference. Example:
+
+```bash
+export AB_OUTPUT="$WORKSPACE/output-pocketterm-ab-fresh-03"
+export RELEASE_OUTPUT="$AB_OUTPUT"
+# This must print 'unused' before configuring it.
+if test -e "$AB_OUTPUT"; then echo 'STOP: choose a new output'; else echo unused; fi
+```
+
+Only after confirming the directory is unused:
+
+```bash
+make -C buildroot O="$AB_OUTPUT" BR2_EXTERNAL="$WORKSPACE/rpi-extree" \
+  raspberrypi4_pocketterm_ab_defconfig
+```
+
+Do not copy the old `target/` into it. Existing downloads can be reused through
+Buildroot's configured download directory. A fresh output rebuilds the toolchain
+and dependencies.
+
+**Required next step for a fresh output: build the initial images (section 5),
+then publish (section 6).** The defconfig command above creates `.config` only;
+it does not create boot/root images. Calling `release-public.sh` immediately
+will stop with `Build and inspect the factory artifacts first`.
+
+For example, if your next unused release is dev-11, after configuration run:
+
+```bash
+AB_RELEASE_VERSION=dev-11 AB_VERIFY_KEY="$WORKSPACE/ab-development-public.pem" \
+  make -C buildroot O="$AB_OUTPUT" -j32
+```
+
+After that command succeeds, inspect the images using section 5, then run:
+
+```bash
+RELEASE_OUTPUT="$AB_OUTPUT" \
+  rpi-extree/board/pocketterm-ab/release.sh --public dev-11
+```
+
+Use the same chosen version in both commands. The wrapper rebuilds before
+packaging, signing and publication. A new output does not require deleting the
+old output; retain it until you no longer need its configuration or artifacts.
+
+## 5. Build images without publishing
+
+Choose your actual release version; the example `dev-11` is not a claim that this
+version is unused on your server.
+
+```bash
+export AB_RELEASE_VERSION=dev-11
+make -C buildroot O="$AB_OUTPUT" -j32
+```
+
+The key environment above is required by the post-build hook. A make invocation
+without a target starts the default image build. `-j32` permits parallel work.
+
+Inspect before provisioning/release:
+
+```bash
+cat "$AB_OUTPUT/images/release-version" "$AB_OUTPUT/images/release-profile"
+cat "$AB_OUTPUT/build/linux-custom/include/config/kernel.release"
+sfdisk --json "$AB_OUTPUT/images/sdcard-ab.img"
+mtype -i "$AB_OUTPUT/images/boot-a.vfat" ::/cmdline.txt
+mtype -i "$AB_OUTPUT/images/boot-b.vfat" ::/cmdline.txt
+```
+
+Factory image: `$AB_OUTPUT/images/sdcard-ab.img`. It replaces the whole card,
+including Data, when flashed. An SWU replaces only the inactive boot/root pair.
+EEPROM is separate from both; see [EEPROM.md](EEPROM.md).
+
+## 6. Build, sign and publish a release (public, local, or both)
+
+Choose a destination explicitly:
+
+```bash
+rpi-extree/board/pocketterm-ab/release.sh --public dev-11
+rpi-extree/board/pocketterm-ab/release.sh --local dev-11
+rpi-extree/board/pocketterm-ab/release.sh --public --local dev-11
+```
+
+These are alternatives, not three commands to run in sequence. Choose the next
+unused version/sequence. Both flags build one signed SWU and publish it to both
+channels with separate signed metadata binding each channel URL. No flags now
+builds/signs only; use `--local` explicitly for the old local-publication behavior. `release-public.sh dev-N` remains a compatibility alias
+for `release.sh --public dev-N`. Public mode alone does not need a local server;
+local mode alone does not need rclone or a remote account.
+
+For an existing output with initial factory artifacts, the wrapper performs the
+full build itself. A separate manual build is optional. Fresh outputs must first
+complete section 5 because wrapper preflight requires existing factory artifacts.
+
+Choose a version/sequence above every selected channel's current offer and the
+sequence already accepted by the intended devices; never reuse an already
+published version. Set the output explicitly, even if a previous shell used it:
+
+```bash
+export RELEASE_OUTPUT="$AB_OUTPUT"
+export RELEASE_NOTES="Describe the changes in this release"
+rpi-extree/board/pocketterm-ab/release.sh --public dev-11
+```
+
+The wrapper checks output/trust/keys and publication state, takes its lock,
+refreshes local LVGL, builds all images, signs and verifies the bundle, writes
+checksums, uploads immutable payloads, verifies HTTPS bytes and publishes signed
+`latest.json` last. Default offer expiry is seven days; override with
+`RELEASE_EXPIRES_DAYS` deliberately. An expired offer needs newly signed metadata
+with a fresh increasing sequence.
+
+Artifacts/URLs for the example:
+
+```text
+pocketterm-releases/dev-11/dev-11.swu
+pocketterm-releases/dev-11/SHA256SUMS
+pocketterm-releases/dev-11/public/latest.json
+pocketterm-releases/dev-11/local/latest.json  (when --local is selected)
+https://resilience-theatre.eu/pocketterm/dev-11.swu
+https://resilience-theatre.eu/pocketterm/latest.json
+```
+
+The script may rebuild even after a manual build. It preserves the output's
+configuration and does not reload the defconfig. It does not install on a Pi.
+If it fails, inspect the error and partial local/remote artifacts; do not overwrite
+published bundles or delete/reinitialize keys. Pre-publication failures preserve
+the previous offer. Publication/cache verification failures require checking the
+actual public state before recovery.
+
+### Local Python HTTPS server: set up once on the PC
+
+The local path uses verified HTTPS, the same signed offer/bundle checks and
+immutable publication ordering as the public path. Plain `python -m http.server`
+over LAN HTTP is not accepted by devices. Use the supplied Python HTTPS host.
+Keep its directory outside rpi-extree and outside the served `www` directory.
+
+Choose your actual LAN IPv4 address and an unused host directory:
+
+```bash
+export RELEASE_HOST="$WORKSPACE/pocketterm-update-host"
+export LOCAL_ADDRESS=192.0.2.10  # replace if this PC's LAN IPv4 differs
+export RELEASE_LOCAL_URL="https://$LOCAL_ADDRESS:9443"
+export RELEASE_LOCAL_CA="$RELEASE_HOST/tls/ca.pem"
+python3 rpi-extree/board/pocketterm-ab/api/https_host.py init \
+  --directory "$RELEASE_HOST" --address "$LOCAL_ADDRESS" --port 9443
+```
+
+`init` creates local TLS trust and refuses to overwrite a nonempty directory.
+Run it once, not per release. The server certificate lasts 30 days and the CA
+365 days; plan deliberate renewal before expiry, preserving trust appropriately.
+Changing the address requires a matching certificate, not bypassing TLS checks.
+No release signing keys or remote credentials belong in this host directory.
+
+**Restarting the server later:** do not run `init` again. A nonempty-directory
+error from `init` protects existing certificates and published releases. Start
+`serve` directly; it loads the saved address/port from `host.json` and reuses
+existing TLS trust. Merely exporting another address does not reconfigure it.
+
+Start the server in another terminal and keep it running while publishing and
+while devices check/download. Export/set the same host variables again there:
+
+```bash
+python3 rpi-extree/board/pocketterm-ab/api/https_host.py serve \
+  --directory /home/tech/laboratory/rpi4console/pocketterm-update-host
+```
+
+It serves only allowlisted metadata, bundles, checksums and health; TLS/private
+files are outside `www`. No server/firewall is started or changed by release.sh.
+The chosen address/port must already be reachable from the Pi. Check manually:
+
+```bash
+curl --cacert "$RELEASE_LOCAL_CA" "$RELEASE_LOCAL_URL/health.json"
+# Build/sign/publish to the local server only:
+rpi-extree/board/pocketterm-ab/release.sh --local dev-11
+# Or build once and publish to both (instead of the previous command):
+rpi-extree/board/pocketterm-ab/release.sh --public --local dev-11
+```
+
+Local artifacts appear in `$RELEASE_HOST/www`, public artifacts in the rclone web
+folder. Both destinations are preflighted before the build when both are selected.
+Each payload is verified over its actual HTTPS URL before metadata activation.
+Publication across two servers is not a distributed transaction: the first can
+succeed while the second fails. Inspect both states after any error. Never rerun
+a normal build over an existing version directory or overwrite a published SWU.
+
+To add an already-built release to a channel that has not received it, avoid
+rebuilding with (example: dev-11 was public-only and is now needed locally):
+
+```bash
+rpi-extree/board/pocketterm-ab/release.sh --local --publish-only dev-11
+```
+
+This re-verifies the existing bundle, signs channel-specific metadata and applies
+the same preflight/upload checks. It refuses a version already present at that
+destination. It is not an automatic repair of partially uploaded versions; retain
+partial artifacts and inspect the failure before recovery. Same version must mean
+same SWU bytes on both servers. Signed URL/notes/expiry changes require a fresh
+increasing sequence if that offer has already been published.
+
+### Configure both target sources once
+
+Images containing the new `update.sh` wrapper use two named sources in persistent
+`/etc/default/pocketterm-update-sources.json`. Both use the same installed verification
+key and shared replay history. The source file cannot override either of them.
+Public HTTPS uses the system CA store; local HTTPS uses the supplied local CA.
+
+First copy **only** `$RELEASE_HOST/tls/ca.pem` to the Pi:
+
+```bash
+scp "$RELEASE_HOST/tls/ca.pem" root@DEVICE:/data/update-local-ca.pem
+```
+
+For serial-only access, transfer that public PEM using your serial file-transfer
+method. Never transfer CA/server private keys or the release signing key.
+On the Pi, set the actual PC address in the source file:
+
+```sh
+vi /etc/default/pocketterm-update-sources.json
+```
+
+```json
+{
+  "remote": {
+    "manifest_url": "https://resilience-theatre.eu/pocketterm/latest.json"
+  },
+  "local": {
+    "manifest_url": "https://192.0.2.10:9443/latest.json",
+    "ca_file": "/data/update-local-ca.pem"
+  }
+}
+```
+
+This is a documentation-only example address; use your LAN address matching
+your initialized host certificate. The factory template deliberately leaves the
+local URL unset. A source selection loads the file afresh; restarting the API is
+unnecessary after editing it. Existing images receiving the new wrapper through
+SWUpdate get a missing source file seeded from the installed template. If their
+active API configuration already has a private-CA local URL, it is imported as
+`local`. Existing source-file edits are never overwritten.
+
+Source selection is allowed only while idle and outside a trial. It discards the
+previous source's cached offer/download, retains sequence history and persists
+the selected source for API restarts. A local CA is never applied to the remote
+source. A different URL produces a different signed offer ID, so switching
+channels requires a strictly higher sequence than one already accepted from the
+other source. Do not delete replay history to accept an older/equal offer.
+
+**One-time bootstrap on images without `update.sh`:** install the next signed
+release using the existing client commands below, then perform its final ordinary
+reboot manually. If you need local hosting for that first update, configure
+`/etc/default/pocketterm-updates.json` with `manifest_url` pointing to local
+`latest.json`, `ca_file` set to `/data/update-local-ca.pem`, and retain
+`public_key: /etc/pocketterm-ab/public.pem`, `data_dir: /data/update-api`, and
+`allow_http_loopback: false`. Restart `pocketterm-update-api`, wait for its socket,
+and use the advanced commands below. From then on use the named-source wrapper;
+do not edit the active API URL to switch sources.
+
+## 7. Device: single-command update (recommended)
+
+Run as root over serial or SSH:
+
+```sh
+update.sh --remote   # public rclone-published channel
+# OR:
+update.sh --local    # local Python HTTPS channel
+```
+
+The wrapper waits for the API socket to become ready, checks the selected source,
+displays the current and offered versions, source, release notes and bundle size,
+then asks `Update y/n? [y/N]`. Nothing is downloaded or installed if declined.
+If the offered version already runs, it exits without prompting.
+
+Answering `y` authorizes download and installation of that exact verified offer,
+a trial reboot and a final ordinary reboot only after successful trial health.
+The wrapper shows download bytes/percent, verification stages and SWUpdate
+per-image write progress. Unknown progress remains stage-only; it never affects
+activation. Keep power connected. The serial/SSH session may disconnect during
+reboot; output does not by itself prove successful trial confirmation.
+
+After trial health commits the expected profile/layout, version and target slot,
+`pocketterm-update-finish.service` checks fresh API status and requests the ordinary
+reboot automatically. This applies only when `update.sh` recorded that explicit
+authorization before installation. Failed/unconfirmed/wrong-slot trials never
+authorize that reboot. A fallback is reported without another reboot. Previously
+accepted updates using the low-level client still need manual finishing.
+
+Inspect from another shell, or after reconnecting:
+
+```sh
+update.sh --status
+```
+
+Require the intended version, phase `committed`, and `trial=False` after both
+boots. `Ctrl-C` stops monitoring, not an accepted background job; inspect status
+before starting anything else. A monitor timeout or lost socket during reboot
+is not a success report. The API and local CLI stay available for diagnosis.
+A previous committed trial from the old workflow must first be finished with
+`systemctl reboot`; the wrapper will explain this rather than start another update.
+
+A completed update can still show `job: interrupted` / `installing_slots` and
+`Service restarted; inspect device state before retrying`. This is retained
+transfer-job history after the API restarted during reboot. When the controller
+reports the intended version, `State: committed` and `trial=False`, the update is
+complete; do not reinstall or edit state files merely to clear that message.
+If `trial=True` remains, inspect the finish service and controller journal; only
+a matching committed trial may be finished with an ordinary reboot.
+
+### What the trial health check requires
+
+Before commit the controller checks firmware/root slot agreement, mounted Data
+and selector, the pending release/version/target, and selector state. Application
+readiness retries for up to 60 seconds and requires:
+
+- active `lvgl-console.service` and `udpptt.service`;
+- a fresh `/run/lvgl-ab-ready` heartbeat (less than five seconds old);
+- its PID resolving to `/usr/bin/lvgl-console`, after display/input/UI initialization.
+
+Verify the actual PocketTerm display and input separately; the readiness
+heartbeat does not establish long-term application stability. A failed trial does not commit the selector;
+the failure service requests ordinary reboot to the previous default slot. Kernel
+hang/root-mount failure coverage still needs the hardware watchdog/fallback tests
+listed in README.md.
+
+If the API is unavailable:
+
+```sh
+systemctl status pocketterm-update-api --no-pager -l
+journalctl -b -u pocketterm-update-api -u pocketterm-update-finish --no-pager
+```
+
+## 8. Advanced device commands: check → download → install
+
+Run as root over serial or SSH. The device needs networking, DNS and a valid
+clock, but no display.
+
+```sh
+pocketterm-update status
+cat /etc/pocketterm-ab/version
+date -u
+systemctl status pocketterm-update-api --no-pager
+pocketterm-update-client check
+pocketterm-update-client wait
+```
+
+Require no device/offer error and the intended version/profile. Copy the exact
+`offer.offer_id` into a variable:
+
+```sh
+OFFER_ID='PASTE_THE_FULL_OFFER_ID_HERE'
+pocketterm-update-client download --offer "$OFFER_ID" --accept
+pocketterm-update-client wait
+```
+
+Inspect the immediate response to each command: it must say `"ok": true`.
+`wait` monitors a job; it does not start download/install. `available` with zero
+bytes means the offer is checked but no download is running. Shell variables,
+including `OFFER_ID`, are lost on logout/reboot: set it again from the current
+check result. `offer_changed` means the supplied ID does not match that result.
+
+Require `download_ready:true` and job phase `downloaded`. Download acceptance
+does not authorize installation. Explicitly install the same offer:
+
+```sh
+pocketterm-update-client install --offer "$OFFER_ID" --accept
+pocketterm-update-client wait
+```
+
+Installation stages/verifies a multi-gigabyte bundle, writes the inactive boot/root
+pair and reads it back before automatically requesting a trial reboot. Keep power
+connected. This can take several minutes. To inspect progress from another shell:
+
+```sh
+pocketterm-update-client status
+```
+
+`swupdate.percent` is per-image progress, not whole-release progress. A successful
+write is not yet a confirmed trial. Do not run a second installer, invoke SWUpdate
+directly or restart services while installation is active.
+
+## 9. Advanced device commands: confirm, then ordinary reboot
+
+After the automatic trial reboot:
+
+```sh
+pocketterm-update status
+cat /etc/pocketterm-ab/version
+journalctl -b -u pocketterm-ab -u lvgl-console --no-pager
+```
+
+Require the intended version, opposite slot (A→B or B→A) and
+`state.phase: committed`. LVGL/udpptt health authorizes selector
+commit automatically. If health fails or the device falls back, inspect status
+and journals before retrying; do not force confirmation.
+
+After committed state, finish with an ordinary reboot:
+
+```sh
+systemctl reboot
+```
+
+After that boot:
+
+```sh
+pocketterm-update status
+cat /etc/pocketterm-ab/version
+df -h /data
+```
+
+Require the same new version/slot, phase `committed` and `trial:false` before the
+next installation. The ordinary reboot clears the firmware trial condition; it
+does not create persistence. Data is already persistent, and selector commit
+already selected the new default slot. API alternative after fresh committed
+status is `pocketterm-update-client finish --accept`.
+
+## 10. What persists and what overlay edits replace
+
+Data backs `/etc/default`, `/etc/ssh` and `/var/lib`. Additional application data
+belongs under `/data`. Application binaries remain slot-local. Data grows to
+media capacity on first normal
+factory A boot; inspect `/data/ab/factory-growth.json`.
+
+An SWU preserves existing Data. New overlay defaults under these persistent paths
+will not replace the device's established copies, even after a clean host build.
+Changing them needs an explicit compatible device configuration/migration step.
+Other files in boot/root are replaced through the inactive slot. Keep shared
+formats backward-compatible with the previous slot during the rollback window.
+For manual rollback and offline recovery, see [README.md](README.md).
+
+## Source verification and separate public factory output
+
+Both PocketTerm A/B profiles retain `BR2_DOWNLOAD_FORCE_CHECK_HASHES=y` and
+`BR2_GLOBAL_PATCH_DIR="${BR2_EXTERNAL}/board/raspberrypi/patches ${BR2_EXTERNAL}/patches"`.
+The inspected existing output has the same settings. Review patches and supply
+reviewed custom-source hashes before changing pins; do not weaken hash checking.
+Kernel/header changes require the refresh/fresh-output rules above.
+
+The public factory profile adds initial public update/PTT defaults. It has a
+separate output and uses the same profile/layout/key as the SWU. Operator command:
+
+```bash
+PUBLIC_OUTPUT="$WORKSPACE/output-pocketterm-public" \
+  rpi-extree/board/pocketterm-ab/build-public-image.sh dev-N
+```
+
+It builds and archives a complete factory image, without publishing or flashing.
+Keep its common configuration aligned with the A/B profile intentionally; editing
+one output does not update the other. See DEVELOPMENT.md for factory archival.
+
+Initial provisioning replaces the whole spare card and Data. Inspect GPT, both
+cmdlines and sizes first, then identify and explicitly authorize the destination
+before using an image writer. Single-slot cards need offline reprovisioning and
+selective data restore. Never use an SWU for partition-table migration.
+
+Recovery: `pocketterm-update status`, `journalctl -b -u pocketterm-ab`, and
+`/data/ab/events.jsonl`. Use `pocketterm-update install /data/dev-N.swu` for an
+independently verified local bundle. After health commits, the low-level route
+requires `pocketterm-update finish` or an ordinary reboot. Offline, select only a
+known-good previous boot slot in selector `autoboot.txt` (normal 2/trial 3 for A;
+normal 3/trial 2 for B), preserving Data. If neither boots, back up Data and
+reprovision a known-good factory image. See README.md and EEPROM.md.

@@ -1,0 +1,9 @@
+{
+  "remote": {
+    "manifest_url": "https://resilience-theatre.eu/pocketterm/latest.json"
+  },
+  "local": {
+    "manifest_url": null,
+    "ca_file": "/data/update-local-ca.pem"
+  }
+}

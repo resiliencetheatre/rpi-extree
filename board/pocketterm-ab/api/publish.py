@@ -14,6 +14,10 @@ from remote_release import canonical, verify_bundle, verify_offer, url_origin
 
 
 def publish(bundle, private_key, url, sequence, expires, notes, output, allow_http=False):
+    if not all(path.is_absolute() for path in (bundle, private_key, output)):
+        raise ValueError('Bundle, signing key and output paths must be absolute')
+    if output.exists():
+        raise ValueError('Metadata output already exists')
     # Validate URL policy without fetching the release server.
     url_origin(url, allow_http)
     with tempfile.TemporaryDirectory(prefix='publish-release-') as directory:
