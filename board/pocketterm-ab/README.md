@@ -298,3 +298,16 @@ The source audit found existing private PEM/key material under the unrelated
 Those files were left unchanged; no new updater private material was added.
 Application checkout was clean at `8ed345f793a422a9fabf8cea8d6ea4f78f401009`.
 Reference rpi4base rpi-extree revision: `610df8d6f53bf411f63ced721c4003059af2105f`.
+
+## Kernel archive hash preparation
+
+After menuconfig/savedefconfig changes the kernel pin, use
+`python3 rpi-extree/board/pocketterm-ab/kernel-hash.py --output "$AB_OUTPUT"`
+before kernel cleanup and the next release. `--dry-run` shows resolved paths
+without downloads or writes. The sourceable build-variable helper prints the
+complete command sequence; see [CHEATSHEET.md](CHEATSHEET.md#preparing-hashes-for-a-new-kernel-pin).
+The helper caches the configured full-commit Raspberry Pi archive and records
+SHA-256 in the active external kernel/header hash files without changing pins or
+running make. Existing checksums must match. Source tests use synthetic archives;
+no real kernel download, hash-file update, build or publication was performed
+while adding this helper.

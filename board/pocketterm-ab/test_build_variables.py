@@ -57,3 +57,9 @@ class BuildVariableTests(unittest.TestCase):
     def test_sourcing_preserves_shell_options(self):
         result = self.run_shell('before=$(set +o); source "$1" 192.0.2.10 output-env-example >/dev/null || exit; after=$(set +o); test "$before" = "$after"')
         self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_printed_reference_includes_kernel_hash_preparation(self):
+        result = self.run_shell('source "$1" 192.168.178.41 output-env-example')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('kernel-hash.py --output "$AB_OUTPUT"', result.stdout)
+        self.assertIn('linux-dirclean &&', result.stdout)

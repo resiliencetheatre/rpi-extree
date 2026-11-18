@@ -649,3 +649,50 @@ requires `pocketterm-update finish` or an ordinary reboot. Offline, select only 
 known-good previous boot slot in selector `autoboot.txt` (normal 2/trial 3 for A;
 normal 3/trial 2 for B), preserving Data. If neither boots, back up Data and
 reprovision a known-good factory image. See README.md and EEPROM.md.
+
+## Preparing hashes for a new kernel pin
+
+After editing the intended output with menuconfig and saving the reviewed
+profile, run the helper before the kernel refresh/release. It reads `.config`;
+it does not change pins, profiles, signing trust or hash-checking settings.
+
+```bash
+source ./set-build-variables.sh 192.168.178.41 output-pocketterm-ab-clean-dev14
+# Optional: inspect the URL, cache and active hash paths without downloading/writing:
+python3 rpi-extree/board/pocketterm-ab/kernel-hash.py --output "$AB_OUTPUT" --dry-run
+# Prepare the archive and hashes, then refresh/build/publish only if successful:
+python3 rpi-extree/board/pocketterm-ab/kernel-hash.py --output "$AB_OUTPUT" && \
+  make -C buildroot O="$AB_OUTPUT" linux-dirclean && \
+  RELEASE_NOTES="Linux kernel update" \
+  rpi-extree/board/pocketterm-ab/release.sh --local dev-21
+```
+
+Choose the next unused dev-N; dev-21 is an example. Keep the local HTTPS server
+running for publication. Stop other builds before changing kernel configuration
+or running the helper. Refresh enabled external kernel modules before the full
+release build; the wrapper refreshes only LVGL automatically. A kernel header
+series/toolchain ABI change requires a fresh output.
+
+The helper supports full-commit Raspberry Pi GitHub custom tarballs, including
+the profile's `$(call github,raspberrypi,linux,COMMIT)` URL. Unrecognized Make
+expressions and separate custom header sources are rejected rather than guessed.
+It resolves `BR2_DL_DIR` (or an explicit absolute `DL_DIR` environment override)
+and reuses/downloads the exact archive in `dl/linux/`. Relative output arguments
+resolve from the workspace. Paths/variables it cannot resolve safely fail clearly.
+
+Only existing active external hash files are updated, using Buildroot's
+`custom/PACKAGE.hash` then `PACKAGE.hash` lookup. Both linux and linux-headers
+entries are prepared for the shared archive; existing file symlinks are preserved.
+Older entries/comments remain. Existing checksums are validated before any hash
+file is changed; a conflict or invalid/truncated archive is an error, never an
+automatic replacement. Interrupted downloads use temporary files and do not
+become cache archives. Hash-file updates are individually atomic and safe to
+rerun if interrupted between files. The helper serializes itself and holds the
+same per-package download-cache lock used by Buildroot, but does not coordinate
+manual configuration edits or full builds.
+
+Review the upstream commit independently: hashing a new HTTPS download records
+received bytes, not independent source authenticity. Review `git -C rpi-extree
+diff -- patches/linux patches/linux-headers`. Keep public factory pins/configuration
+aligned deliberately; the helper never edits either profile. No helper command
+builds, cleans, signs, publishes or updates a device.

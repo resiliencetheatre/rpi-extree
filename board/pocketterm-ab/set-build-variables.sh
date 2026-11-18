@@ -104,6 +104,19 @@ Menuconfig / save reviewed profile:
   make -C buildroot O="$AB_OUTPUT" menuconfig
   make -C buildroot O="$AB_OUTPUT" savedefconfig BR2_DEFCONFIG="$AB_PROFILE"
 
+Prepare hashes after changing the kernel pin (reads this output's .config):
+  python3 rpi-extree/board/pocketterm-ab/kernel-hash.py --output "$AB_OUTPUT" --dry-run
+  python3 rpi-extree/board/pocketterm-ab/kernel-hash.py --output "$AB_OUTPUT"
+Downloads to the configured dl/linux cache and records SHA-256 in active hash files.
+No make is run. Existing hashes are verified; conflicting hashes are never replaced.
+
+Kernel upgrade / local release (after menuconfig and savedefconfig):
+  python3 rpi-extree/board/pocketterm-ab/kernel-hash.py --output "$AB_OUTPUT" && \
+    make -C buildroot O="$AB_OUTPUT" linux-dirclean && \
+    RELEASE_NOTES="Linux kernel update" rpi-extree/board/pocketterm-ab/release.sh --local dev-N
+Refresh enabled external kernel module packages too, before the release command.
+Kernel header-series/toolchain ABI changes require a fresh output.
+
 Refresh another changed package / kernel source before a full build:
   make -C buildroot O="$AB_OUTPUT" PACKAGE-dirclean
   make -C buildroot O="$AB_OUTPUT" linux-dirclean
