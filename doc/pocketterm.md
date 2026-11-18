@@ -1,6 +1,6 @@
 # Waveshare PocketTerm 3.5
 
-![Waveshare PocketTerm 3.5](../images/pocketterm.png)
+![Waveshare PocketTerm 3.5](../images/pocketterm_screenshots.png)
 
 These are development notes, work in progress.
 

@@ -98,3 +98,6 @@ install -m 755 "$board_dir/update_wrapper.py" "$target_dir/usr/lib/pocketterm-ab
 ln -sf ../lib/pocketterm-ab/update_wrapper.py "$target_dir/usr/sbin/update.sh"
 install -m 644 "$board_dir/pocketterm-update-finish.service" "$target_dir/etc/systemd/system/"
 ln -sf ../pocketterm-update-finish.service "$target_dir/etc/systemd/system/multi-user.target.wants/pocketterm-update-finish.service"
+
+# Read-only framebuffer capture; BMP needs no extra Python modules.
+install -m 755 "$board_dir/fb-screenshot.py" "$target_dir/usr/sbin/fb-screenshot"

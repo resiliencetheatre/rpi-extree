@@ -39,6 +39,8 @@ class PostBuildTests(unittest.TestCase):
             self.assertTrue(os.access(target/'usr/sbin/update.sh', os.X_OK))
             self.assertEqual((target/'usr/share/pocketterm-update-api/sources.example.json').read_bytes(),
                              (BOARD/'api/sources.example.json').read_bytes())
+            self.assertEqual((target/'usr/sbin/fb-screenshot').read_bytes(), (BOARD/'fb-screenshot.py').read_bytes())
+            self.assertTrue(os.access(target/'usr/sbin/fb-screenshot', os.X_OK))
             units = target/'etc/systemd/system'
             finish = (units/'pocketterm-update-finish.service').read_text()
             self.assertIn('After=pocketterm-ab-prepare.service pocketterm-ab.service pocketterm-update-api.service', finish)

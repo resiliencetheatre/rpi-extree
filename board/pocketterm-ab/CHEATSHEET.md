@@ -696,3 +696,33 @@ received bytes, not independent source authenticity. Review `git -C rpi-extree
 diff -- patches/linux patches/linux-headers`. Keep public factory pins/configuration
 aligned deliberately; the helper never edits either profile. No helper command
 builds, cleans, signs, publishes or updates a device.
+
+## Capture the running LVGL screen
+
+The A/B post-build hook installs `fb-screenshot` in new images. Run on the Pi:
+
+```sh
+fb-screenshot /data/screen.bmp
+# Another framebuffer, when explicitly configured for the application:
+fb-screenshot --device /dev/fb1 /data/other-screen.bmp
+```
+
+It reads the visible framebuffer with read-only access and saves a 24-bit BMP.
+It handles 16/24/32-bit packed true-colour RGB formats, line padding and visible
+pan offsets. No Pillow, zlib, new package or LVGL change is required. Existing
+files are not overwritten. LVGL stays running; a capture taken during redraw
+can contain tearing, so capture a settled screen. The file contains the raw
+framebuffer orientation; hardware panel rotation may differ. Palette/direct-colour,
+nonstandard and Y-wrap modes are rejected with an error.
+
+To use it immediately without a build/release, run these commands yourself on
+the PC (replace DEVICE with the Pi's address):
+
+```bash
+scp rpi-extree/board/pocketterm-ab/fb-screenshot.py root@DEVICE:/data/fb-screenshot.py
+ssh root@DEVICE 'python3 /data/fb-screenshot.py /data/screen.bmp'
+scp root@DEVICE:/data/screen.bmp ./screen.bmp
+```
+
+Run as root or with permission to read the selected `/dev/fbN`. The script has synthetic format/stride/BMP tests; actual target capture remains
+to be checked on the device. No build or device capture was run while adding it.

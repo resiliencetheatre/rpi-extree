@@ -311,3 +311,12 @@ SHA-256 in the active external kernel/header hash files without changing pins or
 running make. Existing checksums must match. Source tests use synthetic archives;
 no real kernel download, hash-file update, build or publication was performed
 while adding this helper.
+
+## Framebuffer screenshot
+
+`fb-screenshot /data/screen.bmp` captures the running LVGL framebuffer without
+stopping the application. It uses Python's built-in modules and writes a 24-bit
+BMP, with no new package configuration. The A/B hook installs it for future
+images; [CHEATSHEET.md](CHEATSHEET.md#capture-the-running-lvgl-screen) includes
+copy/run commands for existing devices. Seven synthetic capture/encoding tests
+and the installation-hook check passed; physical capture remains untested.
