@@ -11,4 +11,8 @@ LVGL_CONSOLE_LOCAL_DEPENDENCIES = libpng alsa-lib json-c host-pkgconf
 LVGL_CONSOLE_LOCAL_LICENSE = MIT
 LVGL_CONSOLE_LOCAL_LICENSE_FILES = LICENSE third_party/lvgl/LICENCE.txt
 
+ifeq ($(BR2_PACKAGE_SYSTEMD),y)
+LVGL_CONSOLE_LOCAL_DEPENDENCIES += systemd
+endif
+
 $(eval $(cmake-package))

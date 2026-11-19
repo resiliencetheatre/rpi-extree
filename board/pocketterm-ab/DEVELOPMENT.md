@@ -507,3 +507,60 @@ rollback window. Retain known-good recovery images and source/config records.
 
 No claim is made that unrelated profiles in rpi-extree are credential-free;
 pre-existing tracked EdgeMap private material is a separate cleanup/rotation task.
+
+## PocketTerm Wifi hardware observation — 2026-11-19
+
+Operator-reported Pi 4 logs identify BCM43455 / brcmfmac, iwd 3.12 and firmware
+7.45.286 (FWID 01-95efe7fa). Connecting to the tested FRITZ!Box 7530 network failed
+through both LVGL and iwctl with `connect-failed, status: 16`. An iwctl debug trace
+showed successful receipt of the entered passphrase followed by driver connection
+failure. Status 16 alone does not establish the underlying firmware/AP failure.
+
+A temporary copy of the existing iwd configuration with
+`[DriverQuirks] SaeDisable=brcmfmac` enabled allowed iwctl association and subsequent
+systemd-networkd DHCP: wlan0 received 192.168.178.61/24, with IPv6 addresses also
+present. The report establishes association and addressing, not Internet access.
+Router security mode was not recorded. SAE point generation in the earlier debug
+trace alone does not establish which AKM was used for the failed connection.
+
+The shared `fs_pocketterm/etc/iwd/main.conf` now supplies this workaround to the
+baseline, A/B and public factory profiles. iwd network configuration stays disabled;
+networkd owns addresses. The quirk selects WPA2 on compatible mixed networks and
+prevents WPA3-only connections. It is scoped to brcmfmac and PocketTerm, not other
+boards or overlays. Retest before removing it or changing driver/firmware/iwd.
+
+After the temporary test, the operator made a new release, updated the target and
+reported that LVGL Wifi connection worked (2026-11-19). This is an operator-reported
+installed-release success, not a release built or deployed by the coding agent.
+The exact release identifier and verification that the temporary runtime overrides
+were removed were not supplied. The observation does not establish persistence
+across reboot, both A/B update directions or rollback.
+
+Wifi persistence and configuration ownership:
+
+| Target path | Backing storage / lifecycle |
+| --- | --- |
+| `/var/lib/iwd` | Bound through `/var/lib` to `/data/persist/var/lib/iwd`; saved SSIDs, credentials and iwd per-network settings survive compatible A/B updates and slot changes |
+| `/etc/iwd/main.conf` | Rootfs slot, installed from `fs_pocketterm/etc/iwd/main.conf`; contains the required tested `SaeDisable=brcmfmac` quirk and disables iwd address management |
+| `/etc/systemd/network/wlan0.network` | Rootfs slot; systemd-networkd DHCP/address policy |
+| `/run/iwd-wpa2-test` and runtime iwd drop-ins | Temporary diagnostics; cleared by reboot, not part of persistent Wifi settings |
+
+The post-build integration orders iwd after `pocketterm-ab-prepare.service` so
+its state directory is opened only after the persistent `/var/lib` bind. iwd owns
+credentials under its mode-0700 directory; LVGL does not save the entered password
+in application settings. Forgetting a network deletes the shared profile and
+therefore affects the previous slot too. Full factory reflashing replaces Data;
+slot-local profiles are not automatically migrated. A/B rollback restores the
+older slot's system configuration, which may lack the quirk, while retaining
+shared saved networks. Maintain compatible iwd state formats across rollback.
+
+When validating a release, remove the diagnostic runtime overrides
+`90-wifi-debug.conf` and `91-wpa2-test.conf`, then run `systemctl daemon-reload`
+and `systemctl restart iwd`. Check that `/etc/iwd/main.conf` contains
+`[DriverQuirks] SaeDisable=brcmfmac` and that iwd loads `/etc/iwd` rather than the
+copied `/run` configuration. No EEPROM or firmware update was part of this fix.
+
+Pending: explicit LVGL disconnect/forget tests, saved-network reconnect after
+reboot, inspection of the generated images, and saved-network persistence through
+both A/B update directions and rollback. Record release identifiers and observed
+slot/version for those tests separately.

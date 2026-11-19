@@ -92,6 +92,27 @@ journalctl -b -u pocketterm-ab-prepare -u pocketterm-ab -u lvgl-console
 ```
 
 Persistence binds `/etc/default`, `/etc/ssh`, `/var/lib` onto `/data/persist`.
+Saved Wifi profiles in `/var/lib/iwd` therefore survive SWU installation, slot
+changes and rollback. The Wifi section in LVGL Settings supports explicit scan,
+open/PSK connect, disconnect and forgetting the selected saved network. PSK input
+is visible. iwd is required to start after `pocketterm-ab-prepare.service` so its
+state directory uses the persistent bind. systemd-networkd continues to configure
+addresses; Wifi availability is not an application health requirement. Existing
+slot-local profiles are not automatically migrated; full factory reflashing
+replaces Data. Actual saved Wifi files reside at `/data/persist/var/lib/iwd`;
+forgetting a network deletes its shared profile for both slots.
+
+The release-owned `/etc/iwd/main.conf` comes from
+`fs_overlay/fs_pocketterm/etc/iwd/main.conf` and is not a persistent user setting.
+The shared PocketTerm iwd configuration disables SAE for brcmfmac after an
+operator test found this necessary for the BCM43455 / iwd 3.12 / firmware 7.45.286
+combination. Mixed networks use WPA2; WPA3-only networks are unsupported with this
+quirk. The operator reported successful LVGL connection after installing a new
+release on 2026-11-19. See DEVELOPMENT.md for the earlier iwctl association/DHCP
+result and the remaining disconnect/forget/reboot/A/B persistence checks. Older
+rollback slots may lack the quirk. Temporary `/run` test configurations and systemd
+overrides do not survive reboot; remove them when validating a release's defaults.
+Verify real Wifi and profile persistence on spare media.
 Additional persistent data belongs on `/data`. Slot-local edits are replaced by
 updates; shared formats must stay compatible with the previous release.
 Health requires active LVGL and udpptt plus a fresh PID heartbeat at
@@ -320,3 +341,24 @@ BMP, with no new package configuration. The A/B hook installs it for future
 images; [CHEATSHEET.md](CHEATSHEET.md#capture-the-running-lvgl-screen) includes
 copy/run commands for existing devices. Seven synthetic capture/encoding tests
 and the installation-hook check passed; physical capture remains untested.
+
+For the Wifi source change, refresh the local application in the intended idle
+configured output, then build images (operator commands; do not reload a defconfig
+onto an edited output):
+
+```sh
+WORKSPACE=/home/tech/laboratory/rpi4console
+case "${RELEASE_OUTPUT:-}" in
+    /*) ;;
+    *) echo "Set RELEASE_OUTPUT to the absolute intended output path" >&2; exit 1 ;;
+esac
+make -C "$WORKSPACE/buildroot" O="$RELEASE_OUTPUT" lvgl-console-local-reconfigure
+make -C "$WORKSPACE/buildroot" O="$RELEASE_OUTPUT"
+```
+
+Set `RELEASE_OUTPUT` to the absolute intended A/B output path first. The
+`reconfigure` target refreshes local sources and CMake dependencies for libsystemd.
+Repeat with `O="$PUBLIC_OUTPUT"` for a configured public factory output when
+needed. Preserve existing configurations and active builds. These commands do not
+sign or publish a release. Hardware Wifi association, DHCP and persistence across
+both update directions and rollback remain required checks for this change.
