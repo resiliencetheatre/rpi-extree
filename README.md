@@ -1,40 +1,30 @@
-# External Buildroot Trees for Raspberry Pi
+# External Buildroot Tree for Raspberry Pi
 
-This project aims to unify external Buildroot trees for various Raspberry 
-Pi hardware models and images. It is a work in progress designed to 
-streamline the build environment across Edgemap and other related projects.
+`rpi-extree` is a shared Buildroot external tree for EdgeMap, Link, and related Raspberry Pi projects. It brings board configurations and image customizations into one repository so you can select a target and build its image using a common setup.
 
-By consolidating configurations into a single, flexible environment, 
-users can easily select the desired hardware targets and components for 
-their builds. This approach leverages the official Raspberry Pi Foundation 
-Linux kernel, ensuring compatibility and access to the latest kernel updates.
+The project is a work in progress. Its configurations use the Raspberry Pi Linux kernel tree for board support and kernel updates.
 
 ## Front-Deployed Development
 
-This approach allows you to deploy embedded builds from any environment while 
-retaining full control over source code and build processes. It ensures 
-physical security of your development assets and, when necessary, enables 
-rapid evasion or relocation—an essential capability if the development 
-site comes under stress, surveillance, or physical threat.
+You can build and deploy images from a field site while keeping the source code and build environment under your control. A portable setup makes it easier to keep development assets physically secure and resume work elsewhere if conditions at the site change.
 
-![Intro picture](images/intro.png "Introduction")
+![Front-deployed development setup](images/intro.png "Introduction")
 
-### Equipments
+### Equipment and operating system
 
-- [Build host](https://www.geekompc.com/geekom-mini-it12-mini-pc/)
-- [Panasonic FZ-55 development laptop](https://ruggedbooks.com/products/toughbook-fz-55-mk3-intel-core-i5-1345u-14-hd-16gb-512gb-ssd-windows-11-pro)
+- [Geekom Mini IT12 build host](https://www.geekompc.com/geekom-mini-it12-mini-pc/)
+- [Panasonic Toughbook FZ-55 development laptop](https://ruggedbooks.com/products/toughbook-fz-55-mk3-intel-core-i5-1345u-14-hd-16gb-512gb-ssd-windows-11-pro)
 - [Debian](https://www.debian.org/distrib/)
 
 ## Buildroot
 
-Check [buildroot manual](https://buildroot.org/downloads/manual/manual.html) and install mandatory packages
-to your build host before building this project. Cross compilation of Raspberry Pi 5 image on Intel Core i5-8365U 
-laptop takes almost 4 hours. Using dedicated build host with fast disk, lot's of RAM and powerful CPU drops this
-time significantly. See equipments list above.
+Before building an image, install the required packages on your build host. See the [Buildroot manual](https://buildroot.org/downloads/manual/manual.html) for host requirements.
 
-Baseline configurations are:
+In my tests, cross-compiling a Raspberry Pi 5 image took nearly four hours on a laptop with an Intel Core i5-8365U. A dedicated build host with a faster CPU, more RAM, and fast storage can cut that time significantly.
 
-```
+The project uses these Buildroot configurations as starting points.
+
+```text
 raspberrypi4_64_defconfig
 raspberrypi5_defconfig
 raspberrypicm4io_64_defconfig
@@ -43,142 +33,13 @@ raspberrypizero2w_64_defconfig
 
 ## Available configurations
 
-Since early 2026, this repository has grown to support several hardware variants and use cases. Some Buildroot configurations (`defconfig` files) started as one-off experiments, while others are maintained over time. I also use this external tree (`rpi-extree`) to test new changes and learn how different platforms work.
+Since early 2026, `rpi-extree` has expanded to cover more hardware and use cases. Some configurations are maintained for regular use. Others support experiments and early development.
 
 | Defconfig | Description |
 | --- | --- |
 | `raspberrypi4_pocketterm_ab_defconfig` | [Link for the Waveshare PocketTerm 3.5](doc/pocketterm.md) with SWUpdate support |
-| `raspberrypi4_edgemap_lite_ab_defconfig` | EdgeMap Lite (rpi4), the replacement for the original EdgeMap configuration |
+| `raspberrypi4_edgemap_lite_ab_defconfig` | EdgeMap Lite for Raspberry Pi 4, which replaces the original EdgeMap configuration |
 | `raspberrypi4_reterminal_ab_defconfig` | Link for reTerminal with SWUpdate support |
-| `rpi5_offline_pxe_defconfig` | Offline PXE boot server for Debian installation |
+| `rpi5_offline_pxe_defconfig` | Offline PXE boot server for Debian installation on a Raspberry Pi 5 |
 
-The [`configs/`](configs/) directory contains additional configurations, including older variants and builds used occasionally.
-
-
-
-# Old documentation
-
-These sections are removed in near future.
-
-
-### Edgemap
-
-Build Edgemap project to Raspberry Pi 5:
-
-```
-mkdir ~/build
-cd ~/build
-git clone https://gitlab.com/buildroot.org/buildroot.git
-git clone https://codeberg.org/resiliencetheatre/rpi-extree.git
-export BR2_EXTERNAL=~/build/rpi-extree
-cd ~/build/buildroot
-make raspberrypi5_edgemap_defconfig
-make
-```
-
-Please note that this is still work in progress. If you like to
-get working Edgemap, use [Edgemap](https://github.com/resiliencetheatre/rpi4edgemap) from Github.
-
-## Linux kernel
-
-You can store and use custom kernel config:
-
-```
-BR2_LINUX_KERNEL_CUSTOM_CONFIG_FILE="${BR2_EXTERNAL}/configs/kernel/bcm2711_defconfig"
-```
-
-To update the kernel version, obtain the commit ID from the Raspberry Pi kernel
-repository and update `BR2_LINUX_KERNEL_CUSTOM_TARBALL_LOCATION` in the relevant
-defconfig:
-
-```
-# Clone kernel to separate directory outside project directory
-git clone https://github.com/raspberrypi/linux.git
-# Get latest commit ID
-git log
-```
-
-The archive hash must be added in two locations:
-
-- Kernel: `patches/linux/custom/linux.hash`
-- Toolchain kernel headers: `patches/linux-headers/custom/linux-headers.hash`
-
-```
-# Get the hash of the downloaded kernel archive
-sha256sum dl/linux/linux-[COMMIT_ID].tar.gz
-
-# Add this line to both hash files listed above:
-sha256  [HASH_OF_DOWNLOADED_TAR]  linux-[COMMIT_ID].tar.gz
-```
-
-You can also create a patch for your buildroot of custom Linux kernel hash (or any
-other change you do to your buildroot).
-
-```
-cd buildroot
-git diff -- linux/linux.hash > $BR2_EXTERNAL/patches/buildroot/[PATHCH_NAME].patch
-```
-
-Applying patch before build:
-
-```
-cd buildroot
-git apply "$BR2_EXTERNAL/patches/buildroot/[PATHCH_NAME].patch"
-```
-
-
-## Filesystem overlays
-
-Default filesystem overlay is defined:
-
-```
-BR2_ROOTFS_OVERLAY="${BR2_EXTERNAL}/fs_overlay/fs_base"
-```
-
-You may change this based on your build.
-
-# Displays
-
-To get lvgl working with various display, check these out:
-
-## Hyperpixel4
-
-Add config.txt for Raspberry Pi 5 and Hyperpixel 4 display:
-
-```
-# Enable DRM VC4 V3D driver and disable uart
-dtoverlay=vc4-kms-dpi-hyperpixel4
-dtoverlay=vc4-kms-v3d,nohdmi
-max_framebuffers=2
-enable_uart=0
-enable_dpi_lcd=1
-disable_splash=1
-```
-## Waveshare 4.3 DSI
-
-Set following to config.txt and comment out Hyperpixel4 settings to use [Waveshare 4.3"](https://www.waveshare.com/4.3inch-dsi-lcd-with-case.htm) display:
-
-```
-# waveshare 4.3" DSI
-dtoverlay=vc4-kms-v3d
-dtoverlay=vc4-kms-dsi-7inch
-dtparam=i2c_arm=on
-display_rotate=1
-```
-
-If you wish to silence boot messages, use folllowing cmdline.txt:
-
-```
-root=/dev/mmcblk0p2 rootwait console=ttyAMA0,115200 quiet loglevel=3 systemd.show_status=false rd.udev.log_level=3 vt.global_cursor_default=0 logo.nologo
-```
-
-
-# Sound
-
-In case you get 'broken pipe' error with your USB-C attached HF, add following:
-
-```
-# /etc/modprobe.d/sndusbaudio.conf 
-options snd_usb_audio index=0 ignore_ctl_error=1
-```
-
+The [`configs/`](configs/) directory also contains older variants and configurations used occasionally.
