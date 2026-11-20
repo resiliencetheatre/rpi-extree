@@ -23,6 +23,19 @@ That control also gives organizations a way to verify what they depend on. They 
 
 Building, deploying, and exercising a system like Link gives teams practical experience running their own communications infrastructure. It also gives them more control over how they communicate when their usual services are disrupted.
 
+## Build the Link image
+
+To build the Link image for the Waveshare PocketTerm 3.5, first clone Buildroot and `rpi-extree` side by side in your project directory.
+
+```sh
+git clone https://gitlab.com/buildroot.org/buildroot.git
+git clone https://github.com/resiliencetheatre/rpi-extree.git
+```
+
+Then follow the build instructions in [CHEATSHEET.md](../board/pocketterm-ab/CHEATSHEET.md) and [DEVELOPMENT.md](../board/pocketterm-ab/DEVELOPMENT.md). Adjust the paths in the examples to match your local setup.
+
+
+
 
 # Development notes
 
