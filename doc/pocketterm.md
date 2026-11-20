@@ -48,6 +48,9 @@ You can download a messaging app from a consumer app store, but operational secu
 
 The Raspberry Pi–based PocketTerm 3.5 is my preferred platform for training teams and prototyping the initial design. It gives teams hands-on experience building and testing the communications stack while they define the security requirements for their own production hardware. Learning to build and maintain an embedded platform takes time. Over the life of a device, your team needs to update and test its bootloader, kernel, and other system components. Working with the Link build system gives you hands-on practice with that maintenance before you take responsibility for a platform of your own.
 
+Build a security app for Windows or an Apple device and you’re still staking your users’ security on a vendor-controlled platform, from its firmware and operating system to its update process and cryptographic services. For teams with strict security requirements, a slick interface can sell confidence the underlying system hasn’t earned, and users bear the consequences.
+
+
 # Development notes
 
 This sections is work in progress and will be updated and/or removed in near future. 
