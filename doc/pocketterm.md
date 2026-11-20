@@ -34,8 +34,19 @@ git clone https://github.com/resiliencetheatre/rpi-extree.git
 
 Then follow the build instructions in [CHEATSHEET.md](../board/pocketterm-ab/CHEATSHEET.md) and [DEVELOPMENT.md](../board/pocketterm-ab/DEVELOPMENT.md). Adjust the paths in the examples to match your local setup.
 
+## Link reasoning
 
+Link is a working example of how a team can build and operate its own communications stack. It challenges the assumption that organizations must depend entirely on foreign platforms and infrastructure. Link complements everyday communications tools by giving a small, designated group a dedicated system for training and backup communications.
 
+Link provides a starting point for organizations with specialized requirements. Teams can use it to explore organization-approved cryptography, including classified algorithms where required, and assess how the stack might operate over dedicated infrastructure such as dark fiber or geostationary satellite links. Low probability of intercept (LPI) and low probability of detection (LPD) are requirements for specific deployments and depend on the communications link and its operating environment.
+
+The project favors minimalism at every layer, from the device and operating system to the services it runs. A dedicated Link device runs only what its communications role requires. Everyday apps such as WhatsApp belong on a separate device.
+
+You can download a messaging app from a consumer app store, but operational security (OPSEC) depends on how the app is implemented, who controls the device and network it relies on, and how your team uses it.
+
+(btw, I used generative language models to rephrase the sections above for a more diplomatic and politically sensitive tone).
+
+The Raspberry Pi–based PocketTerm 3.5 is my preferred platform for training teams and prototyping the initial design. It gives teams hands-on experience building and testing the communications stack while they define the security requirements for their own production hardware. Learning to build and maintain an embedded platform takes time. Over the life of a device, your team needs to update and test its bootloader, kernel, and other system components. Working with the Link build system gives you hands-on practice with that maintenance before you take responsibility for a platform of your own.
 
 # Development notes
 
