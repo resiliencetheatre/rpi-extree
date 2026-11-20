@@ -120,6 +120,42 @@ Health requires active LVGL and udpptt plus a fresh PID heartbeat at
 deadline). Confirm real display/input operation. systemd runtime watchdog is 15s;
 pre-root and kernel-hang coverage still needs measurement.
 
+### Framebuffer console ownership
+
+The shared PocketTerm overlay masks `getty@tty1.service` and
+`autovt@tty1.service` to reserve tty1 for LVGL. This prevents a late getty from
+resetting the VT and drawing a login prompt over the framebuffer UI. Serial
+gettys and other virtual terminals are unchanged. The launcher restores VT modes
+when LVGL stops, but tty1 remains without a login prompt; use SSH/serial for
+recovery, or stop LVGL and start `getty@tty2.service` for local maintenance.
+
+After installing the image, check `systemctl is-enabled getty@tty1.service
+autovt@tty1.service` reports both masked, and check the framebuffer through a
+complete boot with and without network. Hardware validation is pending.
+
+### Offline UI startup
+
+LVGL Wants the relay connector and connectivity monitors but is not ordered after
+them. The relay also has no Before ordering on LVGL. These clients retain their
+own network-online ordering and start independently; neither Ethernet nor Wifi
+connectivity is required to display Settings and configure Wifi. Persistent Data
+preparation and the existing local user-session prerequisite still precede LVGL.
+This applies to the shared PocketTerm baseline, A/B and public factory overlay.
+
+On a normal boot, test with Ethernet unplugged and no available saved Wifi network:
+the UI should appear without waiting for network-online. Then connect from Settings
+and verify messaging/connectivity status recovers. The service changes are source
+changes until a rebuilt image is installed; inspect `systemctl cat
+lvgl-console.service utxtrelay-console-client.service` for extra target overrides.
+
+Trial confirmation remains a separate constraint: it still requires both LVGL
+readiness and active udpptt within 60 seconds. udpptt retains network-online
+ordering, so an entirely offline unconfirmed trial can fail health confirmation
+and reset even while the UI is visible. Keep connectivity for the upgrade trial;
+test prolonged offline startup after confirmation and an ordinary reboot. This
+change does not relax the trial health policy. Hardware offline-startup validation
+is pending.
+
 Routine release (refresh other changed packages as appropriate):
 
 ```sh

@@ -56,10 +56,19 @@ The overlay enables these units through `multi-user.target.wants` symlinks:
 
 - `utxtrelay-console-client.service`: creates `/run/utxtrelay`, signals readiness
   once its local socket listens, and retries remote relay setup independently.
-- `lvgl-console.service`: starts after connector readiness and uses
+- `lvgl-console.service`: starts independently of connector/network readiness and uses
   `/usr/bin/lvgl-console-launcher` to restore VT state on exit. Only this UI
   service is installed; the post-build hook removes stale `lvgl-com.service`
   units and enablement links from incremental builds.
+
+The shared PocketTerm overlay masks `getty@tty1.service` and
+`autovt@tty1.service` with `/dev/null` symlinks. tty1 is reserved for LVGL:
+a late-starting getty must not reset its VT or draw a login prompt over the UI.
+The masks apply to baseline, A/B and public factory images. Stopping or crashing
+LVGL restores VT modes through the launcher but does not start a tty1 login.
+Serial-console gettys and other VTs remain available; use SSH or serial access
+for recovery, or stop LVGL and start `getty@tty2.service` for a maintenance VT.
+No global getty template, logind policy or kernel console setting is changed.
 
 The UI can still start if the connector fails, and reconnects when it returns.
 Both services run as root; the socket is restricted to that user. The connector

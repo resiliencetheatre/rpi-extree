@@ -1,7 +1,8 @@
 [Unit]
 Description=PocketTerm LVGL console
 Wants=utxtrelay-console-client.service dpinger.service
-After=utxtrelay-console-client.service dpinger.service systemd-user-sessions.service
+# Network clients start independently so Settings is available offline.
+After=systemd-user-sessions.service
 Conflicts=psplash.service
 
 [Service]

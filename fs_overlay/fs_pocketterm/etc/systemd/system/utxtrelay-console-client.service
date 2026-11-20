@@ -2,7 +2,6 @@
 Description=UTXT relay connector for LVGL messaging
 Wants=network-online.target
 After=network-online.target
-Before=lvgl-console.service
 
 [Service]
 Type=notify
