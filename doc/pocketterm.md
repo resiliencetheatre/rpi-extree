@@ -2,7 +2,32 @@
 
 ![Waveshare PocketTerm 3.5](../images/pocketterm_screenshots.png)
 
-These are development notes, work in progress.
+This project uses [Buildroot](https://buildroot.org/) to create an embedded Linux image for the Raspberry Pi 4 in the [Waveshare PocketTerm 3.5](https://www.waveshare.com/pocketterm35.htm). You can flash the image to a microSD card and boot directly into a system that includes only the packages and services you choose.
+
+It provides a hands-on way to learn embedded Linux fundamentals. You can cross-compile the system from local sources, build a bootable image, and configure low-level settings, the boot process, and the services that run on the device.
+
+The project is also a place to practice keeping an embedded system up to date. I started using it to learn [SWUpdate](https://swupdate.org/), and SWUpdate is quickly becoming part of my everyday development workflow.
+
+Working on this project changed how I choose hardware. Alongside specifications and availability, I now pay attention to how actively the platform's software is maintained. I used to hesitate to build around Raspberry Pi hardware, but seeing how the Raspberry Pi team maintains its [Linux kernel tree](https://github.com/raspberrypi/linux) changed my mind.
+
+The team tracks upstream Linux releases closely, documents changes in the Git history, and publishes updates regularly. That makes it easier to understand what changed and keep the kernel current, both of which matter to me when maintaining an embedded system.
+
+
+## What is Link?
+
+Link is a communications stack I built for off-grid and out-of-band use. It shows how organizations can deploy and operate their own communications systems, and why that capability matters when their usual channels are unavailable.
+
+Many critical infrastructure operators rely on consumer apps, devices, and networks for both primary and backup communications. If those channels share the same network or service provider, a single outage can take both offline. Operating a backup independently requires control over the software, the hardware it runs on, and the platform used to deploy and update it.
+
+That control also gives organizations a way to verify what they depend on. They can assess where hardware comes from, how software updates reach their devices, and how communications are protected. Those details are often hard to verify with consumer products.
+
+Building, deploying, and exercising a system like Link gives teams practical experience running their own communications infrastructure. It also gives them more control over how they communicate when their usual services are disrupted.
+
+
+# Development notes
+
+This sections is work in progress and will be updated and/or removed in near future. 
+
 
 ## Connectivity status for LVGL
 
