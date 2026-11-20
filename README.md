@@ -41,6 +41,26 @@ raspberrypicm4io_64_defconfig
 raspberrypizero2w_64_defconfig
 ```
 
+## Available configurations
+
+Since early 2026, this repository has grown to support several hardware variants and use cases. Some Buildroot configurations (`defconfig` files) started as one-off experiments, while others are maintained over time. I also use this external tree (`rpi-extree`) to test new changes and learn how different platforms work.
+
+| Defconfig | Description |
+| --- | --- |
+| `raspberrypi4_pocketterm_ab_defconfig` | [Link for the Waveshare PocketTerm 3.5](doc/pocketterm.md) with SWUpdate support |
+| `raspberrypi4_edgemap_lite_ab_defconfig` | EdgeMap Lite (rpi4), the replacement for the original EdgeMap configuration |
+| `raspberrypi4_reterminal_ab_defconfig` | Link for reTerminal with SWUpdate support |
+| `rpi5_offline_pxe_defconfig` | Offline PXE boot server for Debian installation |
+
+The [`configs/`](configs/) directory contains additional configurations, including older variants and builds used occasionally.
+
+
+
+# Old documentation
+
+These sections are removed in near future.
+
+
 ### Edgemap
 
 Build Edgemap project to Raspberry Pi 5:
