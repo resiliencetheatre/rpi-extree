@@ -50,7 +50,7 @@ The Raspberry Pi–based PocketTerm 3.5 is my preferred platform for training te
 
 Build a security app for Windows or an Apple device and you’re still staking your users’ security on a vendor-controlled platform, from its firmware and operating system to its update process and cryptographic services. For teams with strict security requirements, a slick interface can sell confidence the underlying system hasn’t earned, and users bear the consequences.
 
-Target is to bring this Pocketterm image to same level with original [Raspberry Pi4 Link](doc/link.md) implementation. 
+Target is to bring this Pocketterm image to same level with original [Raspberry Pi4 Link](link.md) implementation. 
 
 # Development notes
 
