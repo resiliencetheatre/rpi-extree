@@ -198,6 +198,18 @@ class ABTests(unittest.TestCase):
             self.assertIn('check_transport', installed.read_text())
             self.assertEqual(installed.read_bytes(), Path(__file__).with_name('control.py').read_bytes())
             self.assertTrue((target / 'usr/lib/pocketterm-ab/api_service.py').is_file())
+            self.assertEqual(os.readlink(target / 'etc/spacecom.conf'),
+                             '/etc/default/spacecom.conf')
+            self.assertEqual(os.readlink(target / 'var/spool/spacecom'),
+                             '/var/lib/spacecom/spool')
+            for name in ('wg0.netdev', 'wg0.network'):
+                self.assertEqual(os.readlink(target / 'etc/systemd/network' / name),
+                                 '/etc/default/pocketterm-vpn/' + name)
+            self.assertEqual(os.readlink(target / 'etc/systemd/system/wstunnel.service'),
+                             '/etc/default/pocketterm-vpn/wstunnel.service')
+            self.assertTrue((target / 'etc/systemd/system/pocketterm-vpn.service').is_file())
+            self.assertIn('After=pocketterm-ab-prepare.service', (target /
+                'etc/systemd/system/systemd-networkd.service.d/persistence.conf').read_text())
             self.assertFalse((target / 'etc/systemd/system/multi-user.target.wants/pocketterm-update-api.service').exists())
             ssl.unlink()
             rejected = subprocess.run(['sh', str(script), str(target)], env=environment, capture_output=True, text=True)

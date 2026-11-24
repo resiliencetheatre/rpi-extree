@@ -4,14 +4,14 @@
 #
 ################################################################################
 
-SPACECOM_VERSION = ba8823505b4038d45ad27b9d282091169c552e13
-SPACECOM_SITE = https://codeberg.org/resiliencetheatre/spacecom.git
+SPACECOM_VERSION = ef353c7e842fc12166a5b23181f1c7c3d16f0b0b
+SPACECOM_SITE = https://github.com/resiliencetheatre/spacecom.git
 SPACECOM_SITE_METHOD = git
 
 # Set this to the real license once you decide what to expose in the repo
 SPACECOM_LICENSE = Proprietary
 
-SPACECOM_DEPENDENCIES = norm
+SPACECOM_DEPENDENCIES = norm openssl sqlite
 
 SPACECOM_MAKE_ENV = $(TARGET_MAKE_ENV)
 
@@ -29,6 +29,7 @@ define SPACECOM_INSTALL_TARGET_CMDS
 		$(SPACECOM_MAKE_OPTS) \
 		DESTDIR="$(TARGET_DIR)" \
 		install
+	$(INSTALL) -D -m 0755 $(@D)/spacecomd $(TARGET_DIR)/usr/bin/spacecomd
 endef
 
 $(eval $(generic-package))

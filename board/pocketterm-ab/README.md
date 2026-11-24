@@ -115,6 +115,72 @@ overrides do not survive reboot; remove them when validating a release's default
 Verify real Wifi and profile persistence on spare media.
 Additional persistent data belongs on `/data`. Slot-local edits are replaced by
 updates; shared formats must stay compatible with the previous release.
+
+Spacecom's `/etc/spacecom.conf` links to `/etc/default/spacecom.conf` in new
+images. Before installing the first SWU with this support, save the current
+configuration on the running Pi (skip the copy if it is already migrated):
+
+```sh
+mountpoint -q /etc/default || exit 1
+test ! -e /etc/default/spacecom.conf || exit 1
+cp -p /etc/spacecom.conf /etc/default/spacecom.conf
+sync
+```
+
+After the update, edits through `/etc/spacecom.conf` affect the persistent file.
+The image supplies only the link, not device-specific settings. Spacecom must
+start after `pocketterm-ab-prepare.service` if managed by a custom systemd unit.
+Its `/var/lib/spacecom` database is already persistent. New images also link
+`/var/spool/spacecom` to `/var/lib/spacecom/spool`; preparation creates `inbox`
+and `outbox` there after binding persistent `/var/lib`, including on existing
+Data. Stop the Spacecom daemon and any process queueing files, then migrate the
+current spool on the Pi **before installing the first SWU with this support**:
+
+```sh
+mountpoint -q /var/lib || exit 1
+test ! -e /var/lib/spacecom/spool || exit 1
+mkdir -p /var/lib/spacecom
+cp -a /var/spool/spacecom /var/lib/spacecom/spool
+sync
+```
+
+Leave the daemon stopped until the update: the old image still uses its original
+spool, so further writes there would not be included in this copy. The new link
+keeps existing `inbox` and `outbox` config paths working without changing the
+config. Older rollback images retain their original slot-local configuration
+and spool paths. Factory reflashing replaces Data.
+
+WireGuard `wg0.netdev`, `wg0.network` and the device-owned `wstunnel.service`
+can be kept in `/etc/default/pocketterm-vpn`, on the existing persistent bind.
+**Before installing the first SWU with this support**, run on the current device:
+
+```sh
+mountpoint -q /etc/default || exit 1
+install -d -m 0750 -o root -g systemd-network /etc/default/pocketterm-vpn
+test ! -e /etc/default/pocketterm-vpn/wg0.netdev || exit 1
+test ! -e /etc/default/pocketterm-vpn/wg0.network || exit 1
+test ! -e /etc/default/pocketterm-vpn/wstunnel.service || exit 1
+cp -p /etc/systemd/network/wg0.netdev /etc/default/pocketterm-vpn/
+cp -p /etc/systemd/network/wg0.network /etc/default/pocketterm-vpn/
+cp -p /etc/systemd/system/wstunnel.service /etc/default/pocketterm-vpn/
+sync
+```
+
+New images link the three original paths to these saved files. Networkd waits
+for persistence preparation; preparation has no default dependencies so this
+early network ordering does not depend on `basic.target`. A separate
+`pocketterm-vpn.service` reloads systemd's unit cache after preparation and queues
+the saved wstunnel service for startup. No saved unit means no wstunnel startup.
+Edit the original paths normally after migration; changes then affect Data.
+Do not put device credentials in the source tree or release image. Any additional
+files referenced by these definitions must also use persistent paths. Older
+rollback images do not gain these links or startup behavior; their slot-local
+definitions remain in effect. Factory reflashing replaces Data.
+Check `systemctl status systemd-networkd pocketterm-vpn wstunnel`, `networkctl
+status wg0` and connectivity after the first trial and ordinary reboot. VPN
+availability is not a trial health requirement; hardware persistence tests remain
+required.
+
 Health requires active LVGL and udpptt plus a fresh PID heartbeat at
 `/run/lvgl-ab-ready`, produced after app display/input/UI initialization (60-second
 deadline). Confirm real display/input operation. systemd runtime watchdog is 15s;

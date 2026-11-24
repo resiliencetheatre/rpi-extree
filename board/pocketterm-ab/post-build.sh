@@ -71,10 +71,26 @@ ln -sf ../pocketterm-ab.service "$target_dir/etc/systemd/system/multi-user.targe
 install -d "$target_dir/etc/systemd/system/lvgl-console.service.d"
 printf '[Service]\nEnvironment=LV_AB_READY=/run/lvgl-ab-ready\nEnvironment=RETERMINAL_UPDATE_SOCKET=/run/pocketterm-update-api/control.sock\nExecStartPre=/bin/rm -f /run/lvgl-ab-ready\n' > "$target_dir/etc/systemd/system/lvgl-console.service.d/ab.conf"
 
-for service in lvgl-console udpptt sshd iwd; do
+for service in lvgl-console udpptt sshd iwd systemd-networkd; do
     install -d "$target_dir/etc/systemd/system/$service.service.d"
     printf '[Unit]\nRequires=pocketterm-ab-prepare.service\nAfter=pocketterm-ab-prepare.service\n' > "$target_dir/etc/systemd/system/$service.service.d/persistence.conf"
 done
+
+# Spacecom uses the same persistent configuration directory; operators seed it
+# on the running device before installing the first image with this link.
+ln -sf /etc/default/spacecom.conf "$target_dir/etc/spacecom.conf"
+# Keep queued and received files with the already persistent Spacecom database.
+install -d "$target_dir/var/spool"
+ln -sfnT /var/lib/spacecom/spool "$target_dir/var/spool/spacecom"
+# Device-owned VPN configuration lives in the existing Data-backed /etc/default.
+# Do not seed credentials or freeze all release-owned network/unit definitions.
+install -d "$target_dir/etc/systemd/network"
+for name in wg0.netdev wg0.network; do
+    ln -sf "/etc/default/pocketterm-vpn/$name" "$target_dir/etc/systemd/network/$name"
+done
+ln -sf /etc/default/pocketterm-vpn/wstunnel.service "$target_dir/etc/systemd/system/wstunnel.service"
+install -m 644 "$board_dir/pocketterm-vpn.service" "$target_dir/etc/systemd/system/"
+ln -sf ../pocketterm-vpn.service "$target_dir/etc/systemd/system/multi-user.target.wants/pocketterm-vpn.service"
 
 install -d "$target_dir/etc/systemd/system.conf.d"
 printf '[Manager]\nRuntimeWatchdogSec=15s\nRebootWatchdogSec=30s\n' > "$target_dir/etc/systemd/system.conf.d/ab-watchdog.conf"

@@ -304,6 +304,10 @@ def main():
                     os.sync()
                 if not os.path.ismount(target):
                     run('mount', '--bind', str(saved), str(target))
+            # Existing Data may predate Spacecom; create these after /var/lib
+            # is bound so the spool link also works on upgraded devices.
+            for name in ('inbox', 'outbox'):
+                Path('/var/lib/spacecom/spool', name).mkdir(parents=True, exist_ok=True)
         elif command == 'finish' and len(sys.argv) in (2, 3):
             finish(slot, trial, state, json.loads(sys.argv[2]) if len(sys.argv) == 3 else None)
         elif command == 'boot':
