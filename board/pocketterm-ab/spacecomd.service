@@ -1,0 +1,15 @@
+[Unit]
+Description=Spacecom bidirectional file delivery
+Requires=pocketterm-ab-prepare.service wstunnel.service
+After=pocketterm-ab-prepare.service wstunnel.service systemd-networkd.service
+ConditionPathExists=/etc/spacecom.conf
+
+[Service]
+Type=simple
+# networkd owns wg0 in this profile. Wait for configuration and an address;
+# an established peer handshake is not required for local queue processing.
+ExecStartPre=/usr/lib/systemd/systemd-networkd-wait-online --interface=wg0:degraded --timeout=60
+ExecStart=/usr/bin/spacecomd /etc/spacecom.conf
+Restart=on-failure
+RestartSec=5
+TimeoutStartSec=75

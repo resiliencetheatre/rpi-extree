@@ -128,8 +128,16 @@ sync
 ```
 
 After the update, edits through `/etc/spacecom.conf` affect the persistent file.
-The image supplies only the link, not device-specific settings. Spacecom must
-start after `pocketterm-ab-prepare.service` if managed by a custom systemd unit.
+The image supplies only the link, not device-specific settings. Provision a real
+configuration at `/etc/default/spacecom.conf`; a missing file skips daemon startup.
+The supplied `spacecomd.service` runs `/usr/bin/spacecomd /etc/spacecom.conf` after
+persistence preparation and `wstunnel.service`. The VPN loader queues it only
+after reloading the saved wstunnel unit from Data. It waits up to 60 seconds for
+networkd's `wg0` to be configured at least to degraded state with an address,
+retrying on failure. This does not verify a WireGuard handshake or remote
+connectivity. Spacecom is not an A/B trial health requirement.
+Inspect with `systemctl status spacecomd` and `journalctl -u spacecomd`;
+after correcting configuration, run `systemctl restart spacecomd`.
 Its `/var/lib/spacecom` database is already persistent. New images also link
 `/var/spool/spacecom` to `/var/lib/spacecom/spool`; preparation creates `inbox`
 and `outbox` there after binding persistent `/var/lib`, including on existing
@@ -170,7 +178,8 @@ New images link the three original paths to these saved files. Networkd waits
 for persistence preparation; preparation has no default dependencies so this
 early network ordering does not depend on `basic.target`. A separate
 `pocketterm-vpn.service` reloads systemd's unit cache after preparation and queues
-the saved wstunnel service for startup. No saved unit means no wstunnel startup.
+the saved wstunnel service and Spacecom for startup. No saved unit means neither
+service is queued by this loader.
 Edit the original paths normally after migration; changes then affect Data.
 Do not put device credentials in the source tree or release image. Any additional
 files referenced by these definitions must also use persistent paths. Older

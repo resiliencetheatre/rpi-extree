@@ -82,6 +82,7 @@ ln -sf /etc/default/spacecom.conf "$target_dir/etc/spacecom.conf"
 # Keep queued and received files with the already persistent Spacecom database.
 install -d "$target_dir/var/spool"
 ln -sfnT /var/lib/spacecom/spool "$target_dir/var/spool/spacecom"
+install -m 644 "$board_dir/spacecomd.service" "$target_dir/etc/systemd/system/"
 # Device-owned VPN configuration lives in the existing Data-backed /etc/default.
 # Do not seed credentials or freeze all release-owned network/unit definitions.
 install -d "$target_dir/etc/systemd/network"

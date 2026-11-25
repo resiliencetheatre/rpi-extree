@@ -9,6 +9,7 @@ Type=oneshot
 # PID 1 initially scans units before Data and /etc/default are mounted.
 ExecStart=/bin/systemctl daemon-reload
 ExecStart=/bin/systemctl --no-block start wstunnel.service
+ExecStart=/bin/systemctl --no-block start spacecomd.service
 RemainAfterExit=yes
 
 [Install]
