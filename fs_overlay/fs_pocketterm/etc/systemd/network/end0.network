@@ -3,3 +3,6 @@ Name=end0
 
 [Network]
 DHCP=ipv4
+
+[DHCPv4]
+RouteMetric=100

@@ -4,3 +4,6 @@ Name=wlan0
 [Network]
 DHCP=ipv4
 IPv6AcceptRA=yes
+
+[DHCPv4]
+RouteMetric=600
