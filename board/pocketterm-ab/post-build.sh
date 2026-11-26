@@ -71,7 +71,7 @@ ln -sf ../pocketterm-ab.service "$target_dir/etc/systemd/system/multi-user.targe
 install -d "$target_dir/etc/systemd/system/lvgl-console.service.d"
 printf '[Service]\nEnvironment=LV_AB_READY=/run/lvgl-ab-ready\nEnvironment=RETERMINAL_UPDATE_SOCKET=/run/pocketterm-update-api/control.sock\nExecStartPre=/bin/rm -f /run/lvgl-ab-ready\n' > "$target_dir/etc/systemd/system/lvgl-console.service.d/ab.conf"
 
-for service in lvgl-console udpptt sshd iwd systemd-networkd; do
+for service in lvgl-console udpptt c2ptt sshd iwd systemd-networkd; do
     install -d "$target_dir/etc/systemd/system/$service.service.d"
     printf '[Unit]\nRequires=pocketterm-ab-prepare.service\nAfter=pocketterm-ab-prepare.service\n' > "$target_dir/etc/systemd/system/$service.service.d/persistence.conf"
 done

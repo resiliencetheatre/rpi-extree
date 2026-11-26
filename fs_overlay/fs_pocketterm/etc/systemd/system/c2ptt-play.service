@@ -1,0 +1,13 @@
+[Unit]
+Description=PocketTerm Codec2 inbox playback
+PartOf=c2ptt.service
+Requires=c2ptt.service
+After=c2ptt.service sound.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+ExecStartPre=/bin/mkdir -p /var/spool/spacecom/inbox
+ExecStart=/usr/bin/play_spool /var/spool/spacecom/inbox/
+Restart=always
+RestartSec=5s

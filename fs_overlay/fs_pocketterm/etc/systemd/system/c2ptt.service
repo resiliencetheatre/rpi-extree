@@ -1,0 +1,14 @@
+[Unit]
+Description=PocketTerm Codec2 push-to-talk
+Conflicts=udpptt.service
+After=udpptt.service
+Wants=c2ptt-record.service c2ptt-play.service
+Before=c2ptt-record.service c2ptt-play.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/true
+
+[Install]
+WantedBy=multi-user.target

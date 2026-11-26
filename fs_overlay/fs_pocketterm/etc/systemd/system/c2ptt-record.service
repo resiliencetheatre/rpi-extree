@@ -1,0 +1,14 @@
+[Unit]
+Description=PocketTerm Codec2 push-to-talk recorder
+PartOf=c2ptt.service
+Requires=c2ptt.service
+After=c2ptt.service sound.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+WorkingDirectory=/etc
+ExecStartPre=/bin/mkdir -p /var/spool/spacecom/outbox
+ExecStart=/usr/bin/pttkey_rec -l
+Restart=always
+RestartSec=5s

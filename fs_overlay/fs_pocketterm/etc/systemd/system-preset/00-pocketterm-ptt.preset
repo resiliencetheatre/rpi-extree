@@ -1,0 +1,2 @@
+enable udpptt.service
+disable c2ptt.service
