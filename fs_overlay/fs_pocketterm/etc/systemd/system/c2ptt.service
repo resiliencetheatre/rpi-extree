@@ -1,7 +1,8 @@
 [Unit]
 Description=PocketTerm Codec2 push-to-talk
 Conflicts=udpptt.service
-After=udpptt.service
+Requires=spacecomd.service
+After=udpptt.service spacecomd.service
 Wants=c2ptt-record.service c2ptt-play.service
 Before=c2ptt-record.service c2ptt-play.service
 
